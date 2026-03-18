@@ -11,14 +11,49 @@ Complete guide to set up automated development workflows via Slack.
 
 ## Step 1: Create Slack App
 
-### 1.1 Create App
+### Option A: Using App Manifest (Recommended - Fast & Easy!)
+
+**This automatically configures everything for you.**
+
+1. Go to https://api.slack.com/apps
+2. Click **"Create New App"** → **"From an app manifest"**
+3. Select your workspace
+4. Choose **YAML** tab
+5. Copy and paste the contents of `slack-app-manifest.yml` from this repo
+6. Click **"Next"** → Review settings → **"Create"**
+7. Done! Your app is fully configured ✨
+
+**Now get your tokens:**
+
+1. Go to **"OAuth & Permissions"**
+   - Copy the **Bot User OAuth Token** (starts with `xoxb-`)
+
+2. Go to **"Basic Information"** → **"App-Level Tokens"**
+   - Click **"Generate Token and Scopes"**
+   - Name: "Socket Token"
+   - Add scope: `connections:write`
+   - Click **"Generate"**
+   - Copy the **App-Level Token** (starts with `xapp-`)
+
+3. Click **"Install to Workspace"** → **"Allow"**
+
+That's it! Skip to [Step 2](#step-2-get-claude-api-key).
+
+---
+
+### Option B: Manual Setup (If manifest doesn't work)
+
+<details>
+<summary>Click to expand manual instructions</summary>
+
+#### 1.1 Create App
 
 1. Go to https://api.slack.com/apps
 2. Click "Create New App" → "From scratch"
-3. Name: "Claude Code Bot"
+3. Name: "SlackClaw"
 4. Select your workspace
 
-### 1.2 Configure OAuth & Permissions
+#### 1.2 Configure OAuth & Permissions
 
 Navigate to "OAuth & Permissions" and add these **Bot Token Scopes**:
 
@@ -35,16 +70,19 @@ im:history
 im:read
 mpim:history
 mpim:read
+users:read
 ```
 
-### 1.3 Enable Socket Mode
+#### 1.3 Enable Socket Mode
 
 1. Go to "Socket Mode" in sidebar
 2. Enable Socket Mode
-3. Give it a name (e.g., "Claude Bot Socket")
-4. Copy the **App-Level Token** (starts with `xapp-`)
+3. Click "Generate" for app-level token
+4. Name: "Socket Token"
+5. Add scope: `connections:write`
+6. Copy the **App-Level Token** (starts with `xapp-`)
 
-### 1.4 Subscribe to Events
+#### 1.4 Subscribe to Events
 
 1. Go to "Event Subscriptions"
 2. Enable Events
@@ -55,11 +93,20 @@ mpim:read
    - `message.im`
    - `message.mpim`
 
-### 1.5 Install App
+#### 1.5 Enable Interactivity
+
+1. Go to "Interactivity & Shortcuts"
+2. Turn on **Interactivity**
+3. (Request URL not needed for Socket Mode)
+
+#### 1.6 Install App
 
 1. Go to "Install App" in sidebar
 2. Click "Install to Workspace"
-3. Copy the **Bot User OAuth Token** (starts with `xoxb-`)
+3. Click "Allow"
+4. Copy the **Bot User OAuth Token** (starts with `xoxb-`)
+
+</details>
 
 ## Step 2: Get Claude API Key
 

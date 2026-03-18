@@ -74,11 +74,13 @@ nano .env
 
 ### 1. Create Slack App
 
+**Quick method (recommended):**
 1. Go to https://api.slack.com/apps
-2. Create "SlackClaw" app
-3. Enable Socket Mode
-4. Add Bot Token Scopes (see [SETUP_GUIDE.md](./SETUP_GUIDE.md))
-5. Install to workspace
+2. Click "Create New App" → **"From an app manifest"**
+3. Paste contents from `slack-app-manifest.yml`
+4. Get your tokens and install
+
+**Manual method:** See [SETUP_GUIDE.md](./SETUP_GUIDE.md#option-b-manual-setup)
 
 ### 2. Configure Environment
 
