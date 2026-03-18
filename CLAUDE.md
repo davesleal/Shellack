@@ -62,3 +62,21 @@ High-signal events post top-level to the project channel (not just in thread):
 - ✅ Task done
 
 This lets Claude app scan project channels for a workspace-wide status update.
+
+## Claude-Slack Bridge
+
+When the environment variable `CLAUDE_BRIDGE_SESSION` is set (check with
+Bash: `echo $CLAUDE_BRIDGE_SESSION`), you are running inside a Slack bridge
+session. In this mode:
+
+1. When you need input from Dave, use the Slack MCP (`slack_send_message`) to
+   post to the channel ID in `$CLAUDE_BRIDGE_CHANNEL_ID`
+2. Format the message using Block Kit with interactive buttons:
+   - `action_id`: `claude_bridge_input`
+   - `value`: `{CLAUDE_BRIDGE_SESSION}|{option_value}`
+3. Then wait — Dave will click a button and the answer will arrive via stdin
+   automatically
+4. Do NOT ask for input via terminal (it will not be seen)
+
+Helper: `tools/slack_bridge.py::format_bridge_blocks(question, options, session_id)`
+returns the correct Block Kit JSON ready to pass to `slack_send_message`.
