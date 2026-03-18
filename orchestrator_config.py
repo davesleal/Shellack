@@ -13,7 +13,7 @@ PROJECTS = {
     "dayist": {
         "name": "Dayist",
         "path": os.environ.get("DAYIST_PROJECT_PATH", "/Users/daveleal/Applications/Dayist App"),
-        "bundle_id": "com.daveleal.Dayist",
+        "bundle_id": "com.daveleal.dayist",  # Fixed: lowercase to match App Store Connect
         "primary_channel": "dayist-dev",
         "language": "swift",
         "platform": "ios"
@@ -21,7 +21,7 @@ PROJECTS = {
     "nova": {
         "name": "NOVA",
         "path": "/Users/daveleal/Repos/NOVA",
-        "bundle_id": "com.daveleal.Nova",
+        "bundle_id": None,  # Set to actual bundle ID when ready
         "primary_channel": "nova-dev",
         "language": "swift",
         "platform": "ios"
@@ -29,7 +29,7 @@ PROJECTS = {
     "nudge": {
         "name": "Nudge",
         "path": "/Users/daveleal/Repos/Nudge",
-        "bundle_id": "com.daveleal.Nudge",
+        "bundle_id": None,  # Set to actual bundle ID when ready
         "primary_channel": "nudge-dev",
         "language": "swift",
         "platform": "ios"
@@ -41,15 +41,46 @@ PROJECTS = {
         "primary_channel": "slackclaw-dev",
         "language": "python",
         "platform": "server"
+    },
+    "tiledock": {
+        "name": "TileDock",
+        "path": "/Users/daveleal/Applications/MacDock",
+        "bundle_id": "com.daveleal.MacDock",
+        "primary_channel": "tiledock-dev",
+        "language": "swift",
+        "platform": "macos"
+    },
+    "atmosuniversal": {
+        "name": "Atmos Universal",
+        "path": "/Users/daveleal/Applications/atmos-universal",
+        "bundle_id": None,  # Not on App Store
+        "primary_channel": "atmos-dev",
+        "language": "swift",
+        "platform": "macos"
+    },
+    "sideplane": {
+        "name": "SidePlane",
+        "path": "/Users/daveleal/Applications/Mac2Vision",
+        "bundle_id": "com.daveleal.sideplane",
+        "primary_channel": "sideplane-dev",
+        "language": "swift",
+        "platform": "macos"
     }
 }
 
 # Channel Routing
 CHANNEL_ROUTING = {
-    # Project-specific channels
+    # iOS Project Channels
     "dayist-dev": {"project": "dayist", "mode": "dedicated"},
     "nova-dev": {"project": "nova", "mode": "dedicated"},
     "nudge-dev": {"project": "nudge", "mode": "dedicated"},
+
+    # macOS Project Channels
+    "tiledock-dev": {"project": "tiledock", "mode": "dedicated"},
+    "atmos-dev": {"project": "atmosuniversal", "mode": "dedicated"},
+    "sideplane-dev": {"project": "sideplane", "mode": "dedicated"},
+
+    # Meta
     "slackclaw-dev": {"project": "slackclaw", "mode": "dedicated"},
 
     # Special channels
