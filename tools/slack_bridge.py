@@ -8,6 +8,7 @@ project channel detection, and session-start notification.
 from __future__ import annotations
 
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -48,10 +49,12 @@ def format_bridge_blocks(
     if input_type == "confirm":
         btn_options = [("Yes", "yes"), ("No", "no")]
     else:
+        if not options:
+            raise ValueError("options must not be empty for input_type='choice'")
         btn_options = [(opt, opt) for opt in options]
 
     # Split into rows of 5 (Slack limit per actions block)
-    for i in range(0, max(len(btn_options), 1), 5):
+    for i in range(0, len(btn_options), 5):
         row = btn_options[i : i + 5]
         blocks.append(
             {
@@ -118,7 +121,6 @@ def post_session_start(channel_id: str, project_name: str) -> None:
     failures.  Logs a warning (but does not raise) on Slack application-level
     errors (e.g. ``channel_not_found``).
     """
-    import os
     token = os.environ["SLACK_BOT_TOKEN"]
     resp = requests.post(
         "https://slack.com/api/chat.postMessage",

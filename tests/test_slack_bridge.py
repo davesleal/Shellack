@@ -61,6 +61,12 @@ def test_format_confirm_button_values():
     assert "s42|no" in values
 
 
+def test_format_choice_empty_options_raises():
+    from tools.slack_bridge import format_bridge_blocks
+    with pytest.raises(ValueError, match="options must not be empty"):
+        format_bridge_blocks("Pick one", [], "sess", input_type="choice")
+
+
 # ---------------------------------------------------------------------------
 # detect_channel_id
 # ---------------------------------------------------------------------------
