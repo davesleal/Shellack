@@ -1,0 +1,39 @@
+<h2>Session Lifecycle</h2>
+<p class="subtitle">From trigger to completion</p>
+
+<div style="font-family: monospace; font-size: 13px; line-height: 2; background: #1a1a2e; color: #e0e0e0; padding: 28px 32px; border-radius: 12px; margin-bottom: 24px;">
+
+<span style="color:#fbbf24">1. TRIGGER</span><br>
+   @SlackClaw run: &lt;task&gt; in #project-channel<br>
+   → SlackSession created, thread opened with 🔵 status<br>
+   → Backend spawned (Max subprocess or API stream)<br>
+<br>
+<span style="color:#fbbf24">2. OUTPUT CHUNKING</span><br>
+   Backend produces output continuously<br>
+   → Buffer fills until: tool call completes │ paragraph ends │ 3s timeout<br>
+   → Chunk posted as new thread message<br>
+   → Next chunk edits same message if &lt;5s gap, else new message<br>
+<br>
+<span style="color:#fbbf24">3. INPUT — two paths</span><br>
+<br>
+   <span style="color:#34d399">Path A: Structured (buttons)</span><br>
+   Claude posts Block Kit with choices<br>
+   → User clicks → answer fed to backend → session continues<br>
+<br>
+   <span style="color:#60a5fa">Path B: Free-form (typed reply)</span><br>
+   User types in thread → bot_unified sees thread reply<br>
+   → Checks if active SlackSession exists for thread_ts<br>
+   → If yes: feeds reply to backend as user message<br>
+   → If no: falls back to normal @SlackClaw behavior<br>
+<br>
+<span style="color:#fbbf24">4. SESSION END</span><br>
+   Backend signals completion (process exits or stream ends)<br>
+   → Final chunk posted<br>
+   → ✅ status posted top-level to project channel<br>
+   → Session cleaned up from memory<br>
+<br>
+<span style="color:#fbbf24">5. TIMEOUTS &amp; ERRORS</span><br>
+   Idle &gt;30min → session paused, user notified<br>
+   Backend error → ❌ posted in thread, session cleaned up<br>
+   User types "stop" or "cancel" → session terminated immediately<br>
+</div>

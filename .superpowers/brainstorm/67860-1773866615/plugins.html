@@ -1,0 +1,65 @@
+<h2>Plugin & MCP Management</h2>
+<p class="subtitle">Manage everything from Slack — Claude plugins, MCPs, and SlackClaw extensions</p>
+
+<div style="display:flex;flex-direction:column;gap:20px">
+
+  <!-- Command reference -->
+  <div style="background:#1a1a1a;border-radius:8px;padding:16px;font-size:13px">
+    <div style="color:#e0e0e0;font-weight:600;margin-bottom:10px">Commands</div>
+    <div style="display:flex;flex-direction:column;gap:6px;color:#9ca3af;font-family:monospace">
+      <div><code style="color:#34d399">@SlackClaw plugins</code> <span style="color:#6b7280">— list all installed plugins, MCPs, and bot extensions</span></div>
+      <div><code style="color:#c084fc">@SlackClaw add plugin superpowers</code> <span style="color:#6b7280">— install Claude Code plugin</span></div>
+      <div><code style="color:#c084fc">@SlackClaw remove plugin superpowers</code> <span style="color:#6b7280">— uninstall Claude Code plugin</span></div>
+      <div><code style="color:#60a5fa">@SlackClaw add mcp github npx @modelcontextprotocol/server-github</code></div>
+      <div><code style="color:#60a5fa">@SlackClaw remove mcp github</code></div>
+      <div><code style="color:#fbbf24">@SlackClaw add bot-plugin app-store-connect</code> <span style="color:#6b7280">— SlackClaw extension</span></div>
+    </div>
+  </div>
+
+  <!-- @SlackClaw plugins output mockup -->
+  <div class="mockup">
+    <div class="mockup-header">@SlackClaw plugins — output in Slack</div>
+    <div class="mockup-body" style="padding:16px;font-size:13px">
+      <div style="background:#222;border-radius:8px;padding:14px">
+        <div style="font-weight:600;color:#e0e0e0;margin-bottom:12px">🦞 SlackClaw — Installed</div>
+
+        <div style="margin-bottom:14px">
+          <div style="color:#c084fc;font-weight:600;font-size:12px;letter-spacing:.05em;margin-bottom:6px">CLAUDE CODE PLUGINS</div>
+          <div style="display:flex;flex-direction:column;gap:4px;color:#d1d5db">
+            <div style="display:flex;justify-content:space-between"><span>⚡ superpowers</span><span style="color:#34d399">v5.0.5 ✓</span></div>
+            <div style="display:flex;justify-content:space-between"><span>💬 slack</span><span style="color:#34d399">v2.1.0 ✓</span></div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div style="color:#60a5fa;font-weight:600;font-size:12px;letter-spacing:.05em;margin-bottom:6px">MCP SERVERS</div>
+          <div style="display:flex;flex-direction:column;gap:4px;color:#d1d5db">
+            <div style="display:flex;justify-content:space-between"><span>🐙 github</span><span style="color:#9ca3af">npx @modelcontextprotocol/server-github</span></div>
+            <div style="display:flex;justify-content:space-between"><span>🎨 figma</span><span style="color:#9ca3af">npx @modelcontextprotocol/server-figma</span></div>
+            <div style="display:flex;justify-content:space-between"><span>☁️ cloudflare</span><span style="color:#9ca3af">npx @cloudflare/mcp-server-cloudflare</span></div>
+          </div>
+        </div>
+
+        <div>
+          <div style="color:#fbbf24;font-weight:600;font-size:12px;letter-spacing:.05em;margin-bottom:6px">SLACKCLAW EXTENSIONS</div>
+          <div style="display:flex;flex-direction:column;gap:4px;color:#d1d5db">
+            <div style="display:flex;justify-content:space-between"><span>📱 app-store-connect</span><span style="color:#34d399">active ✓</span></div>
+            <div style="display:flex;justify-content:space-between"><span>👀 peer-review</span><span style="color:#34d399">active ✓</span></div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;border-top:1px solid #333;padding-top:10px;color:#6b7280;font-size:12px">
+          Add: <code>@SlackClaw add plugin &lt;name&gt;</code> · <code>@SlackClaw add mcp &lt;name&gt; &lt;cmd&gt;</code> · <code>@SlackClaw add bot-plugin &lt;name&gt;</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#1a1a1a;border-radius:8px;padding:14px;font-size:12px;color:#6b7280">
+    <strong style="color:#e0e0e0">How it works under the hood</strong><br><br>
+    <span style="color:#c084fc">Claude plugins</span> → shells out to <code>claude plugin install/uninstall</code> on the host machine<br>
+    <span style="color:#60a5fa">MCPs</span> → shells out to <code>claude mcp add/remove</code>, updates <code>~/.claude/settings.json</code><br>
+    <span style="color:#fbbf24">SlackClaw extensions</span> → downloaded to <code>SlackClaw/extensions/</code>, loaded at runtime, no restart needed<br><br>
+    All changes take effect on the next <code>run:</code> session. Hot-reload for bot extensions.
+  </div>
+</div>
