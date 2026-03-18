@@ -21,6 +21,9 @@ import uuid
 # Add SlackClaw repo to path so orchestrator_config and tools are importable
 sys.path.insert(0, "/Users/daveleal/Repos/SlackClaw")
 
+from dotenv import load_dotenv
+load_dotenv("/Users/daveleal/Repos/SlackClaw/.env")
+
 from tools.slack_bridge import detect_channel_id, post_session_start
 
 # ---------------------------------------------------------------------------
