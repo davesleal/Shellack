@@ -62,7 +62,7 @@ class LifecycleNotifier:
         )
 
     def done(self, summary: str, issue_number: Optional[int] = None):
-        issue_text = f", issue #{issue_number} closed" if issue_number else ""
+        issue_text = f", issue #{issue_number} closed" if issue_number is not None else ""
         self._post_thread(f"✅ Done: {summary}{issue_text}")
         self._post_channel(
             f"✅ [{self.project_name}] Done: {summary}{issue_text}"

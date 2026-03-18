@@ -64,6 +64,14 @@ def test_needs_human_mentions_dave(notifier, app):
     assert any("U999" in t for t in texts)
 
 
+def test_pending_review_includes_thread_link_in_channel_post(notifier, app):
+    notifier.pending_review(thread_link="https://slack.com/thread/123")
+    calls = app.client.chat_postMessage.call_args_list
+    assert len(calls) == 2
+    channel_call = next(c for c in calls if "thread_ts" not in c.kwargs)
+    assert "https://slack.com/thread/123" in channel_call.kwargs["text"]
+
+
 def test_failed_posts_to_thread_only(notifier, app):
     notifier.failed("API timeout")
     calls = app.client.chat_postMessage.call_args_list
