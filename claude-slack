@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""
+claude-slack — Slack↔Terminal bridge wrapper for Claude Code.
+
+Drop-in replacement for `claude`. Creates a named pipe session, exports
+CLAUDE_BRIDGE_SESSION and CLAUDE_BRIDGE_CHANNEL_ID, and launches `claude`
+with the pipe as stdin so Slack button clicks feed answers back automatically.
+"""
+
+from __future__ import annotations
+
+import atexit
+import fcntl
+import json
+import os
+import signal
+import subprocess
+import sys
+import uuid
+
+# Add SlackClaw repo to path so orchestrator_config and tools are importable
+sys.path.insert(0, "/Users/daveleal/Repos/SlackClaw")
+
+from tools.slack_bridge import detect_channel_id, post_session_start
+
+# ---------------------------------------------------------------------------
+# Session setup
+# ---------------------------------------------------------------------------
+
+proc_handle = None  # initialised before signal handlers so SIGTERM is safe
+
+session_id = str(uuid.uuid4())
+session_dir = "/tmp/claude_bridge"
+pipe_path = os.path.join(session_dir, session_id)
+session_file = os.path.join(session_dir, f"{session_id}.json")
+
+os.makedirs(session_dir, exist_ok=True)
+os.mkfifo(pipe_path)
+
+# Open write-end first (O_NONBLOCK) to unblock the read-end open below
+write_fd = os.open(pipe_path, os.O_WRONLY | os.O_NONBLOCK)
+# Open read-end (O_NONBLOCK); succeeds immediately because write-end is open
+read_fd = os.open(pipe_path, os.O_RDONLY | os.O_NONBLOCK)
+# Clear O_NONBLOCK from read-end so subprocess stdin blocks normally
+_flags = fcntl.fcntl(read_fd, fcntl.F_GETFL)
+fcntl.fcntl(read_fd, fcntl.F_SETFL, _flags & ~os.O_NONBLOCK)
+
+channel_id, project_name = detect_channel_id()
+
+with open(session_file, "w") as f:
+    json.dump(
+        {"pipe": pipe_path, "channel_id": channel_id, "project_name": project_name},
+        f,
+    )
+
+# ---------------------------------------------------------------------------
+# Cleanup
+# ---------------------------------------------------------------------------
+
+def cleanup() -> None:
+    try:
+        os.close(write_fd)
+    except Exception:
+        pass
+    # read_fd ownership transferred to os.fdopen() → do not close by fd number
+    for path in [pipe_path, session_file]:
+        try:
+            os.unlink(path)
+        except Exception:
+            pass
+
+
+atexit.register(cleanup)
+
+
+def _sigterm_handler(*_) -> None:
+    # Forward SIGTERM to claude subprocess so it can save state, then clean up
+    if proc_handle is not None:
+        try:
+            proc_handle.send_signal(signal.SIGTERM)
+        except Exception:
+            pass
+    cleanup()
+    sys.exit(0)
+
+
+signal.signal(signal.SIGTERM, _sigterm_handler)
+
+# ---------------------------------------------------------------------------
+# Announce session to Slack
+# ---------------------------------------------------------------------------
+
+try:
+    post_session_start(channel_id, project_name)
+except Exception as e:
+    print(f"[claude-slack] Could not post session-start to Slack: {e}", file=sys.stderr)
+
+# ---------------------------------------------------------------------------
+# Launch claude
+# ---------------------------------------------------------------------------
+
+env = os.environ.copy()
+env["CLAUDE_BRIDGE_SESSION"] = session_id
+env["CLAUDE_BRIDGE_CHANNEL_ID"] = channel_id
+
+# os.fdopen transfers fd ownership; Popen dup2s it to stdin (fd 0).
+# O_CLOEXEC is absent by default on macOS so write_fd is also inherited —
+# this is intentional (write_fd in the child is the keep-alive copy).
+proc_handle = subprocess.Popen(
+    ["claude"] + sys.argv[1:],
+    stdin=os.fdopen(read_fd, "rb"),
+    env=env,
+)
+proc_handle.wait()
+sys.exit(proc_handle.returncode)
