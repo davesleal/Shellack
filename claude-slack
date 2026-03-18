@@ -37,10 +37,11 @@ session_file = os.path.join(session_dir, f"{session_id}.json")
 os.makedirs(session_dir, exist_ok=True)
 os.mkfifo(pipe_path)
 
-# Open write-end first (O_NONBLOCK) to unblock the read-end open below
-write_fd = os.open(pipe_path, os.O_WRONLY | os.O_NONBLOCK)
-# Open read-end (O_NONBLOCK); succeeds immediately because write-end is open
+# macOS: open read-end first (O_NONBLOCK succeeds immediately without a writer on BSD).
+# Then open write-end (O_NONBLOCK now succeeds because a reader exists).
+# Linux is the opposite — this order is correct for macOS.
 read_fd = os.open(pipe_path, os.O_RDONLY | os.O_NONBLOCK)
+write_fd = os.open(pipe_path, os.O_WRONLY | os.O_NONBLOCK)
 # Clear O_NONBLOCK from read-end so subprocess stdin blocks normally
 _flags = fcntl.fcntl(read_fd, fcntl.F_GETFL)
 fcntl.fcntl(read_fd, fcntl.F_SETFL, _flags & ~os.O_NONBLOCK)
