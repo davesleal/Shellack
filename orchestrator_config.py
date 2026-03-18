@@ -16,7 +16,8 @@ PROJECTS = {
         "bundle_id": "com.daveleal.dayist",  # Fixed: lowercase to match App Store Connect
         "primary_channel": "dayist-dev",
         "language": "swift",
-        "platform": "ios"
+        "platform": "ios",
+        "github_repo": "davesleal/Dayist"
     },
     "nova": {
         "name": "NOVA",
@@ -24,7 +25,8 @@ PROJECTS = {
         "bundle_id": None,  # Set to actual bundle ID when ready
         "primary_channel": "nova-dev",
         "language": "swift",
-        "platform": "ios"
+        "platform": "ios",
+        "github_repo": "davesleal/NOVA"
     },
     "nudge": {
         "name": "Nudge",
@@ -32,7 +34,8 @@ PROJECTS = {
         "bundle_id": None,  # Set to actual bundle ID when ready
         "primary_channel": "nudge-dev",
         "language": "swift",
-        "platform": "ios"
+        "platform": "ios",
+        "github_repo": "davesleal/Nudge"
     },
     "slackclaw": {
         "name": "SlackClaw",
@@ -40,7 +43,8 @@ PROJECTS = {
         "bundle_id": None,
         "primary_channel": "slackclaw-dev",
         "language": "python",
-        "platform": "server"
+        "platform": "server",
+        "github_repo": "davesleal/SlackClaw"
     },
     "tiledock": {
         "name": "TileDock",
@@ -48,7 +52,8 @@ PROJECTS = {
         "bundle_id": "com.daveleal.MacDock",
         "primary_channel": "tiledock-dev",
         "language": "swift",
-        "platform": "macos"
+        "platform": "macos",
+        "github_repo": "davesleal/TileDock"
     },
     "atmosuniversal": {
         "name": "Atmos Universal",
@@ -56,7 +61,8 @@ PROJECTS = {
         "bundle_id": None,  # Not on App Store
         "primary_channel": "atmos-dev",
         "language": "swift",
-        "platform": "macos"
+        "platform": "macos",
+        "github_repo": "davesleal/atmos-universal"
     },
     "sideplane": {
         "name": "SidePlane",
@@ -64,7 +70,8 @@ PROJECTS = {
         "bundle_id": "com.daveleal.sideplane",
         "primary_channel": "sideplane-dev",
         "language": "swift",
-        "platform": "macos"
+        "platform": "macos",
+        "github_repo": "davesleal/SidePlane"
     }
 }
 
