@@ -27,6 +27,7 @@ from orchestrator_config import (
 from orchestrator import Orchestrator
 from peer_review import PeerReviewCoordinator
 from app_store_connect import AppStoreConnectClient, format_feedback_for_slack
+from agents import AgentFactory
 
 # Load environment
 load_dotenv()
@@ -38,6 +39,7 @@ anthropic_client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 # Initialize modules
 orchestrator = Orchestrator()
 peer_review = PeerReviewCoordinator()
+agent_factory = AgentFactory(anthropic_client)
 
 # Session management
 active_sessions: Dict[str, list] = {}
@@ -53,47 +55,23 @@ def get_channel_name(channel_id: str) -> str:
         return ""
 
 
-def execute_claude_task(project_path: str, task: str, thread_context: list = None) -> str:
-    """Execute task with Claude"""
-    try:
-        messages = thread_context or []
-        messages.append({"role": "user", "content": task})
-
-        system_prompt = f"""You are a senior developer working on a project at: {project_path}
-
-You have access to the codebase and can help with:
-- Code analysis and explanations
-- Bug investigation
-- Feature implementation
-- Code reviews
-- Testing
-
-Be concise but thorough. Focus on practical solutions."""
-
-        response = anthropic_client.messages.create(
-            model="claude-sonnet-4-5-20250929",
-            max_tokens=4096,
-            system=system_prompt,
-            messages=messages
-        )
-
-        return response.content[0].text
-
-    except Exception as e:
-        return f"Error: {str(e)}"
-
 
 # ============================================================================
 # PROJECT AGENT HANDLERS (for #dayist-dev, #nova-dev, etc.)
 # ============================================================================
 
 def handle_project_message(event, say, channel_name: str):
-    """Handle messages in project-specific channels"""
+    """Handle messages in project-specific channels using specialized project agents."""
     text = event["text"]
     thread_ts = event.get("thread_ts", event["ts"])
+    channel_id = event["channel"]
 
-    # Get project config
-    project = get_project_for_channel(channel_name)
+    # Get project config and resolve project key
+    from orchestrator_config import CHANNEL_ROUTING, PROJECTS
+    routing = CHANNEL_ROUTING.get(channel_name)
+    project_key = routing["project"] if routing else None
+    project = PROJECTS.get(project_key) if project_key else None
+
     if not project:
         say(
             text=f"❌ Channel `{channel_name}` not configured. See orchestrator_config.py",
@@ -112,27 +90,25 @@ def handle_project_message(event, say, channel_name: str):
             thread_ts=thread_ts
         )
 
-    # Add to history
-    active_sessions[thread_ts].append({
-        "role": "user",
-        "content": prompt
-    })
+    # Build context (exclude the last user message — agent.handle adds it)
+    context = list(active_sessions[thread_ts])
 
-    # Process with Claude
+    active_sessions[thread_ts].append({"role": "user", "content": prompt})
+
+    # Dispatch to specialized project agent
     say(text="🔄 Processing...", thread_ts=thread_ts)
 
-    response = execute_claude_task(
-        project["path"],
-        prompt,
-        active_sessions[thread_ts]
+    agent = agent_factory.get_agent(
+        project_key, project,
+        app, channel_id, thread_ts
     )
+    response, agent_label = agent.handle(prompt, context)
 
-    active_sessions[thread_ts].append({
-        "role": "assistant",
-        "content": response
-    })
+    active_sessions[thread_ts].append({"role": "assistant", "content": response})
 
-    say(text=response, thread_ts=thread_ts)
+    # Label sub-agent responses so it's clear who answered
+    header = f"🤖 *{agent_label}*\n" if agent_label != project["name"] else ""
+    say(text=f"{header}{response}", thread_ts=thread_ts)
 
 
 # ============================================================================
