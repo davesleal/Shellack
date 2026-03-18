@@ -6,7 +6,7 @@ Autonomous agents review each other's work
 
 import json
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List
 from dataclasses import dataclass
 from anthropic import Anthropic
 
@@ -221,6 +221,14 @@ class StagedPeerReview:
         )
         review_thread_ts = opening.get("ts")
 
+        # Post back-link to origin project thread
+        if origin_channel_id and origin_thread_ts:
+            self.app.client.chat_postMessage(
+                channel=origin_channel_id,
+                thread_ts=origin_thread_ts,
+                text=f"👀 Review posted in #code-review",
+            )
+
         # Run reviewers and post results
         reviews = self.coordinator.review_pr(pr_data)
         summary_text = self.coordinator.format_review_summary(reviews)
@@ -246,7 +254,8 @@ class StagedPeerReview:
         peers = [
             key for key, cfg in self.projects.items()
             if key != project_key and (
-                cfg.get("platform") == platform or cfg.get("language") == language
+                (platform and cfg.get("platform") == platform) or
+                (language and cfg.get("language") == language)
             )
         ][:2]
 
