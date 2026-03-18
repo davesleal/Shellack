@@ -21,7 +21,7 @@ active_sessions: Dict[str, list] = {}
 
 # Channel to project directory mapping
 CHANNEL_PROJECTS = {
-    "dayist-dev": "/Users/daveleal/Applications/Dayist App",
+    "dayist-dev": "/path/to/your/project"  # Update with your project path,
     # Add more channels/projects here
 }
 

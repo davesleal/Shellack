@@ -142,7 +142,7 @@ chmod 600 ~/.appstoreconnect/AuthKey_*.p8
 ### 4.1 Install Dependencies
 
 ```bash
-cd "/Users/daveleal/Applications/Dayist App/slack-claude-bot"
+cd "/Users/daveleal/Repos/SlackClaw"
 pip install -r requirements.txt
 ```
 
@@ -173,7 +173,7 @@ APP_STORE_CONNECT_ISSUER_ID=YOUR_ISSUER_ID
 APP_STORE_CONNECT_PRIVATE_KEY_PATH=/Users/daveleal/.appstoreconnect/AuthKey_XXXXX.p8
 
 # Projects
-DAYIST_PROJECT_PATH=/Users/daveleal/Applications/Dayist App
+DAYIST_PROJECT_PATH=/path/to/your/project
 ```
 
 ### 4.3 Configure Channels
@@ -183,7 +183,7 @@ Edit `bot_enhanced.py` to map your channels:
 ```python
 CHANNEL_PROJECTS = {
     "dayist-dev": {
-        "path": "/Users/daveleal/Applications/Dayist App",
+        "path": "/path/to/your/project",
         "bundle_id": "com.daveleal.Dayist",
         "auto_investigate": True
     },
@@ -262,10 +262,10 @@ Create `~/Library/LaunchAgents/com.daveleal.claude-bot.plist`:
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/python3</string>
-        <string>/Users/daveleal/Applications/Dayist App/slack-claude-bot/bot_enhanced.py</string>
+        <string>/Users/daveleal/Repos/SlackClaw/bot_enhanced.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Users/daveleal/Applications/Dayist App/slack-claude-bot</string>
+    <string>/Users/daveleal/Repos/SlackClaw</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
@@ -290,7 +290,7 @@ launchctl load ~/Library/LaunchAgents/com.daveleal.claude-bot.plist
 tmux new -s claude-bot
 
 # Run bot
-cd "/Users/daveleal/Applications/Dayist App/slack-claude-bot"
+cd "/Users/daveleal/Repos/SlackClaw"
 python bot_enhanced.py
 
 # Detach: Ctrl+B, then D
@@ -314,7 +314,7 @@ Each Slack thread = isolated session with conversation context:
 ```
 User: @Claude fix the login bug
 Bot: 🧵 New session
-     📂 Project: /Users/daveleal/Applications/Dayist App
+     📂 Project: /path/to/your/project
 
      I'll analyze the login code...
      [Analysis results]

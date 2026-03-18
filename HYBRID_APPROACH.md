@@ -90,7 +90,7 @@ When a bug is posted:
 
 2. **You investigate locally**
    ```bash
-   cd "/Users/daveleal/Applications/Dayist App"
+   cd /path/to/your/project
    claude code
    # Ask Claude about the issue using your subscription
    ```
