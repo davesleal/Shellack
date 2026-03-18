@@ -4,6 +4,7 @@ SlackClaw Peer Review System
 Autonomous agents review each other's work
 """
 
+import json
 import os
 from typing import Dict, List, Optional
 from dataclasses import dataclass
@@ -58,96 +59,63 @@ Evaluate code for:
 - Resource cleanup"""
         }
 
-    def review(self, changes: Dict) -> CodeReview:
-        """
-        Perform code review
-
-        Args:
-            changes: Dict with 'files', 'diff', 'description'
-
-        Returns:
-            CodeReview object
-        """
-        system_prompt = self.system_prompts.get(
-            self.focus_area,
-            "You are a code reviewer."
+    def _call_claude(self, messages: list, system: str):
+        return anthropic_client.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=2048,
+            system=system,
+            messages=messages,
         )
 
-        # Build review prompt
-        review_prompt = f"""Review the following code changes:
+    def review(self, changes: Dict) -> CodeReview:
+        system_prompt = self.system_prompts.get(self.focus_area, "You are a code reviewer.")
+        system_prompt += """
 
-**Description:** {changes.get('description', 'No description')}
+IMPORTANT: Respond ONLY with valid JSON matching this exact schema:
+{
+  "status": "approved" | "changes_requested",
+  "score": <integer 0-100>,
+  "strengths": [<string>, ...],
+  "concerns": [<string>, ...],
+  "suggestions": [<string>, ...],
+  "blocking_issues": [<string>, ...]
+}
+Do not include any text outside the JSON object."""
 
-**Files Changed:**
-{chr(10).join(f"- {f}" for f in changes.get('files', []))}
-
-**Diff:**
-```
-{changes.get('diff', 'No diff provided')}
-```
-
-Provide a structured review with:
-1. Overall assessment (approve/request changes)
-2. Score (0-100)
-3. Strengths (what's good)
-4. Concerns (what needs attention)
-5. Suggestions (how to improve)
-6. Blocking issues (must be fixed before merge)
-
-Format as JSON."""
+        review_prompt = f"""Review these changes:
+Description: {changes.get('description', 'No description')}
+Files: {', '.join(changes.get('files', []))}
+Diff:
+{changes.get('diff', 'No diff')}"""
 
         try:
-            response = anthropic_client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=2048,
+            response = self._call_claude(
+                messages=[{"role": "user", "content": review_prompt}],
                 system=system_prompt,
-                messages=[{
-                    "role": "user",
-                    "content": review_prompt
-                }]
             )
-
-            # Parse response (simplified - would need proper JSON parsing)
-            content = response.content[0].text
-
-            # Extract key parts (this is a simple example)
+            content = response.content[0].text.strip()
+            # Strip markdown fences if present
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.startswith("json"):
+                    content = content[4:]
+            data = json.loads(content)
             return CodeReview(
                 reviewer=self.focus_area,
-                status="approved" if "approve" in content.lower() else "changes_requested",
-                score=self._extract_score(content),
-                strengths=self._extract_list(content, "Strengths"),
-                concerns=self._extract_list(content, "Concerns"),
-                suggestions=self._extract_list(content, "Suggestions"),
-                blocking_issues=self._extract_list(content, "Blocking")
+                status=data.get("status", "changes_requested"),
+                score=int(data.get("score", 0)),
+                strengths=data.get("strengths", []),
+                concerns=data.get("concerns", []),
+                suggestions=data.get("suggestions", []),
+                blocking_issues=data.get("blocking_issues", []),
             )
-
         except Exception as e:
             print(f"Error in {self.focus_area} review: {e}")
             return CodeReview(
-                reviewer=self.focus_area,
-                status="error",
-                score=0,
-                strengths=[],
-                concerns=[f"Review failed: {str(e)}"],
-                suggestions=[],
-                blocking_issues=[]
+                reviewer=self.focus_area, status="error", score=0,
+                strengths=[], concerns=[f"Review failed: {str(e)}"],
+                suggestions=[], blocking_issues=[],
             )
-
-    def _extract_score(self, content: str) -> int:
-        """Extract numeric score from review"""
-        import re
-        match = re.search(r'score[:\s]+(\d+)', content, re.IGNORECASE)
-        return int(match.group(1)) if match else 75
-
-    def _extract_list(self, content: str, section: str) -> List[str]:
-        """Extract list items from a section"""
-        import re
-        pattern = rf'{section}[:\s]+(.*?)(?=\n\n|\Z)'
-        match = re.search(pattern, content, re.DOTALL | re.IGNORECASE)
-        if match:
-            items = match.group(1).strip().split('\n')
-            return [item.strip('- ').strip() for item in items if item.strip()]
-        return []
 
 
 class PeerReviewCoordinator:
@@ -214,6 +182,8 @@ class PeerReviewCoordinator:
         # Overall recommendation
         if blocking_count > 0:
             summary += f"\n❌ **Cannot merge** - {blocking_count} blocking issue(s) found"
+        elif not reviews:
+            summary += "\n✅ **No reviewers** - skipped"
         else:
             avg_score = sum(r.score for r in reviews.values()) / len(reviews)
             if avg_score >= 80:
@@ -222,6 +192,70 @@ class PeerReviewCoordinator:
                 summary += "\n⚠️ **Conditional** - Address concerns before merging"
 
         return summary
+
+
+class StagedPeerReview:
+    """Orchestrates Stage 1 (automated) + Stage 2 (cross-project) peer review."""
+
+    def __init__(self, app, code_review_channel_id: str, dave_user_id: str,
+                 projects: dict = None):
+        self.app = app
+        self.review_channel = code_review_channel_id
+        self.dave_user_id = dave_user_id
+        self.projects = projects or {}
+        self.coordinator = PeerReviewCoordinator()
+
+    def trigger(self, summary: str, changed_files: list, project_key: str,
+                origin_thread_ts: str, origin_channel_id: str):
+        """Fire-and-forget: run Stage 1 then Stage 2."""
+        pr_data = {
+            "description": summary,
+            "files": changed_files,
+            "diff": f"Agent summary: {summary}",
+        }
+
+        # Stage 1: post opening message to #code-review
+        opening = self.app.client.chat_postMessage(
+            channel=self.review_channel,
+            text=f"🔍 *Peer Review* — {project_key}\n{summary}\nFiles: {', '.join(changed_files) or 'none'}",
+        )
+        review_thread_ts = opening.get("ts")
+
+        # Run reviewers and post results
+        reviews = self.coordinator.review_pr(pr_data)
+        summary_text = self.coordinator.format_review_summary(reviews)
+        self.app.client.chat_postMessage(
+            channel=self.review_channel,
+            thread_ts=review_thread_ts,
+            text=summary_text,
+        )
+
+        # Escalate if blocking
+        has_blocking = any(r.blocking_issues for r in reviews.values())
+        if has_blocking:
+            self.app.client.chat_postMessage(
+                channel=self.review_channel,
+                thread_ts=review_thread_ts,
+                text=f"🙋 <@{self.dave_user_id}> — blocking issues found, needs review",
+            )
+
+        # Stage 2: tag ≤2 peer project agents with same platform/language
+        project = self.projects.get(project_key, {})
+        platform = project.get("platform")
+        language = project.get("language")
+        peers = [
+            key for key, cfg in self.projects.items()
+            if key != project_key and (
+                cfg.get("platform") == platform or cfg.get("language") == language
+            )
+        ][:2]
+
+        for peer_key in peers:
+            self.app.client.chat_postMessage(
+                channel=self.review_channel,
+                thread_ts=review_thread_ts,
+                text=f"[{peer_key}-review] @SlackClaw please review the above changes from a {peer_key} perspective.",
+            )
 
 
 # Example usage
