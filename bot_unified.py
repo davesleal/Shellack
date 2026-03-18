@@ -9,6 +9,7 @@ Channels:
 - #code-review → Peer review system
 """
 
+import json
 import os
 import threading
 from typing import Dict, Optional
@@ -339,6 +340,90 @@ def start_app_store_connect_monitoring():
 
     except Exception as e:
         print(f"❌ App Store Connect error: {e}")
+
+
+# ============================================================================
+# CLAUDE-SLACK BRIDGE HANDLER
+# ============================================================================
+
+@app.action("claude_bridge_input")
+def handle_bridge_input(ack, body, action, client):
+    """Handle button clicks from claude-slack Block Kit messages.
+
+    Parses session_id and answer from the button value, writes the answer
+    to the named pipe so Claude's stdin unblocks, then updates the Slack
+    message to replace buttons with a confirmation.
+    """
+    ack()
+
+    raw_value = action.get("value", "")
+    parts = raw_value.split("|", 1)
+    if len(parts) != 2:
+        return  # malformed, ignore
+
+    session_id, answer = parts
+    session_file = f"/tmp/claude_bridge/{session_id}.json"
+    channel = body.get("channel", {}).get("id", "")
+    user = body.get("user", {}).get("id", "")
+    if not channel or not user:
+        return  # can't send ephemeral without both; already acked
+
+    message_ts = body.get("message", {}).get("ts", "")
+    # message_ts absent for modal/ephemeral actions — still write to pipe
+    # but skip the chat_update
+
+    # Load session
+    try:
+        with open(session_file) as f:
+            session = json.load(f)
+    except FileNotFoundError:
+        client.chat_postEphemeral(
+            channel=channel,
+            user=user,
+            text="⚠️ Session expired — the terminal session may have ended.",
+        )
+        return
+    except Exception as e:
+        client.chat_postEphemeral(
+            channel=channel,
+            user=user,
+            text=f"⚠️ Could not load session: {e}",
+        )
+        return
+
+    # Write answer to named pipe
+    pipe_path = session["pipe"]
+    try:
+        fd = os.open(pipe_path, os.O_WRONLY | os.O_NONBLOCK)
+        os.write(fd, (answer + "\n").encode())
+        os.close(fd)
+    except OSError as e:
+        # ENXIO: no reader (claude-slack exited); EPIPE: broken pipe
+        client.chat_postEphemeral(
+            channel=channel,
+            user=user,
+            text=(
+                f"⚠️ Could not reach terminal session — it may have exited. "
+                f"({e.strerror})"
+            ),
+        )
+        return  # leave buttons active so Dave can retry
+
+    # Update message: replace buttons with confirmation text
+    # (Slack has no native disabled state; replacement is the correct approach)
+    if not message_ts:
+        return
+    client.chat_update(
+        channel=channel,
+        ts=message_ts,
+        blocks=[
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": f"✅ *You chose:* {answer}"},
+            }
+        ],
+        text=f"✅ You chose: {answer}",
+    )
 
 
 # ============================================================================
