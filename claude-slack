@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/Users/daveleal/Repos/SlackClaw/venv/bin/python3
 """
 claude-slack — Slack↔Terminal bridge wrapper for Claude Code.
 
