@@ -99,6 +99,25 @@ General/question tasks (no keyword match) → main agent, no GitHub issue, no jo
 
 ---
 
+### Channel-Level Visibility (Cross-posting)
+
+For each significant event, the agent posts a **top-level message to the project channel** (not in the thread). This keeps threads for detailed work and channels for scannable status — so Claude app can read any project channel and immediately understand what's happening across the workspace.
+
+**Events that surface to the channel:**
+
+| Event | Top-level post format |
+|-------|----------------------|
+| Issue created | `🐛 [Dayist] Issue #42 opened: "Login crash on iPhone 15" → <thread link> <github link>` |
+| Peer review triggered | `👀 [Dayist] Peer review requested → <thread link> \| #code-review` |
+| Escalation | `🙋 [Dayist] @Dave — input needed → <thread link>` |
+| Task done | `✅ [Dayist] Done: login crash fixed, issue #42 closed → <thread link>` |
+
+**What does NOT get a channel post:** `started`, `in_progress` — these stay in-thread only.
+
+`LifecycleNotifier` handles both the thread post and the channel-level post for each qualifying event. The channel-level post uses the same `channel_id` but with `thread_ts=None` (top-level).
+
+---
+
 ### CLAUDE.md Loading
 
 At `ProjectAgent.__init__()`:
@@ -170,17 +189,22 @@ Platform labels: `ios`, `macos`, `server`
 
 ```python
 class LifecycleNotifier:
-    def __init__(self, app: App, channel_id: str, thread_ts: str, dave_user_id: str)
-    def started(self, summary: str)       # 🔵 Started: {summary}
-    def issue_created(self, url: str, number: int)  # 🐛 Issue #{number} → {url}
-    def in_progress(self, detail: str)    # 🔨 {detail}
-    def pending_review(self)              # 👀 Sending to #code-review...
-    def done(self, summary: str)          # ✅ Done: {summary}
-    def needs_human(self, reason: str)    # 🙋 @{dave} — {reason}
-    def failed(self, error: str)          # ❌ Failed: {error}
+    def __init__(self, app: App, channel_id: str, thread_ts: str,
+                 project_name: str, dave_user_id: str)
+    # Thread-only (no channel post):
+    def started(self, summary: str)        # 🔵 Started: {summary}
+    def in_progress(self, detail: str)     # 🔨 {detail}
+    def failed(self, error: str)           # ❌ Failed: {error}
+    # Thread + top-level channel post:
+    def issue_created(self, url: str, number: int)   # 🐛 thread + channel
+    def pending_review(self, thread_link: str)        # 👀 thread + channel
+    def done(self, summary: str, issue_number: int = None)  # ✅ thread + channel
+    def needs_human(self, reason: str)     # 🙋 thread + channel (@Dave)
 ```
 
-`dave_user_id` sourced from `DAVE_SLACK_USER_ID` env var, injected at construction. Used only in `needs_human()`.
+`project_name` used in channel-level post prefix (e.g. `[Dayist]`).
+`dave_user_id` sourced from `DAVE_SLACK_USER_ID` env var, used in `needs_human()`.
+Channel-level posts use `channel_id` with `thread_ts=None` (top-level).
 
 #### `tools/journal_writer.py`
 
@@ -300,6 +324,7 @@ None (general)         → no issue created              # triggers peer review 
 - [ ] Bug/crash messages auto-create a GitHub issue with correct repo, labels, and platform tag
 - [ ] GitHub issue is closed when agent posts `done`
 - [ ] Lifecycle posts (`🔵 🐛 🔨 👀 ✅ / 🙋 / ❌`) appear in Slack thread at each stage
+- [ ] High-signal events (`🐛 👀 ✅ 🙋`) also post top-level to project channel for Claude app visibility
 - [ ] Tasks producing code changes or issues trigger Stage 1 peer review in `#code-review`
 - [ ] Maestro tags ≤2 relevant project agents for Stage 2 review based on platform/language overlap
 - [ ] `@Dave` tagged in project thread when blocked; in `#code-review` when review is blocking
