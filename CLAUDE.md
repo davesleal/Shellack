@@ -74,10 +74,19 @@ session. In this mode:
 2. Format the message using Block Kit with interactive buttons:
    - `action_id`: `claude_bridge_input`
    - `value`: `{CLAUDE_BRIDGE_SESSION}|{option_value}`
-3. Then wait — Dave will click a button. The answer arrives via stdin; use the
-   Bash tool (`read -r ANSWER < /dev/stdin` or just wait for the next input
-   prompt) to receive it
-4. Do NOT ask for input via terminal (it will not be seen)
+3. Then read the answer from the named pipe via a Bash tool command — this
+   blocks until Dave clicks a button and SlackClaw writes the answer:
+   ```bash
+   python3 -c "
+   import os, sys
+   pipe = '/tmp/claude_bridge/' + os.environ['CLAUDE_BRIDGE_SESSION']
+   fd = os.open(pipe, os.O_RDONLY)
+   print(os.read(fd, 4096).decode().strip())
+   os.close(fd)
+   "
+   ```
+4. Do NOT use terminal input prompts — your stdin is the real TTY (keyboard),
+   not the pipe; always read answers via the Bash command above
 
 Helper: `tools/slack_bridge.py::format_bridge_blocks(question, options, session_id)`
 returns the correct Block Kit JSON ready to pass to `slack_send_message`.

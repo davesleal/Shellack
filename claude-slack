@@ -4,13 +4,14 @@ claude-slack — Slack↔Terminal bridge wrapper for Claude Code.
 
 Drop-in replacement for `claude`. Creates a named pipe session, exports
 CLAUDE_BRIDGE_SESSION and CLAUDE_BRIDGE_CHANNEL_ID, and launches `claude`
-with the pipe as stdin so Slack button clicks feed answers back automatically.
+normally (stdin = your terminal). When Claude needs input it reads from the
+named pipe explicitly via a Bash tool command; Slack button clicks write the
+answer to the pipe so the read unblocks.
 """
 
 from __future__ import annotations
 
 import atexit
-import fcntl
 import json
 import os
 import signal
@@ -45,9 +46,10 @@ os.mkfifo(pipe_path)
 # Linux is the opposite — this order is correct for macOS.
 read_fd = os.open(pipe_path, os.O_RDONLY | os.O_NONBLOCK)
 write_fd = os.open(pipe_path, os.O_WRONLY | os.O_NONBLOCK)
-# Clear O_NONBLOCK from read-end so subprocess stdin blocks normally
-_flags = fcntl.fcntl(read_fd, fcntl.F_GETFL)
-fcntl.fcntl(read_fd, fcntl.F_SETFL, _flags & ~os.O_NONBLOCK)
+# Close the read-end in this process — Claude Code will open it via Bash tool
+# when it needs to block-read an answer from Slack. write_fd stays open as the
+# keep-alive so SlackClaw can write to the pipe without getting EPIPE.
+os.close(read_fd)
 
 channel_id, project_name = detect_channel_id()
 
@@ -66,7 +68,6 @@ def cleanup() -> None:
         os.close(write_fd)
     except Exception:
         pass
-    # read_fd ownership transferred to os.fdopen() → do not close by fd number
     for path in [pipe_path, session_file]:
         try:
             os.unlink(path)
@@ -107,12 +108,12 @@ env = os.environ.copy()
 env["CLAUDE_BRIDGE_SESSION"] = session_id
 env["CLAUDE_BRIDGE_CHANNEL_ID"] = channel_id
 
-# os.fdopen transfers fd ownership; Popen dup2s it to stdin (fd 0).
-# O_CLOEXEC is absent by default on macOS so write_fd is also inherited —
-# this is intentional (write_fd in the child is the keep-alive copy).
+# Claude inherits stdin from this process (the real terminal TTY) so its TUI
+# works normally. write_fd is inherited by the child on macOS (O_CLOEXEC absent
+# by default) — that's intentional: the child keeps the pipe open so SlackClaw
+# can write answers without getting EPIPE.
 proc_handle = subprocess.Popen(
     ["claude"] + sys.argv[1:],
-    stdin=os.fdopen(read_fd, "rb"),
     env=env,
 )
 proc_handle.wait()
