@@ -304,6 +304,11 @@ SlackClaw/
 └── HYBRID_APPROACH.md    # Zero-cost mode guide
 ```
 
+## 🗺️ Roadmap
+
+- 🖱️ **Slack↔Terminal Bridge** ([#12](https://github.com/davesleal/SlackClaw/issues/12)) — Block Kit buttons relay Claude Code prompts to the project channel so you never need to switch to the terminal to select options
+- 📌 **GitHub Issue Canvas Echo** ([#11](https://github.com/davesleal/SlackClaw/issues/11)) — Mirror open GitHub issues into a Slack Canvas per project channel
+
 ## 🔐 Security
 
 - ✅ Tokens stored in `.env` (gitignored)
