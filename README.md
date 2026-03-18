@@ -22,6 +22,7 @@ Interact with Claude Code directly from Slack, enabling natural conversations ab
 - 📋 **Lifecycle Visibility** — structured 🔵🐛🔨👀✅ status posts in thread; high-signal events cross-post top-level to the project channel
 - 🔍 **Staged Peer Review** — automated Quality/Security/Performance review + cross-project agent review in `#code-review`
 - 📔 **Project Journaling** — narrative `JOURNAL.md` entries after significant work, written for blog-post readability
+- 📲 **Slack↔Terminal Bridge** — `claude-slack` wrapper lets you respond to Claude Code prompts via Slack buttons on any device; named-pipe architecture, session-scoped, concurrent-safe
 
 ## 🚀 Quick Start
 
@@ -306,7 +307,7 @@ SlackClaw/
 
 ## 🗺️ Roadmap
 
-- 🖱️ **Slack↔Terminal Bridge** ([#12](https://github.com/davesleal/SlackClaw/issues/12)) — Block Kit buttons relay Claude Code prompts to the project channel so you never need to switch to the terminal to select options
+- ✅ **Slack↔Terminal Bridge** — `claude-slack` wrapper: Block Kit buttons relay Claude Code prompts to the project channel so you never need to switch to the terminal to select options. Run `claude-slack` instead of `claude` from any project repo.
 - 📌 **GitHub Issue Canvas Echo** ([#11](https://github.com/davesleal/SlackClaw/issues/11)) — Mirror open GitHub issues into a Slack Canvas per project channel
 
 ## 🔐 Security

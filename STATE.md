@@ -383,14 +383,31 @@ Edit `slack-app-manifest.yml` → reapply in Slack app settings
 - Wrote Maestro `CLAUDE.md` defining coordination protocol across all 7 projects
 - 28 tests written TDD-style, all passing
 
-**What to do next session:**
-1. Live end-to-end test (trigger crash task → verify GitHub issue + lifecycle + review + journal)
-2. Update Slack channel topics using `docs/PROJECT_DESCRIPTIONS.md`
-3. GitHub PR workflow automation
+---
 
-**Status:** 🟢 Specialized agents complete, all tests green
+## ✅ Session Checkpoint
+
+**What was accomplished (2026-03-18 — Slack↔Terminal Bridge session):**
+
+✅ **Slack↔Terminal Bridge shipped** (`claude-slack`)
+- `tools/slack_bridge.py` — Block Kit formatter (`format_bridge_blocks`), project channel detector (`detect_channel_id`), session-start notifier (`post_session_start`)
+- `claude-slack` wrapper script — creates named pipe session, exports `CLAUDE_BRIDGE_SESSION` + `CLAUDE_BRIDGE_CHANNEL_ID`, launches `claude` with pipe as stdin
+- `@app.action("claude_bridge_input")` handler in `bot_unified.py` — receives Slack button clicks, writes answer to named pipe, updates message with confirmation
+- `CLAUDE.md` updated with bridge instructions so Claude Code knows to use Slack MCP when bridge is active
+- `orchestrator_config.py` — all CHANNEL_ROUTING entries now have `channel_id` (5 real IDs populated)
+- `SETUP_GUIDE.md` — Step 8 added with install and smoke-test instructions
+- 48 tests passing (was 28; +20 new bridge tests)
+- Symlink: `/usr/local/bin/claude-slack → /Users/daveleal/Repos/SlackClaw/claude-slack`
+
+**What to do next session:**
+1. Live end-to-end test: run `claude-slack` from a project repo, confirm session-start in Slack, post Block Kit prompt, click button, verify answer reaches Claude
+2. Create missing Slack channels: `#nova-dev`, `#nudge-dev`, `#slackclaw-central`, `#code-review` → fill in empty `channel_id` values in `orchestrator_config.py`
+3. Update Slack channel topics using `docs/PROJECT_DESCRIPTIONS.md`
+4. Live end-to-end test for Specialized Agents (trigger crash task → GitHub issue + lifecycle + review + journal)
+
+**Status:** 🟢 Bridge shipped, all tests green
 
 ---
 
 *Last session: 2026-03-18*
-*Next: Live end-to-end validation*
+*Next: Live end-to-end bridge validation + create missing Slack channels*

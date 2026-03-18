@@ -1,5 +1,17 @@
 # SlackClaw Project Journal
 
+## 2026-03-18 — Slack↔Terminal Bridge
+
+**Context:** Dave wanted to respond to Claude Code prompts from any device (phone, tablet, another machine) without switching to the terminal to type `1`, `2`, `3`. The idea: Claude Code posts Block Kit button messages to the project's Slack channel; clicking a button feeds the answer back to Claude's stdin through a named pipe.
+
+**Approach:** Designed around a session-scoped named pipe. The `claude-slack` wrapper creates a FIFO at `/tmp/claude_bridge/<uuid>`, writes a session JSON file, then launches `claude` with the pipe read-end as stdin. The key technical challenge was the pipe lifecycle: opening a named pipe blocks until both ends are open. We solved this with the keep-alive write-end pattern — open `O_WRONLY|O_NONBLOCK` first (unblocks the open call), then open `O_RDONLY|O_NONBLOCK`, then clear `O_NONBLOCK` from the read-end via `fcntl` so the subprocess's stdin blocks normally. A new `tools/slack_bridge.py` module handles Block Kit formatting and project channel detection (git remote URL → `PROJECTS` match → `CHANNEL_ROUTING` lookup). A new `@app.action("claude_bridge_input")` handler in `bot_unified.py` receives button clicks, writes the answer to the pipe, and updates the Slack message to show confirmation.
+
+**Outcome:** `claude-slack` is installed at `/usr/local/bin/claude-slack` as a drop-in replacement for `claude`. Running it from any repo posts a 🟢 session-start to the correct project channel and enables Slack-button-based responses. 48 tests pass. The bridge handles concurrent sessions cleanly (session UUID in button values prevents cross-contamination), and all failure modes (stale sessions, dead pipes, missing channels) produce ephemeral errors to Dave only.
+
+**Insights:** Named pipes have a subtle lifecycle that trips up most implementations. The double-open trick (write-end first non-blocking, read-end second, then clear non-blocking) is the correct POSIX pattern but isn't well-documented for Python. Worth writing up: the `O_NONBLOCK` flag exists to prevent the `open()` call from hanging, but once both ends are open you need to clear it from the read-end or the subprocess will get `EAGAIN` on every read instead of blocking. The `os.fdopen(read_fd, "rb")` wrapper is also critical — passing a raw integer fd to `subprocess.Popen` with default `close_fds=True` would close the fd before the child can inherit it. Two small details, one correct bridge.
+
+---
+
 ## 2026-03-18 - Multi-Agent Development System Foundation
 
 ### Major Milestone: Architecture Complete
