@@ -515,3 +515,47 @@ Issues? Check:
 - App Store Connect API: https://developer.apple.com/documentation/appstoreconnectapi
 
 Happy automating! 🚀
+
+## Step 7: Install claude-slack Bridge (Optional)
+
+The `claude-slack` script lets you respond to Claude Code prompts via Slack
+buttons on any device, instead of switching to the terminal.
+
+### Install
+
+```bash
+cd /Users/daveleal/Repos/SlackClaw
+chmod +x claude-slack
+ln -sf "$(pwd)/claude-slack" /usr/local/bin/claude-slack
+```
+
+### Usage — drop-in replacement for `claude`
+
+```bash
+claude-slack               # start new session
+claude-slack --continue    # resume last session
+claude-slack -p "do X"    # non-interactive prompt
+```
+
+### How it works
+
+1. `claude-slack` detects the current project from the git remote URL and
+   routes the session to the correct `#project-dev` channel.
+2. A 🟢 session-start message is posted to that channel.
+3. When Claude Code needs input, post a Block Kit message using
+   `tools/slack_bridge.py::format_bridge_blocks` via the Slack MCP.
+4. Dave clicks a button on any device → the answer feeds back to Claude's stdin.
+
+### Prerequisite
+
+`CHANNEL_ROUTING` in `orchestrator_config.py` must have `channel_id` filled
+in for every project's `primary_channel` entry. Run the bridge implementation
+plan's Task 2 if this hasn't been done yet.
+
+### Smoke test
+
+```bash
+# From SlackClaw repo root:
+claude-slack --version
+# Expected: 🟢 session-start appears in the project channel, script exits cleanly.
+```
