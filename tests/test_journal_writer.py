@@ -25,6 +25,7 @@ def test_appends_to_existing_docs_journal(tmp_project):
     writer = JournalWriter(tmp_project)
     writer.append_entry("Task", "Context", "Approach", "Outcome", "Insights")
     content = journal.read_text()
+    assert content.startswith("# Journal")  # original content preserved
     assert "Task" in content
     assert "Context" in content
     assert "Insights" in content
