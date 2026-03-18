@@ -97,8 +97,14 @@ nano .env
 # .env file
 SLACK_BOT_TOKEN=xoxb-your-token
 SLACK_APP_TOKEN=xapp-your-token
-ANTHROPIC_API_KEY=sk-ant-your-key  # Optional if using zero-cost mode
-APP_STORE_CONNECT_KEY_ID=your-key   # Optional
+ANTHROPIC_API_KEY=sk-ant-your-key
+
+# GitHub integration (issue auto-creation)
+GITHUB_TOKEN=ghp_your_token_here      # Needs 'repo' scope
+DAVE_SLACK_USER_ID=U0XXXXXXX          # Your Slack user ID (Profile → ··· → Copy member ID)
+CODE_REVIEW_CHANNEL_ID=code-review    # Channel for peer review posts
+
+APP_STORE_CONNECT_KEY_ID=your-key     # Optional
 ```
 
 ### 3. Map Channels to Projects

@@ -8,6 +8,11 @@ Complete guide to set up automated development workflows via Slack.
 - Slack workspace with admin access
 - Claude API key
 - App Store Connect API access (optional, for automation)
+- Claude Code Slack plugin (for unified Claude Code ↔ Slack workflow):
+  ```bash
+  claude plugin install slack
+  ```
+  This enables Claude Code to read/write Slack directly alongside the bot, unifying the multi-agent flow.
 
 ## Step 1: Create Slack App
 
@@ -166,6 +171,11 @@ SLACK_SIGNING_SECRET=your-signing-secret
 
 # Claude
 ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+# GitHub integration (issue auto-creation)
+GITHUB_TOKEN=ghp_your_token_here      # Needs 'repo' scope — github.com/settings/tokens
+DAVE_SLACK_USER_ID=U0XXXXXXX          # Your Slack user ID (Profile → ··· → Copy member ID)
+CODE_REVIEW_CHANNEL_ID=code-review    # Channel name for staged peer review posts
 
 # App Store Connect (optional)
 APP_STORE_CONNECT_KEY_ID=YOUR_KEY_ID
