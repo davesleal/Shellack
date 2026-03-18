@@ -12,6 +12,7 @@ Channels:
 import json
 import os
 import threading
+import uuid
 from typing import Dict, Optional
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -362,6 +363,11 @@ def handle_bridge_input(ack, body, action, client):
         return  # malformed, ignore
 
     session_id, answer = parts
+    # Validate session_id is a UUID to prevent path traversal
+    try:
+        uuid.UUID(session_id)
+    except ValueError:
+        return  # not a valid UUID, ignore silently
     session_file = f"/tmp/claude_bridge/{session_id}.json"
     channel = body.get("channel", {}).get("id", "")
     user = body.get("user", {}).get("id", "")
@@ -392,11 +398,20 @@ def handle_bridge_input(ack, body, action, client):
         return
 
     # Write answer to named pipe
-    pipe_path = session["pipe"]
+    pipe_path = session.get("pipe")
+    if not pipe_path:
+        client.chat_postEphemeral(
+            channel=channel,
+            user=user,
+            text="⚠️ Session data is corrupted — missing pipe path.",
+        )
+        return
     try:
         fd = os.open(pipe_path, os.O_WRONLY | os.O_NONBLOCK)
-        os.write(fd, (answer + "\n").encode())
-        os.close(fd)
+        try:
+            os.write(fd, (answer + "\n").encode())
+        finally:
+            os.close(fd)
     except OSError as e:
         # ENXIO: no reader (claude-slack exited); EPIPE: broken pipe
         client.chat_postEphemeral(

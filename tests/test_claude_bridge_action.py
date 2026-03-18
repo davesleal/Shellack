@@ -7,6 +7,7 @@ mock ack/body/action/client arguments.
 import errno
 import json
 import os
+import uuid
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -24,7 +25,10 @@ def _body(channel="C1", user="U1", ts="123.456"):
     }
 
 
-def _action(value="sess1|AnswerA"):
+_VALID_UUID = "550e8400-e29b-41d4-a716-446655440000"
+
+
+def _action(value=f"{_VALID_UUID}|AnswerA"):
     return {"value": value}
 
 
@@ -58,7 +62,7 @@ def test_handle_session_file_not_found(tmp_path):
         return open(path, *args, **kwargs)
 
     with patch("builtins.open", side_effect=patched_open):
-        handler(ack=ack, body=_body(), action=_action("noexist|X"), client=client)
+        handler(ack=ack, body=_body(), action=_action(f"{_VALID_UUID}|X"), client=client)
 
     ack.assert_called_once()
     client.chat_postEphemeral.assert_called_once()
@@ -77,7 +81,8 @@ def test_handle_pipe_enxio_shows_ephemeral_leaves_buttons(tmp_path):
     pipe_path = str(tmp_path / "dead_pipe")
     os.mkfifo(pipe_path)
     session_data = {"pipe": pipe_path}
-    session_file = str(tmp_path / "sess2.json")
+    session_id_enxio = str(uuid.uuid4())
+    session_file = str(tmp_path / f"{session_id_enxio}.json")
     with open(session_file, "w") as f:
         json.dump(session_data, f)
 
@@ -90,7 +95,7 @@ def test_handle_pipe_enxio_shows_ephemeral_leaves_buttons(tmp_path):
     enxio = OSError(errno.ENXIO, "No such device or address")
     with patch("builtins.open", side_effect=patched_open), \
          patch("os.open", side_effect=enxio):
-        handler(ack=ack, body=_body(), action=_action("sess2|X"), client=client)
+        handler(ack=ack, body=_body(), action=_action(f"{session_id_enxio}|X"), client=client)
 
     client.chat_postEphemeral.assert_called_once()
     client.chat_update.assert_not_called()
@@ -108,7 +113,8 @@ def test_handle_missing_message_ts_skips_chat_update(tmp_path):
     write_fd = os.open(pipe_path, os.O_WRONLY | os.O_NONBLOCK)
 
     session_data = {"pipe": pipe_path}
-    session_file = str(tmp_path / "sess3.json")
+    session_id_nots = str(uuid.uuid4())
+    session_file = str(tmp_path / f"{session_id_nots}.json")
     with open(session_file, "w") as f:
         json.dump(session_data, f)
 
@@ -121,7 +127,7 @@ def test_handle_missing_message_ts_skips_chat_update(tmp_path):
         return real_open(path, *args, **kwargs)
 
     with patch("builtins.open", side_effect=patched_open):
-        handler(ack=ack, body=body_no_ts, action=_action("sess3|Y"), client=client)
+        handler(ack=ack, body=body_no_ts, action=_action(f"{session_id_nots}|Y"), client=client)
 
     ack.assert_called_once()
     client.chat_update.assert_not_called()
@@ -141,3 +147,50 @@ def test_handle_missing_channel_returns_early():
     ack.assert_called_once()
     client.chat_postEphemeral.assert_not_called()
     client.chat_update.assert_not_called()
+
+
+def test_handle_happy_path(tmp_path):
+    """Pipe write succeeds → chat_update called with confirmation, no ephemeral."""
+    handler = _make_handler()
+    ack = MagicMock()
+    client = _client()
+
+    pipe_path = str(tmp_path / "test_pipe")
+    os.mkfifo(pipe_path)
+    # Open read end first (POSIX), then write end (keep-alive)
+    read_fd  = os.open(pipe_path, os.O_RDONLY | os.O_NONBLOCK)
+    write_fd = os.open(pipe_path, os.O_WRONLY | os.O_NONBLOCK)
+
+    session_data = {"pipe": pipe_path}
+    # Use a valid UUID as session_id
+    import uuid as _uuid
+    session_id = str(_uuid.uuid4())
+    session_file = str(tmp_path / f"{session_id}.json")
+    with open(session_file, "w") as f:
+        json.dump(session_data, f)
+
+    real_open = open
+    def patched_open(path, *args, **kwargs):
+        if "claude_bridge" in str(path):
+            return real_open(session_file, *args, **kwargs)
+        return real_open(path, *args, **kwargs)
+
+    with patch("builtins.open", side_effect=patched_open):
+        handler(
+            ack=ack,
+            body=_body(channel="C1", user="U1", ts="123.456"),
+            action={"value": f"{session_id}|AnswerB"},
+            client=client,
+        )
+
+    ack.assert_called_once()
+    client.chat_postEphemeral.assert_not_called()
+    client.chat_update.assert_called_once()
+    update_kwargs = client.chat_update.call_args.kwargs
+    assert update_kwargs["channel"] == "C1"
+    assert update_kwargs["ts"] == "123.456"
+    assert "✅" in update_kwargs["text"]
+    assert "AnswerB" in update_kwargs["text"]
+
+    os.close(write_fd)
+    os.close(read_fd)
