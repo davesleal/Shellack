@@ -79,8 +79,8 @@ PROJECTS = {
 CHANNEL_ROUTING = {
     # iOS Project Channels
     "dayist-dev":   {"project": "dayist",        "mode": "dedicated",  "channel_id": "C0AM872QM8E"},
-    "nova-dev":     {"project": "nova",           "mode": "dedicated",  "channel_id": ""},
-    "nudge-dev":    {"project": "nudge",          "mode": "dedicated",  "channel_id": ""},
+    "nova-dev":     {"project": "nova",           "mode": "dedicated",  "channel_id": ""},   # channel not yet created
+    "nudge-dev":    {"project": "nudge",          "mode": "dedicated",  "channel_id": ""},   # channel not yet created
 
     # macOS Project Channels
     "tiledock-dev": {"project": "tiledock",       "mode": "dedicated",  "channel_id": "C0AHTQU2CQ2"},
@@ -94,7 +94,7 @@ CHANNEL_ROUTING = {
     "slackclaw-central": {
         "mode": "orchestrator",
         "access": "all_projects",
-        "channel_id": "",
+        "channel_id": "",  # channel not yet created
         "capabilities": [
             "update_claude_md",
             "set_global_rules",
@@ -107,7 +107,7 @@ CHANNEL_ROUTING = {
     "code-review": {
         "mode": "peer_review",
         "access": "all_projects",
-        "channel_id": "",
+        "channel_id": "",  # channel not yet created
         "review_agents": ["code-quality", "security", "performance"],
         "approval_required": True,
         "auto_merge": False

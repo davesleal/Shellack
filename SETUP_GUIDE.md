@@ -516,7 +516,7 @@ Issues? Check:
 
 Happy automating! 🚀
 
-## Step 7: Install claude-slack Bridge (Optional)
+## Step 8: Install claude-slack Bridge (Optional)
 
 The `claude-slack` script lets you respond to Claude Code prompts via Slack
 buttons on any device, instead of switching to the terminal.

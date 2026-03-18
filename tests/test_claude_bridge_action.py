@@ -138,12 +138,25 @@ def test_handle_missing_message_ts_skips_chat_update(tmp_path):
 
 
 def test_handle_missing_channel_returns_early():
-    """Body with no channel → early return, nothing posted."""
+    """Body with no channel → early return after UUID validation, nothing posted."""
+    import uuid as _uuid
     handler = _make_handler()
     ack = MagicMock()
     client = _client()
+    valid_session_id = str(_uuid.uuid4())
     body_no_channel = {"user": {"id": "U1"}, "message": {"ts": "1.2"}}
-    handler(ack=ack, body=body_no_channel, action=_action("s|X"), client=client)
+    handler(ack=ack, body=body_no_channel, action=_action(f"{valid_session_id}|X"), client=client)
+    ack.assert_called_once()
+    client.chat_postEphemeral.assert_not_called()
+    client.chat_update.assert_not_called()
+
+
+def test_handle_invalid_uuid_ignored():
+    """Non-UUID session_id (potential path traversal) → silently dropped after ack."""
+    handler = _make_handler()
+    ack = MagicMock()
+    client = _client()
+    handler(ack=ack, body=_body(), action={"value": "../etc/passwd|evil"}, client=client)
     ack.assert_called_once()
     client.chat_postEphemeral.assert_not_called()
     client.chat_update.assert_not_called()
