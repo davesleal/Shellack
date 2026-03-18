@@ -78,22 +78,23 @@ PROJECTS = {
 # Channel Routing
 CHANNEL_ROUTING = {
     # iOS Project Channels
-    "dayist-dev": {"project": "dayist", "mode": "dedicated"},
-    "nova-dev": {"project": "nova", "mode": "dedicated"},
-    "nudge-dev": {"project": "nudge", "mode": "dedicated"},
+    "dayist-dev":   {"project": "dayist",        "mode": "dedicated",  "channel_id": "C0AM872QM8E"},
+    "nova-dev":     {"project": "nova",           "mode": "dedicated",  "channel_id": ""},
+    "nudge-dev":    {"project": "nudge",          "mode": "dedicated",  "channel_id": ""},
 
     # macOS Project Channels
-    "tiledock-dev": {"project": "tiledock", "mode": "dedicated"},
-    "atmos-dev": {"project": "atmosuniversal", "mode": "dedicated"},
-    "sideplane-dev": {"project": "sideplane", "mode": "dedicated"},
+    "tiledock-dev": {"project": "tiledock",       "mode": "dedicated",  "channel_id": "C0AHTQU2CQ2"},
+    "atmos-dev":    {"project": "atmosuniversal", "mode": "dedicated",  "channel_id": "C0AMDU1939A"},
+    "sideplane-dev":{"project": "sideplane",      "mode": "dedicated",  "channel_id": "C0AM3UT7XL3"},
 
     # Meta
-    "slackclaw-dev": {"project": "slackclaw", "mode": "dedicated"},
+    "slackclaw-dev":{"project": "slackclaw",      "mode": "dedicated",  "channel_id": "C0AN4JQACKS"},
 
     # Special channels
     "slackclaw-central": {
         "mode": "orchestrator",
         "access": "all_projects",
+        "channel_id": "",
         "capabilities": [
             "update_claude_md",
             "set_global_rules",
@@ -106,9 +107,10 @@ CHANNEL_ROUTING = {
     "code-review": {
         "mode": "peer_review",
         "access": "all_projects",
+        "channel_id": "",
         "review_agents": ["code-quality", "security", "performance"],
         "approval_required": True,
-        "auto_merge": False  # Require human approval for merge
+        "auto_merge": False
     }
 }
 
