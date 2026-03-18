@@ -1,6 +1,6 @@
 # SlackClaw Current State
-**Last Updated:** 2026-03-18 03:00 AM
-**Status:** Production-ready, monitoring active
+**Last Updated:** 2026-03-18
+**Status:** Production-ready, specialized agents active
 
 ---
 
@@ -148,6 +148,43 @@ except Exception as e:
 
 ---
 
+## 🤖 Specialized Product Agents (2026-03-18)
+
+✅ **CLAUDE.md loading per agent**
+- Each project agent loads its project's `CLAUDE.md` as system context
+- Agents are scoped per thread (`thread_ts`) rather than per project key
+- Prevents state bleeding across parallel conversations
+
+✅ **GitHub issue auto-creation**
+- `GitHubClient` auto-opens issues in the correct repo for crash/bug tasks
+- Labels applied based on task type (bug, crash, performance)
+- Issues auto-closed when work is marked done
+
+✅ **Lifecycle Slack posts (thread + channel)**
+- `LifecycleNotifier` posts structured 🔵🐛🔨👀✅ status events to threads
+- High-signal events (issue created, done, needs human, pending review) cross-posted top-level to project channel
+- Enables Claude app to scan any project channel and understand current state
+
+✅ **Staged peer review (Stage 1 + Stage 2)**
+- `StagedPeerReview` triggers automatically when agent response contains code
+- Stage 1: Quality/Security/Performance review posted to `#code-review`
+- Stage 2: Cross-project agent review request posted to `#code-review`
+- `PeerReviewAgent` parses structured JSON output (blocking/non-blocking issues)
+- Dave is @-mentioned for blocking issues
+
+✅ **Per-project journaling**
+- `JournalWriter` appends narrative entries to `docs/JOURNAL.md` in each project repo
+- Falls back to root `JOURNAL.md` if `docs/` directory is absent
+- Entries formatted for blog-post readability
+
+✅ **Maestro CLAUDE.md written**
+- Coordination protocol defined for all 7 Leal Labs projects
+- Covers thread-scoped agent pattern, dual-post lifecycle, and staged review protocol
+
+**Test Coverage:** 28 tests, all passing (as of 2026-03-18)
+
+---
+
 ## 🔮 What's Next
 
 ### Immediate (Ready to Implement)
@@ -166,24 +203,18 @@ In #slackclaw-central:
 @SlackClaw search all: deprecated API
 ```
 
-**3. Multi-Agent Synergy**
-- Design Claude → SlackClaw delegation protocol
-- Update `bot_unified.py` to recognize Claude mentions
-- Create example workflows
-
-**4. Journal Automation**
-- Add journal commands to SlackClaw
-- Auto-log decisions from Claude conversations
-- Format: `docs/JOURNAL.md` in each repo
+**3. Live End-to-End Test**
+- Trigger a crash task from Slack
+- Verify GitHub issue created, lifecycle posts appear, peer review fires
+- Confirm journal entry written to project repo
 
 ### Future Features
 
-- [ ] Claude delegates to SlackClaw for token efficiency
-- [ ] Automated journal entries on decisions/PRs
-- [ ] GitHub PR workflow automation
-- [ ] Custom review agents for specialized code areas
+- [ ] GitHub PR workflow automation (auto-open PR after fix)
+- [ ] Custom review agents for specialized code areas (SwiftUI, networking)
 - [ ] Metrics dashboard for bot activity
 - [ ] Cross-project pattern detection
+- [ ] Claude app workspace status summary from any project channel
 
 ---
 
@@ -343,24 +374,23 @@ Edit `slack-app-manifest.yml` → reapply in Slack app settings
 
 ## ✅ Session Checkpoint
 
-**What was accomplished:**
-- Complete SlackClaw setup from scratch
-- Multi-project architecture implemented
-- 7 projects configured
-- App Store Connect monitoring active
-- Documentation comprehensive
-- Ready for multi-agent synergy
+**What was accomplished (2026-03-18 — Specialized Agents session):**
+- Built `GitHubClient`, `LifecycleNotifier`, `JournalWriter` tool classes
+- Refactored `PeerReviewAgent` to structured JSON output; added `StagedPeerReview`
+- Rewrote `ProjectAgent` to own full task lifecycle (start → in-progress → review → done)
+- Updated `AgentFactory` to scope agents per `thread_ts` rather than per project key
+- Wired everything through `bot_unified.py`
+- Wrote Maestro `CLAUDE.md` defining coordination protocol across all 7 projects
+- 28 tests written TDD-style, all passing
 
 **What to do next session:**
-1. Verify API credits working
-2. Update Slack channel topics
-3. Test SlackClaw in all channels
-4. Implement Claude → SlackClaw delegation
-5. Set up automated journal entries
+1. Live end-to-end test (trigger crash task → verify GitHub issue + lifecycle + review + journal)
+2. Update Slack channel topics using `docs/PROJECT_DESCRIPTIONS.md`
+3. GitHub PR workflow automation
 
-**Status:** 🟢 Production-ready, monitoring active, synergy ready to implement
+**Status:** 🟢 Specialized agents complete, all tests green
 
 ---
 
-*Last session: 2026-03-18 ~3:00 AM*
-*Next: Multi-agent synergy implementation*
+*Last session: 2026-03-18*
+*Next: Live end-to-end validation*

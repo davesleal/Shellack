@@ -164,3 +164,17 @@ SlackClaw/
 **Key Achievement:** Multi-project Slack bot with AI integration, orchestration, and peer review capabilities
 **Status:** Production-ready, monitoring App Store Connect for 3 apps
 **Next Session:** Multi-agent synergy implementation
+
+---
+
+## 2026-03-18 — Specialized Product Agents
+
+**Context:** Dave wanted each project agent to be truly specialized — carrying its project's CLAUDE.md as system context, auto-creating GitHub issues for bugs, posting structured lifecycle updates to Slack, triggering staged peer review before completing significant work, and maintaining a per-project narrative journal.
+
+**Approach:** Built three new tool classes (GitHubClient, LifecycleNotifier, JournalWriter), refactored PeerReviewAgent to use structured JSON output, added StagedPeerReview for two-stage autonomous review, rewrote ProjectAgent to own the full task lifecycle, updated AgentFactory to scope agents per thread rather than per project, and wired everything through bot_unified.py. Wrote a Maestro CLAUDE.md defining coordination protocol across all 7 Leal Labs projects. Full TDD throughout — 28 tests covering all new modules.
+
+**Outcome:** Each project agent now carries its project's CLAUDE.md context, automatically creates and closes GitHub issues for crash tasks, posts 🔵🐛🔨👀✅ lifecycle events to Slack threads with high-signal events cross-posted top-level to the project channel for Claude app visibility, triggers staged peer review in #code-review before marking work done, and appends narrative JOURNAL.md entries. The system is designed for Dave to ping Claude app for workspace-wide status from any project channel.
+
+**Insights:** The "thread-scoped agent" pattern (keying AgentFactory by thread_ts rather than project_key) was a key architectural decision — it means each conversation carries its own lifecycle context, preventing state from bleeding across parallel conversations. The dual-post pattern (thread for detail, channel for signal) lets Claude app scan any project channel and immediately understand what's happening, without needing a central "status channel" — the project channels become their own status boards.
+
+---

@@ -17,6 +17,11 @@ Interact with Claude Code directly from Slack, enabling natural conversations ab
 - 📱 **App Store Connect** - Auto-monitor reviews and TestFlight feedback
 - 💰 **Zero-Cost Option** - Monitor-only mode uses your Claude subscription
 - 🔐 **Secure** - Channel-isolated workspaces with permission controls
+- 🧠 **Project-Aware Agents** — each agent loads its project's `CLAUDE.md` for deep context
+- 🐛 **GitHub Issue Auto-Creation** — bugs and crashes auto-open issues in the correct repo with labels
+- 📋 **Lifecycle Visibility** — structured 🔵🐛🔨👀✅ status posts in thread; high-signal events cross-post top-level to the project channel
+- 🔍 **Staged Peer Review** — automated Quality/Security/Performance review + cross-project agent review in `#code-review`
+- 📔 **Project Journaling** — narrative `JOURNAL.md` entries after significant work, written for blog-post readability
 
 ## 🚀 Quick Start
 
@@ -50,6 +55,10 @@ The setup script will:
 - Slack workspace with admin access
 - Claude API key (or Claude Max subscription for zero-cost mode)
 - App Store Connect API access (optional)
+- Claude Code CLI with Slack plugin:
+  ```bash
+  claude plugin install slack
+  ```
 
 ### Setup
 
