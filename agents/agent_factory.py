@@ -4,7 +4,6 @@ AgentFactory — singleton that creates and caches ProjectAgent instances.
 One agent per thread, keyed by thread_ts.
 """
 
-from anthropic import Anthropic
 from .project_agent import ProjectAgent
 
 

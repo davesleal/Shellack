@@ -5,6 +5,7 @@ Carries project-specific context in its system prompt and
 dispatches to sub-agents based on task type.
 """
 
+import logging
 import os
 from pathlib import Path
 from tools.github_client import GitHubClient
@@ -17,6 +18,8 @@ from .sub_agents import (
     CodeReviewAgent,
     DocsAgent,
 )
+
+logger = logging.getLogger(__name__)
 
 
 CODE_CHANGING_AGENTS = (CrashInvestigatorAgent, TestingAgent)
@@ -163,6 +166,14 @@ class ProjectAgent:
             projects=self._load_projects(),
         )
         self._journal = JournalWriter(project_config["path"])
+        from peer_review import StagedPeerReview
+        from orchestrator_config import PROJECTS as _all_projects
+        self._staged_review = StagedPeerReview(
+            app=app,
+            code_review_channel_id=os.environ.get("CODE_REVIEW_CHANNEL_ID", "code-review"),
+            dave_user_id=os.environ.get("DAVE_SLACK_USER_ID", ""),
+            projects=_all_projects,
+        )
         self._opened_issue_number: int | None = None
 
     def _load_projects(self) -> dict:
@@ -173,8 +184,7 @@ class ProjectAgent:
         claude_md_path = Path(self.project["path"]) / "CLAUDE.md"
         if claude_md_path.exists():
             return claude_md_path.read_text()
-        import logging
-        logging.getLogger(__name__).warning(
+        logger.warning(
             f"CLAUDE.md not found for {self.project['name']} at {claude_md_path}"
         )
         return ""
@@ -241,6 +251,7 @@ Be concise and precise. Reference specific files/patterns when relevant."""
         return mapping.get(sub_agent_class, None)
 
     def handle(self, prompt: str, thread_context: list = None) -> tuple[str, str]:
+        self._opened_issue_number = None  # reset per-call state
         sub_agent_class = detect_sub_agent(prompt)
         task_type = self._task_type_for_github(sub_agent_class) if sub_agent_class else None
         # Only auto-create issues for crash/bug task types, never for None/review/docs
@@ -304,16 +315,8 @@ Be concise and precise. Reference specific files/patterns when relevant."""
         return response, label
 
     def _trigger_peer_review(self, prompt: str, response: str):
-        from peer_review import StagedPeerReview
-        from orchestrator_config import PROJECTS
-        spr = StagedPeerReview(
-            app=self.app,
-            code_review_channel_id=os.environ.get("CODE_REVIEW_CHANNEL_ID", "code-review"),
-            dave_user_id=os.environ.get("DAVE_SLACK_USER_ID", ""),
-            projects=PROJECTS,
-        )
         self._lifecycle.pending_review()
-        spr.trigger(
+        self._staged_review.trigger(
             summary=f"{self.project['name']}: {prompt[:100]}",
             changed_files=[],
             project_key=self.project_key,
