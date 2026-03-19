@@ -21,7 +21,7 @@ def set_env_var(key: str, value: str, env_path: str = _ENV_PATH) -> None:
     new_lines = []
     for line in lines:
         if pattern.match(line):
-            new_lines.append(f"{key}={value}\n")
+            new_lines.append(f'{key}="{value}"\n')
             replaced = True
         else:
             new_lines.append(line)
@@ -29,7 +29,7 @@ def set_env_var(key: str, value: str, env_path: str = _ENV_PATH) -> None:
     if not replaced:
         if new_lines and not new_lines[-1].endswith("\n"):
             new_lines[-1] += "\n"
-        new_lines.append(f"{key}={value}\n")
+        new_lines.append(f'{key}="{value}"\n')
 
     with open(env_path, "w") as f:
         f.writelines(new_lines)
