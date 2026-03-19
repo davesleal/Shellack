@@ -12,6 +12,7 @@ Channels:
 import json
 import os
 import re
+import shutil
 import threading
 import uuid
 from typing import Dict, Optional
@@ -360,7 +361,13 @@ def _handle_config_command(clean_text: str, say, thread_ts: str) -> bool:
     # set mode max|api
     if lower.startswith("set mode "):
         mode = lower[9:].strip()
-        if mode in ("max", "api"):
+        if mode == "max":
+            if not shutil.which("claude"):
+                say(text="❌ `claude` CLI not found. Install Claude Code first: https://claude.ai/code", thread_ts=thread_ts)
+                return True
+            set_env_var("SESSION_BACKEND", "max")
+            say(text="✅ Mode set to `max`. No restart required.", thread_ts=thread_ts)
+        elif mode == "api":
             set_env_var("SESSION_BACKEND", mode)
             say(text=f"✅ Mode set to `{mode}`. No restart required.", thread_ts=thread_ts)
         else:

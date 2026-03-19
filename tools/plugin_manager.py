@@ -133,9 +133,11 @@ class PluginManager:
         if not clone_result["ok"]:
             return clone_result
 
-        # Add extensions_dir to sys.path if needed so import works
-        if self.extensions_dir not in sys.path:
-            sys.path.insert(0, self.extensions_dir)
+        # Add the parent of extensions_dir (repo root) to sys.path so that
+        # `import extensions.<name>` resolves correctly.
+        parent_dir = os.path.dirname(self.extensions_dir)
+        if parent_dir not in sys.path:
+            sys.path.insert(0, parent_dir)
 
         # Import (or reload if previously loaded)
         module_name = f"extensions.{name}"
