@@ -43,4 +43,4 @@ def test_project_message_records_mention():
         event = {"text": "hello", "channel": "C123", "ts": "100.0"}
         bot_unified.handle_project_message(event, say=MagicMock(), channel_name="dayist-dev")
 
-    mock_record.assert_called_once()
+    mock_record.assert_called_once_with("api", "claude-sonnet-4-6")
