@@ -123,6 +123,11 @@ def handle_project_message(event, say, channel_name: str):
     header = f"🤖 *{agent_label}*\n" if agent_label != project["name"] else ""
     say(text=f"{header}{response}", thread_ts=thread_ts)
 
+    usage_tracker.record_mention(
+        os.environ.get("SESSION_BACKEND", "api"),
+        os.environ.get("SESSION_MODEL", "claude-sonnet-4-6"),
+    )
+
 
 # ============================================================================
 # ORCHESTRATOR HANDLERS (for #slackclaw-central)
@@ -361,12 +366,20 @@ def handle_mention(event, say):
                 except OSError:
                     pass
 
+        def _on_run_close(
+            _mode=os.environ.get("SESSION_BACKEND", "api"),
+            _model=os.environ.get("SESSION_MODEL", "claude-sonnet-4-6"),
+            _ts=thread_ts,
+        ):
+            usage_tracker.record_session(_mode, _model)
+            RUN_SESSIONS.pop(_ts, None)
+
         session = SlackSession(
             thread_ts=thread_ts,
             channel_id=channel_id,
             client=app.client,
             backend=backend,
-            on_close=lambda: RUN_SESSIONS.pop(thread_ts, None),
+            on_close=_on_run_close,
         )
         RUN_SESSIONS[thread_ts] = session
         session.start(task, system_prompt, cwd)
