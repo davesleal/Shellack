@@ -480,6 +480,153 @@ def start_app_store_connect_monitoring():
 
 
 # ============================================================================
+# ONBOARDING
+# ============================================================================
+
+def check_and_post_onboarding() -> None:
+    """Post onboarding message to #slackclaw-dev if not already complete."""
+    if os.environ.get("ONBOARDING_COMPLETE") == "true":
+        return
+
+    # Find the slackclaw-dev channel ID
+    channel_id = None
+    try:
+        result = app.client.conversations_list(types="public_channel,private_channel", limit=200)
+        for ch in result.get("channels", []):
+            if ch["name"] == "slackclaw-dev":
+                channel_id = ch["id"]
+                break
+    except Exception as e:
+        print(f"⚠️  Could not list channels for onboarding: {e}")
+        return
+
+    if not channel_id:
+        print("⚠️  Could not find #slackclaw-dev for onboarding. Skipping.")
+        return
+
+    blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    "👋 *Welcome to SlackClaw!* Let's get you set up.\n\n"
+                    "How would you like to power AI sessions?"
+                ),
+            },
+        },
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "⚡ Claude Max subscription"},
+                    "action_id": "onboarding_mode_select",
+                    "value": "max",
+                    "style": "primary",
+                },
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "🔑 Anthropic API key"},
+                    "action_id": "onboarding_mode_select",
+                    "value": "api",
+                },
+            ],
+        },
+    ]
+    try:
+        app.client.chat_postMessage(
+            channel=channel_id,
+            text="👋 Welcome to SlackClaw! Choose your AI backend.",
+            blocks=blocks,
+        )
+        print("📋 Onboarding message posted to #slackclaw-dev")
+    except Exception as e:
+        print(f"⚠️  Could not post onboarding: {e}")
+
+
+@app.action("onboarding_mode_select")
+def handle_onboarding_mode_select(ack, body, action, client):
+    """Handle Max vs API mode selection during onboarding."""
+    ack()
+    mode = action.get("value", "api")
+    channel = body.get("channel", {}).get("id", "")
+    message_ts = body.get("message", {}).get("ts", "")
+
+    if mode == "max":
+        set_env_var("SESSION_BACKEND", "max")
+        set_env_var("ONBOARDING_COMPLETE", "true")
+        text = (
+            "✅ *Mode set to Claude Max.* All AI calls will use your Max subscription.\n\n"
+            "Change anytime: `@SlackClaw set mode api`"
+        )
+        if channel and message_ts:
+            client.chat_update(channel=channel, ts=message_ts, text=text, blocks=[
+                {"type": "section", "text": {"type": "mrkdwn", "text": text}}
+            ])
+    else:
+        # API mode: ask for model selection
+        set_env_var("SESSION_BACKEND", "api")
+        model_blocks = [
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "Which model would you like to use?"},
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Opus 4.6 · ~$15/Mtok"},
+                        "action_id": "onboarding_model_select",
+                        "value": "claude-opus-4-6",
+                    },
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Sonnet 4.6 ✓ recommended · ~$3/Mtok"},
+                        "action_id": "onboarding_model_select",
+                        "value": "claude-sonnet-4-6",
+                        "style": "primary",
+                    },
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Haiku 4.5 · ~$0.25/Mtok"},
+                        "action_id": "onboarding_model_select",
+                        "value": "claude-haiku-4-5-20251001",
+                    },
+                ],
+            },
+        ]
+        if channel and message_ts:
+            client.chat_update(
+                channel=channel,
+                ts=message_ts,
+                text="Which model would you like to use?",
+                blocks=model_blocks,
+            )
+
+
+@app.action("onboarding_model_select")
+def handle_onboarding_model_select(ack, body, action, client):
+    """Handle model selection during API mode onboarding."""
+    ack()
+    model = action.get("value", "claude-sonnet-4-6")
+    channel = body.get("channel", {}).get("id", "")
+    message_ts = body.get("message", {}).get("ts", "")
+
+    set_env_var("SESSION_MODEL", model)
+    set_env_var("ONBOARDING_COMPLETE", "true")
+    text = (
+        f"✅ *Model set to `{model}`.* Ready to go!\n\n"
+        "Change anytime: `@SlackClaw set model opus|sonnet|haiku`"
+    )
+    if channel and message_ts:
+        client.chat_update(channel=channel, ts=message_ts, text=text, blocks=[
+            {"type": "section", "text": {"type": "mrkdwn", "text": text}}
+        ])
+
+
+# ============================================================================
 # CLAUDE-SLACK BRIDGE HANDLER
 # ============================================================================
 
@@ -597,6 +744,9 @@ if __name__ == "__main__":
 
     # Start bot
     handler = SocketModeHandler(app, os.environ.get("SLACK_APP_TOKEN"))
+
+    # Post onboarding if first run
+    check_and_post_onboarding()
 
     print("✅ Bot is running!")
     print()
