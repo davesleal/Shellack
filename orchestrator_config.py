@@ -12,9 +12,7 @@ from typing import Dict, List, Optional
 PROJECTS = {
     "dayist": {
         "name": "Dayist",
-        "path": os.environ.get(
-            "DAYIST_PROJECT_PATH", "/Users/daveleal/Applications/Dayist App"
-        ),
+        "path": os.environ.get("DAYIST_PROJECT_PATH", "/Users/daveleal/Repos/Dayist"),
         "bundle_id": "com.daveleal.dayist",  # Fixed: lowercase to match App Store Connect
         "primary_channel": "dayist-dev",
         "language": "swift",
@@ -50,7 +48,7 @@ PROJECTS = {
     },
     "tiledock": {
         "name": "TileDock",
-        "path": "/Users/daveleal/Applications/MacDock",
+        "path": "/Users/daveleal/Repos/TileDock",
         "bundle_id": "com.daveleal.MacDock",
         "primary_channel": "tiledock-dev",
         "language": "swift",
@@ -68,7 +66,7 @@ PROJECTS = {
     },
     "sideplane": {
         "name": "SidePlane",
-        "path": "/Users/daveleal/Applications/Mac2Vision",
+        "path": "/Users/daveleal/Repos/SidePlane",
         "bundle_id": "com.daveleal.sideplane",
         "primary_channel": "sideplane-dev",
         "language": "swift",
