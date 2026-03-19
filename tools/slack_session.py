@@ -42,6 +42,9 @@ class SlackSession:
         self._last_ts: Optional[str] = None
         self._last_ts_time: float = 0.0
         self._ts_lock = threading.Lock()
+        self._close_lock = threading.Lock()
+        self._timer_lock = threading.Lock()
+        self._turn_lock = threading.Lock()
         self._idle_timer: Optional[threading.Timer] = None
         self._reset_idle()
 
@@ -82,29 +85,32 @@ class SlackSession:
         system_prompt: str = "",
         cwd: str = ".",
     ) -> None:
-        try:
-            if is_first:
-                chunks = self._backend.first_turn(text, system_prompt, cwd)
-            else:
-                chunks = self._backend.next_turn(text)
+        with self._turn_lock:
+            if self._closed:
+                return
+            try:
+                if is_first:
+                    chunks = self._backend.first_turn(text, system_prompt, cwd)
+                else:
+                    chunks = self._backend.next_turn(text)
 
-            buffer = ""
-            last_flush = time.time()
+                buffer = ""
+                last_flush = time.time()
 
-            for chunk in chunks:
-                buffer += chunk
-                self._reset_idle()
-                if "\n\n" in buffer or (time.time() - last_flush) >= _CHUNK_PAUSE:
+                for chunk in chunks:
+                    buffer += chunk
+                    self._reset_idle()
+                    if "\n\n" in buffer or (time.time() - last_flush) >= _CHUNK_PAUSE:
+                        self._post_chunk(buffer.strip())
+                        buffer = ""
+                        last_flush = time.time()
+
+                if buffer.strip():
                     self._post_chunk(buffer.strip())
-                    buffer = ""
-                    last_flush = time.time()
 
-            if buffer.strip():
-                self._post_chunk(buffer.strip())
-
-        except Exception as exc:
-            self._post_new("❌ Session error: " + str(exc))
-            self._close(None)
+            except Exception as exc:
+                self._post_new("❌ Session error: " + str(exc))
+                self._close(None)
 
     # ------------------------------------------------------------------
     # Internal: Slack posting
@@ -146,11 +152,14 @@ class SlackSession:
     # ------------------------------------------------------------------
 
     def _reset_idle(self) -> None:
-        if self._idle_timer:
-            self._idle_timer.cancel()
-        self._idle_timer = threading.Timer(_IDLE_W1, self._on_idle_15)
-        self._idle_timer.daemon = True
-        self._idle_timer.start()
+        if self._closed:
+            return
+        with self._timer_lock:
+            if self._idle_timer:
+                self._idle_timer.cancel()
+            self._idle_timer = threading.Timer(_IDLE_W1, self._on_idle_15)
+            self._idle_timer.daemon = True
+            self._idle_timer.start()
 
     def _on_idle_15(self) -> None:
         if self._closed:
@@ -176,11 +185,13 @@ class SlackSession:
     # ------------------------------------------------------------------
 
     def _close(self, message: Optional[str]) -> None:
-        if self._closed:
-            return
-        self._closed = True
-        if self._idle_timer:
-            self._idle_timer.cancel()
+        with self._close_lock:
+            if self._closed:
+                return
+            self._closed = True
+        with self._timer_lock:
+            if self._idle_timer:
+                self._idle_timer.cancel()
         self._backend.close()
         if message:
             self._post_new(message)
