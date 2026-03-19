@@ -79,11 +79,19 @@ def test_api_backend_close_clears_history():
 # MaxBackend
 # ---------------------------------------------------------------------------
 
-def _make_proc(lines):
+def _make_proc(lines, returncode=0):
     """Return a mock Popen process whose stdout yields JSONL lines."""
     proc = MagicMock()
-    proc.stdout = iter(lines)
-    proc.wait = MagicMock(return_value=0)
+    # Wrap the iterator in a MagicMock so .close() and .read() are available
+    # while __iter__ still yields the lines.
+    stdout_mock = MagicMock()
+    stdout_mock.__iter__ = MagicMock(return_value=iter(lines))
+    stdout_mock.read.return_value = ""
+    proc.stdout = stdout_mock
+    proc.wait = MagicMock(return_value=returncode)
+    proc.returncode = returncode
+    proc.stderr = MagicMock()
+    proc.stderr.read.return_value = ""
     return proc
 
 

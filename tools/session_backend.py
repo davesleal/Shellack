@@ -141,23 +141,41 @@ class MaxBackend(SessionBackend):
         proc = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
             text=True,
             cwd=self._cwd,
         )
-        for line in proc.stdout:
-            line = line.strip()
-            if not line:
-                continue
+        try:
+            for line in proc.stdout:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if event.get("type") == "assistant":
+                    for block in event.get("message", {}).get("content", []):
+                        if isinstance(block, dict) and block.get("type") == "text":
+                            yield block["text"]
+        finally:
+            # Drain and close stdout to unblock the subprocess, then terminate it
             try:
-                event = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if event.get("type") == "assistant":
-                for block in event.get("message", {}).get("content", []):
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        yield block["text"]
-        proc.wait()
+                proc.stdout.read()
+            except Exception:
+                pass
+            proc.stdout.close()
+            proc.terminate()
+            proc.wait()
+            # Check exit code — non-zero means claude CLI errored
+            if proc.returncode not in (0, -15):  # -15 = SIGTERM (our terminate)
+                stderr_output = proc.stderr.read() if proc.stderr else ""
+                proc.stderr.close()
+                raise RuntimeError(
+                    f"claude CLI exited with code {proc.returncode}: {stderr_output.strip()}"
+                )
+            if proc.stderr:
+                proc.stderr.close()
 
     @classmethod
     def available(cls) -> bool:
