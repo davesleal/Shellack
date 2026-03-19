@@ -11,6 +11,7 @@ Channels:
 
 import json
 import os
+import re
 import threading
 import uuid
 from typing import Dict, Optional
@@ -30,6 +31,8 @@ from orchestrator import Orchestrator
 from peer_review import PeerReviewCoordinator
 from app_store_connect import AppStoreConnectClient, format_feedback_for_slack
 from agents import AgentFactory
+from tools.session_backend import APIBackend, MaxBackend
+from tools.slack_session import SlackSession
 
 # Load environment
 load_dotenv()
@@ -45,6 +48,9 @@ agent_factory = AgentFactory(anthropic_client)
 
 # Session management
 active_sessions: Dict[str, list] = {}
+
+# run: session registry — keyed by thread_ts, cleaned up when session closes
+RUN_SESSIONS: dict = {}
 
 
 def get_channel_name(channel_id: str) -> str:
@@ -247,10 +253,62 @@ The review bots will analyze and provide feedback!""",
 
 @app.event("app_mention")
 def handle_mention(event, say):
-    """Route messages to appropriate handler based on channel"""
+    """Route messages to the appropriate handler based on channel."""
     channel_id = event["channel"]
     channel_name = get_channel_name(channel_id)
+    ts = event.get("ts", "")
+    thread_ts = event.get("thread_ts", ts)
 
+    # Strip bot mention to get clean text
+    raw_text = event.get("text", "")
+    clean_text = re.sub(r"<@[A-Z0-9]+>", "", raw_text).strip()
+
+    # --- run: session trigger (top-level mentions only) ---
+    is_top_level = (thread_ts == ts)
+    if is_top_level and clean_text.lower().startswith("run:"):
+        task = clean_text[4:].strip()
+        if not task:
+            say(text="Usage: `@SlackClaw run: <task description>`", thread_ts=thread_ts)
+            return
+
+        # Pick backend
+        backend_mode = os.environ.get("SESSION_BACKEND", "api")
+        if backend_mode == "max" and MaxBackend.available():
+            backend = MaxBackend()
+        else:
+            model = os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
+            backend = APIBackend(model=model)
+
+        # Get project context from channel
+        from orchestrator_config import CHANNEL_ROUTING, PROJECTS
+        routing = CHANNEL_ROUTING.get(channel_name, {})
+        project_key = routing.get("project")
+        system_prompt = ""
+        cwd = "."
+        if project_key:
+            project = PROJECTS.get(project_key, {})
+            cwd = project.get("path", ".")
+            claude_md_path = os.path.join(cwd, "CLAUDE.md")
+            if os.path.exists(claude_md_path):
+                try:
+                    with open(claude_md_path) as f:
+                        system_prompt = f.read()
+                except OSError:
+                    pass
+
+        session = SlackSession(
+            thread_ts=thread_ts,
+            channel_id=channel_id,
+            client=app.client,
+            backend=backend,
+            on_close=lambda: RUN_SESSIONS.pop(thread_ts, None),
+        )
+        RUN_SESSIONS[thread_ts] = session
+        session.start(task, system_prompt, cwd)
+        print(f"🚀 run: session started in #{channel_name} thread {thread_ts}")
+        return
+
+    # --- existing routing ---
     print(f"📬 Message in #{channel_name}")
 
     # Route to appropriate handler
@@ -269,11 +327,20 @@ def handle_mention(event, say):
 
 @app.event("message")
 def handle_message(event, say):
-    """Handle threaded messages in active sessions"""
+    """Handle threaded messages — route to active run: session or fall through."""
     thread_ts = event.get("thread_ts")
 
+    # Route to active run: session first
+    if thread_ts and thread_ts in RUN_SESSIONS:
+        session = RUN_SESSIONS[thread_ts]
+        if not session._closed:
+            text = re.sub(r"<@[A-Z0-9]+>", "", event.get("text", "")).strip()
+            if text:
+                session.feed_input(text)
+            return
+
+    # Fall through to existing behavior for active_sessions (quick reply threads)
     if thread_ts and thread_ts in active_sessions:
-        # Continue conversation in thread
         handle_mention(event, say)
 
 
