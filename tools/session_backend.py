@@ -44,7 +44,7 @@ class APIBackend(SessionBackend):
     """Anthropic SDK streaming backend. Costs API credits per token."""
 
     def __init__(self, model: str = "claude-sonnet-4-6"):
-        self._client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+        self._client = Anthropic()
         self._model = model
         self._history: list[dict] = []
         self._system: str = ""
@@ -74,13 +74,20 @@ class APIBackend(SessionBackend):
             kwargs["system"] = self._system
 
         assistant_text = ""
-        with self._client.messages.stream(**kwargs) as stream:
-            for text in stream.text_stream:
-                assistant_text += text
-                yield text
+        try:
+            with self._client.messages.stream(**kwargs) as stream:
+                for text in stream.text_stream:
+                    assistant_text += text
+                    yield text
+        except Exception:
+            # Pop the user message we just appended so history stays consistent
+            if self._history and self._history[-1]["role"] == "user":
+                self._history.pop()
+            raise
 
         self._history.append({"role": "assistant", "content": assistant_text})
 
     def close(self) -> None:
         self._history.clear()
         self._started = False
+        self._system = ""
