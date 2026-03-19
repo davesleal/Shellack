@@ -96,10 +96,10 @@ class TestAddMcp:
     def test_success(self, fresh_plugin_manager):
         pm = fresh_plugin_manager.PluginManager()
         with patch("subprocess.run", return_value=_make_completed(0)) as mock_run:
-            result = pm.add_mcp("my-server", "npx my-server")
+            result = pm.add_mcp("mymcp", "npx my-server")
         assert result["ok"] is True
         mock_run.assert_called_once_with(
-            ["claude", "mcp", "add", "my-server", "npx my-server"],
+            ["claude", "mcp", "add", "mymcp", "npx", "my-server"],
             capture_output=True, text=True, timeout=60,
         )
 
@@ -189,6 +189,12 @@ class TestAddBotPlugin:
         assert result["ok"] is True
         assert "myext" in registry
         assert registry["myext"] is fake_mod
+
+    def test_unknown_org_returns_error(self, fresh_plugin_manager, tmp_path):
+        pm = fresh_plugin_manager.PluginManager(extensions_dir=str(tmp_path / "extensions"))
+        result = pm.add_bot_plugin("someorg/myrepo")
+        assert result["ok"] is False
+        assert "Unknown plugin source" in result["error"]
 
     def test_import_failure_cleans_up_directory(self, fresh_plugin_manager, tmp_path):
         ext_dir = tmp_path / "extensions"

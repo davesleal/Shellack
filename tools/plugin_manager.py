@@ -77,8 +77,9 @@ class PluginManager:
     # -----------------------------------------------------------------------
 
     def add_mcp(self, name: str, command: str) -> dict[str, Any]:
-        """Shell out to: claude mcp add <name> <command>"""
-        return self._run(["claude", "mcp", "add", name, command])
+        """Shell out to: claude mcp add <name> <command-parts...>"""
+        command_parts = command.split()
+        return self._run(["claude", "mcp", "add", name, *command_parts])
 
     def remove_mcp(self, name: str) -> dict[str, Any]:
         """Shell out to: claude mcp remove <name>"""
@@ -104,6 +105,15 @@ class PluginManager:
         """
         if registry is None:
             registry = {}
+
+        if "/" in name_or_url and not name_or_url.startswith("https://"):
+            return {
+                "ok": False,
+                "error": (
+                    "Unknown plugin source. Use a bare name (official SlackClaw-plugins org) "
+                    "or a full GitHub URL: `@SlackClaw add bot-plugin https://github.com/org/repo`"
+                ),
+            }
 
         if name_or_url.startswith("https://"):
             url = name_or_url
