@@ -25,7 +25,8 @@ from orchestrator_config import (
     get_project_for_channel,
     is_orchestrator_channel,
     is_peer_review_channel,
-    CHANNEL_ROUTING
+    CHANNEL_ROUTING,
+    PROJECTS
 )
 from orchestrator import Orchestrator
 from peer_review import PeerReviewCoordinator
@@ -75,7 +76,6 @@ def handle_project_message(event, say, channel_name: str):
     channel_id = event["channel"]
 
     # Get project config and resolve project key
-    from orchestrator_config import CHANNEL_ROUTING, PROJECTS
     routing = CHANNEL_ROUTING.get(channel_name)
     project_key = routing["project"] if routing else None
     project = PROJECTS.get(project_key) if project_key else None
@@ -280,7 +280,6 @@ def handle_mention(event, say):
             backend = APIBackend(model=model)
 
         # Get project context from channel
-        from orchestrator_config import CHANNEL_ROUTING, PROJECTS
         routing = CHANNEL_ROUTING.get(channel_name, {})
         project_key = routing.get("project")
         system_prompt = ""
@@ -328,6 +327,10 @@ def handle_mention(event, say):
 @app.event("message")
 def handle_message(event, say):
     """Handle threaded messages — route to active run: session or fall through."""
+    # Ignore bot messages to prevent echo loops
+    if event.get("subtype") == "bot_message" or event.get("bot_id"):
+        return
+
     thread_ts = event.get("thread_ts")
 
     # Route to active run: session first
@@ -338,6 +341,8 @@ def handle_message(event, say):
             if text:
                 session.feed_input(text)
             return
+        # Session closed but not yet popped — clean up and fall through
+        RUN_SESSIONS.pop(thread_ts, None)
 
     # Fall through to existing behavior for active_sessions (quick reply threads)
     if thread_ts and thread_ts in active_sessions:
@@ -359,8 +364,6 @@ def start_app_store_connect_monitoring():
         return
 
     try:
-        from orchestrator_config import PROJECTS
-
         client = AppStoreConnectClient(
             key_id=os.environ["APP_STORE_CONNECT_KEY_ID"],
             issuer_id=os.environ["APP_STORE_CONNECT_ISSUER_ID"],
