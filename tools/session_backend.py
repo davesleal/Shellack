@@ -91,3 +91,78 @@ class APIBackend(SessionBackend):
         self._history.clear()
         self._started = False
         self._system = ""
+
+
+class MaxBackend(SessionBackend):
+    """Claude CLI subprocess backend. Uses Max subscription — zero API cost.
+
+    Design: each turn spawns a fresh `claude -p` subprocess.
+    - first_turn: passes --session-id <uuid> so Claude Code persists the
+      conversation under our pre-assigned ID.
+    - next_turn: passes --resume <uuid> to continue that exact conversation.
+
+    This gives per-session isolation with no --continue collision risk.
+    Requires: `claude` CLI on PATH, `--output-format stream-json --verbose`.
+
+    Thread safety: all backend calls must be serialized by the caller (SlackSession).
+    """
+
+    def __init__(self) -> None:
+        self._session_id: Optional[str] = None
+        self._cwd: str = "."
+
+    def first_turn(
+        self, task: str, system_prompt: str = "", cwd: str = "."
+    ) -> Generator[str, None, None]:
+        self._cwd = cwd
+        self._session_id = str(uuid.uuid4())
+        cmd = [
+            "claude", "-p", task,
+            "--output-format", "stream-json",
+            "--verbose",
+            "--session-id", self._session_id,
+        ]
+        if system_prompt:
+            cmd += ["--system-prompt", system_prompt]
+        yield from self._run(cmd)
+
+    def next_turn(self, user_input: str) -> Generator[str, None, None]:
+        if self._session_id is None:
+            raise RuntimeError("next_turn called before first_turn")
+        cmd = [
+            "claude", "-p", user_input,
+            "--output-format", "stream-json",
+            "--verbose",
+            "--resume", self._session_id,
+        ]
+        yield from self._run(cmd)
+
+    def _run(self, cmd: list[str]) -> Generator[str, None, None]:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            cwd=self._cwd,
+        )
+        for line in proc.stdout:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("type") == "assistant":
+                for block in event.get("message", {}).get("content", []):
+                    if isinstance(block, dict) and block.get("type") == "text":
+                        yield block["text"]
+        proc.wait()
+
+    @classmethod
+    def available(cls) -> bool:
+        """Return True if `claude` CLI is on PATH."""
+        return shutil.which("claude") is not None
+
+    def close(self) -> None:
+        self._session_id = None
