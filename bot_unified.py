@@ -57,6 +57,18 @@ active_sessions: Dict[str, list] = {}
 # run: session registry — keyed by thread_ts, cleaned up when session closes
 RUN_SESSIONS: dict = {}
 
+# Conversational output instructions appended to every run: session
+_SLACK_CONVERSATIONAL_PROMPT = """
+---
+SLACK OUTPUT RULES (follow these strictly):
+- Be brief and conversational. You are chatting in Slack, not writing a report.
+- Never paste file contents directly into messages — they go to the canvas automatically.
+- After editing or creating a file, say what you did in one sentence (e.g. "Updated `foo.swift` to fix the login bug.").
+- Keep code snippets in messages to ≤10 lines. Larger code goes to the session canvas.
+- Use bullet points for lists of changes, not wall-of-text prose.
+- If you need to share long output (test results, build logs, file trees), summarise in 1-2 sentences instead.
+"""
+
 # Usage tracking — persists to usage.json, monthly auto-reset
 usage_tracker = UsageTracker()
 
@@ -483,6 +495,9 @@ def handle_mention(event, say):
                         system_prompt = f.read()
                 except OSError:
                     pass
+
+        # Append Slack-specific output rules to every run: session
+        system_prompt = (system_prompt or "") + _SLACK_CONVERSATIONAL_PROMPT
 
         def _on_run_close(
             _mode=os.environ.get("SESSION_BACKEND", "api"),

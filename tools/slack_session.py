@@ -9,6 +9,7 @@ and enforces idle timeouts with warning messages.
 
 from __future__ import annotations
 
+import re
 import threading
 import time
 from typing import Callable, Optional
@@ -23,6 +24,9 @@ _IDLE_MAX = 30 * 60  # 30 min → close session
 
 _CHUNK_PAUSE = 3.0  # seconds between forced flushes
 _EDIT_WINDOW = 5.0  # seconds within which we edit the last message
+_MAX_INLINE_CHARS = 800  # longer than this → canvas or truncate
+
+_CODE_FENCE_RE = re.compile(r"```[\s\S]+?```")
 
 
 class SlackSession:
@@ -46,6 +50,8 @@ class SlackSession:
         self._close_lock = threading.Lock()
         self._timer_lock = threading.Lock()
         self._turn_lock = threading.Lock()
+        self._canvas_lock = threading.Lock()
+        self._canvas_id: Optional[str] = None
         self._idle_timer: Optional[threading.Timer] = None
         self._reset_idle()
 
@@ -114,10 +120,86 @@ class SlackSession:
                 self._close(None)
 
     # ------------------------------------------------------------------
+    # Internal: canvas
+    # ------------------------------------------------------------------
+
+    def _ensure_canvas(self) -> Optional[str]:
+        """Create a session canvas if one doesn't exist. Returns canvas_id or None."""
+        with self._canvas_lock:
+            if self._canvas_id:
+                return self._canvas_id
+            try:
+                resp = self._client.canvases_create(
+                    title="🦞 Session Output",
+                    document_content={
+                        "type": "markdown",
+                        "markdown": "# Session Output\n\n_Code and details from this `run:` session are here._\n\n",
+                    },
+                )
+                canvas_id = resp.get("canvas_id") or (resp.get("canvas") or {}).get(
+                    "id"
+                )
+                if canvas_id:
+                    self._canvas_id = canvas_id
+                    return canvas_id
+            except Exception as exc:
+                print(f"Canvas creation failed: {exc}")
+            return None
+
+    def _append_to_canvas(self, content: str) -> Optional[str]:
+        """Append markdown content to the session canvas. Returns canvas_id or None."""
+        canvas_id = self._ensure_canvas()
+        if not canvas_id:
+            return None
+        try:
+            self._client.canvases_edit(
+                canvas_id=canvas_id,
+                changes=[
+                    {
+                        "operation": "insert_at_end",
+                        "document_content": {
+                            "type": "markdown",
+                            "markdown": f"\n{content}\n",
+                        },
+                    }
+                ],
+            )
+            return canvas_id
+        except Exception as exc:
+            print(f"Canvas update failed: {exc}")
+            return None
+
+    # ------------------------------------------------------------------
     # Internal: Slack posting
     # ------------------------------------------------------------------
 
     def _post_chunk(self, text: str) -> None:
+        if not text:
+            return
+
+        has_code = bool(_CODE_FENCE_RE.search(text))
+        is_long = len(text) > _MAX_INLINE_CHARS
+
+        if has_code or is_long:
+            canvas_id = self._append_to_canvas(text)
+            if canvas_id:
+                # Extract a brief prose summary (text before the first code block)
+                summary = _CODE_FENCE_RE.split(text)[0].strip()
+                if summary:
+                    summary = summary[:300].rstrip()
+                notice = (summary + "\n" if summary else "") + (
+                    f"📄 Added to session canvas (`{canvas_id}`)"
+                )
+                self._post_inline(notice)
+                return
+            # Canvas unavailable — fall through with truncation
+            if is_long:
+                text = text[:_MAX_INLINE_CHARS] + "… _(output truncated)_"
+
+        self._post_inline(text)
+
+    def _post_inline(self, text: str) -> None:
+        """Post text to thread, editing last message if within edit window."""
         if not text:
             return
         now = time.time()
