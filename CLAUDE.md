@@ -33,7 +33,13 @@ Do NOT tag Dave for: warnings, suggestions, minor style issues, informational qu
 
 ## Peer Review Protocol
 
-Every task that produces a code change or GitHub issue must trigger `StagedPeerReview`:
+Peer review triggers ONLY when ALL of the following are true:
+- Files were **actually written, edited, or deleted** (not just read or listed)
+- OR a GitHub issue was opened
+
+**Never** trigger peer review for: read-only tasks (listing files, explaining code, answering questions, searching, fetching data), informational responses, or tool calls that only read the filesystem.
+
+When triggered:
 1. Stage 1: Quality, Security, Performance agents run automatically
 2. Stage 2: Maestro tags ≤2 peer agents from projects sharing the same platform or language
 3. `CodeReviewAgent` tasks do NOT self-trigger peer review

@@ -42,21 +42,21 @@ PROJECT_KNOWLEDGE = {
             "Force unwrapping optional CloudKit records",
             "Blocking the main thread with HealthKit queries",
             "Leaking sensitive health data in logs",
-        ]
+        ],
     },
     "nova": {
         "description": "iOS application",
         "purpose": "In active development — details TBD",
         "tech": "Swift, iOS",
         "patterns": ["Standard iOS MVC/MVVM patterns"],
-        "watch_out": []
+        "watch_out": [],
     },
     "nudge": {
         "description": "iOS application",
         "purpose": "In active development — details TBD",
         "tech": "Swift, iOS",
         "patterns": ["Standard iOS MVC/MVVM patterns"],
-        "watch_out": []
+        "watch_out": [],
     },
     "tiledock": {
         "description": "macOS grid control surface — one tap triggers multiple actions",
@@ -72,7 +72,7 @@ PROJECT_KNOWLEDGE = {
             "Main thread violations (AppKit is not thread-safe)",
             "Memory growth from long-running action queues",
             "Accessibility — control surfaces must support VoiceOver",
-        ]
+        ],
     },
     "atmosuniversal": {
         "description": "macOS weather application",
@@ -86,7 +86,7 @@ PROJECT_KNOWLEDGE = {
         "watch_out": [
             "Location permission must be requested gracefully",
             "Network failures must show cached data with staleness indicator",
-        ]
+        ],
     },
     "sideplane": {
         "description": "macOS ↔ Vision Pro bridge app (formerly Mac2Vision)",
@@ -102,7 +102,7 @@ PROJECT_KNOWLEDGE = {
             "Latency is critical — minimize serialization overhead",
             "Privacy: screen capture requires explicit user permission on macOS",
             "visionOS has no traditional keyboard — design for spatial input",
-        ]
+        ],
     },
     "slackclaw": {
         "description": "Slack bot integrated with Claude AI for multi-project dev automation",
@@ -118,8 +118,8 @@ PROJECT_KNOWLEDGE = {
             "Slack rate limits: don't burst messages in loops",
             "Thread context grows unbounded — consider pruning for long sessions",
             "App Store Connect JWT tokens expire — refresh before polling",
-        ]
-    }
+        ],
+    },
 }
 
 LANGUAGE_CONVENTIONS = {
@@ -139,13 +139,20 @@ Coding conventions (PEP 8 + project standards):
 - Max line length: 100 characters
 - Use black for formatting
 - Prefer explicit over implicit
-"""
+""",
 }
 
 
 class ProjectAgent:
-    def __init__(self, project_key: str, project_config: dict, client,
-                 app, channel_id: str, thread_ts: str):
+    def __init__(
+        self,
+        project_key: str,
+        project_config: dict,
+        client,
+        app,
+        channel_id: str,
+        thread_ts: str,
+    ):
         self.project_key = project_key
         self.project = project_config
         self.client = client
@@ -168,9 +175,12 @@ class ProjectAgent:
         self._journal = JournalWriter(project_config["path"])
         from peer_review import StagedPeerReview
         from orchestrator_config import PROJECTS as _all_projects
+
         self._staged_review = StagedPeerReview(
             app=app,
-            code_review_channel_id=os.environ.get("CODE_REVIEW_CHANNEL_ID", "code-review"),
+            code_review_channel_id=os.environ.get(
+                "CODE_REVIEW_CHANNEL_ID", "code-review"
+            ),
             dave_user_id=os.environ.get("DAVE_SLACK_USER_ID", ""),
             projects=_all_projects,
         )
@@ -178,6 +188,7 @@ class ProjectAgent:
 
     def _load_projects(self) -> dict:
         from orchestrator_config import PROJECTS
+
         return PROJECTS
 
     def _load_claude_md(self) -> str:
@@ -228,17 +239,18 @@ Be concise and precise. Reference specific files/patterns when relevant."""
         # Prepend CLAUDE.md (project rules take highest priority)
         claude_md = self._load_claude_md()
         if claude_md:
-            prompt = f"## Project Rules (from CLAUDE.md)\n\n{claude_md}\n\n---\n\n{prompt}"
+            prompt = (
+                f"## Project Rules (from CLAUDE.md)\n\n{claude_md}\n\n---\n\n{prompt}"
+            )
 
         return prompt
 
     def _is_code_changing(self, sub_agent_class, response: str) -> bool:
         if sub_agent_class in CODE_CHANGING_AGENTS:
             return True
-        if sub_agent_class is CodeReviewAgent:
-            return False
-        # General/Docs: only if response contains fenced code block
-        return "```" in response
+        # CodeReviewAgent and all other agents: never auto-trigger peer review.
+        # Peer review requires explicit code changes, not just code in output.
+        return False
 
     def _task_type_for_github(self, sub_agent_class) -> str | None:
         """Return GitHub task type label or None if no issue should be created."""
@@ -253,7 +265,9 @@ Be concise and precise. Reference specific files/patterns when relevant."""
     def handle(self, prompt: str, thread_context: list = None) -> tuple[str, str]:
         self._opened_issue_number = None  # reset per-call state
         sub_agent_class = detect_sub_agent(prompt)
-        task_type = self._task_type_for_github(sub_agent_class) if sub_agent_class else None
+        task_type = (
+            self._task_type_for_github(sub_agent_class) if sub_agent_class else None
+        )
         # Only auto-create issues for crash/bug task types, never for None/review/docs
         is_bug_task = task_type == "crash"
 
@@ -271,7 +285,9 @@ Be concise and precise. Reference specific files/patterns when relevant."""
                 self._opened_issue_number = issue["number"]
                 self._lifecycle.issue_created(issue["url"], issue["number"])
             else:
-                self._lifecycle.in_progress("⚠️ Could not create GitHub issue — continuing")
+                self._lifecycle.in_progress(
+                    "⚠️ Could not create GitHub issue — continuing"
+                )
 
         # Run sub-agent or main agent
         self._lifecycle.in_progress("Analyzing...")
