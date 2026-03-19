@@ -5,6 +5,7 @@ Persists to usage.json in the SlackClaw root. Monthly reset: on every read,
 compare the stored reset_month to the current month — if different, zero all
 counters and update reset_month. No cron required.
 """
+
 from __future__ import annotations
 
 import json

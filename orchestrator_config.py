@@ -12,12 +12,14 @@ from typing import Dict, List, Optional
 PROJECTS = {
     "dayist": {
         "name": "Dayist",
-        "path": os.environ.get("DAYIST_PROJECT_PATH", "/Users/daveleal/Applications/Dayist App"),
+        "path": os.environ.get(
+            "DAYIST_PROJECT_PATH", "/Users/daveleal/Applications/Dayist App"
+        ),
         "bundle_id": "com.daveleal.dayist",  # Fixed: lowercase to match App Store Connect
         "primary_channel": "dayist-dev",
         "language": "swift",
         "platform": "ios",
-        "github_repo": "davesleal/Dayist"
+        "github_repo": "davesleal/Dayist",
     },
     "nova": {
         "name": "NOVA",
@@ -26,7 +28,7 @@ PROJECTS = {
         "primary_channel": "nova-dev",
         "language": "swift",
         "platform": "ios",
-        "github_repo": "davesleal/NOVA"
+        "github_repo": "davesleal/NOVA",
     },
     "nudge": {
         "name": "Nudge",
@@ -35,7 +37,7 @@ PROJECTS = {
         "primary_channel": "nudge-dev",
         "language": "swift",
         "platform": "ios",
-        "github_repo": "davesleal/Nudge"
+        "github_repo": "davesleal/Nudge",
     },
     "slackclaw": {
         "name": "SlackClaw",
@@ -44,7 +46,7 @@ PROJECTS = {
         "primary_channel": "slackclaw-dev",
         "language": "python",
         "platform": "server",
-        "github_repo": "davesleal/SlackClaw"
+        "github_repo": "davesleal/SlackClaw",
     },
     "tiledock": {
         "name": "TileDock",
@@ -53,7 +55,7 @@ PROJECTS = {
         "primary_channel": "tiledock-dev",
         "language": "swift",
         "platform": "macos",
-        "github_repo": "davesleal/TileDock"
+        "github_repo": "davesleal/TileDock",
     },
     "atmosuniversal": {
         "name": "Atmos Universal",
@@ -62,7 +64,7 @@ PROJECTS = {
         "primary_channel": "atmos-dev",
         "language": "swift",
         "platform": "macos",
-        "github_repo": "davesleal/atmos-universal"
+        "github_repo": "davesleal/atmos-universal",
     },
     "sideplane": {
         "name": "SidePlane",
@@ -71,25 +73,50 @@ PROJECTS = {
         "primary_channel": "sideplane-dev",
         "language": "swift",
         "platform": "macos",
-        "github_repo": "davesleal/SidePlane"
-    }
+        "github_repo": "davesleal/SidePlane",
+    },
 }
 
 # Channel Routing
 CHANNEL_ROUTING = {
     # iOS Project Channels
-    "dayist-dev":   {"project": "dayist",        "mode": "dedicated",  "channel_id": "C0AM872QM8E"},
-    "nova-dev":     {"project": "nova",           "mode": "dedicated",  "channel_id": ""},   # channel not yet created
-    "nudge-dev":    {"project": "nudge",          "mode": "dedicated",  "channel_id": ""},   # channel not yet created
-
+    "dayist-dev": {
+        "project": "dayist",
+        "mode": "dedicated",
+        "channel_id": "C0AM872QM8E",
+    },
+    "nova-dev": {
+        "project": "nova",
+        "mode": "dedicated",
+        "channel_id": "",
+    },  # channel not yet created
+    "nudge-dev": {
+        "project": "nudge",
+        "mode": "dedicated",
+        "channel_id": "",
+    },  # channel not yet created
     # macOS Project Channels
-    "tiledock-dev": {"project": "tiledock",       "mode": "dedicated",  "channel_id": "C0AHTQU2CQ2"},
-    "atmos-dev":    {"project": "atmosuniversal", "mode": "dedicated",  "channel_id": "C0AMDU1939A"},
-    "sideplane-dev":{"project": "sideplane",      "mode": "dedicated",  "channel_id": "C0AM3UT7XL3"},
-
+    "tiledock-dev": {
+        "project": "tiledock",
+        "mode": "dedicated",
+        "channel_id": "C0AHTQU2CQ2",
+    },
+    "atmos-dev": {
+        "project": "atmosuniversal",
+        "mode": "dedicated",
+        "channel_id": "C0AMDU1939A",
+    },
+    "sideplane-dev": {
+        "project": "sideplane",
+        "mode": "dedicated",
+        "channel_id": "C0AM3UT7XL3",
+    },
     # Meta
-    "slackclaw-dev":{"project": "slackclaw",      "mode": "dedicated",  "channel_id": "C0AN4JQACKS"},
-
+    "slackclaw-dev": {
+        "project": "slackclaw",
+        "mode": "dedicated",
+        "channel_id": "C0AN4JQACKS",
+    },
     # Special channels
     "slackclaw-central": {
         "mode": "orchestrator",
@@ -100,18 +127,17 @@ CHANNEL_ROUTING = {
             "set_global_rules",
             "cross_project_search",
             "coordinate_changes",
-            "sync_standards"
-        ]
+            "sync_standards",
+        ],
     },
-
     "code-review": {
         "mode": "peer_review",
         "access": "all_projects",
         "channel_id": "",  # channel not yet created
         "review_agents": ["code-quality", "security", "performance"],
         "approval_required": True,
-        "auto_merge": False
-    }
+        "auto_merge": False,
+    },
 }
 
 # Global Standards
@@ -123,10 +149,10 @@ GLOBAL_STANDARDS = {
             "Use descriptive variable names",
             "Prefer composition over inheritance",
             "Use guard statements for early returns",
-            "Avoid force unwrapping unless guaranteed safe"
+            "Avoid force unwrapping unless guaranteed safe",
         ],
         "required_tests": True,
-        "min_coverage": 80
+        "min_coverage": 80,
     },
     "python": {
         "style_guide": "PEP 8",
@@ -134,11 +160,11 @@ GLOBAL_STANDARDS = {
             "Use type hints",
             "Docstrings for all public functions",
             "Maximum line length: 100",
-            "Use black for formatting"
+            "Use black for formatting",
         ],
         "required_tests": True,
-        "min_coverage": 80
-    }
+        "min_coverage": 80,
+    },
 }
 
 # Orchestrator Commands
@@ -146,23 +172,23 @@ ORCHESTRATOR_COMMANDS = {
     "update_all_claude_md": {
         "description": "Update CLAUDE.md in all projects",
         "syntax": "@SlackClaw update all CLAUDE.md: <rule>",
-        "example": "@SlackClaw update all CLAUDE.md: prefer async/await over callbacks"
+        "example": "@SlackClaw update all CLAUDE.md: prefer async/await over callbacks",
     },
     "sync_standards": {
         "description": "Sync coding standards between projects",
         "syntax": "@SlackClaw sync standards from <source> to <target>",
-        "example": "@SlackClaw sync standards from dayist to nova"
+        "example": "@SlackClaw sync standards from dayist to nova",
     },
     "global_search": {
         "description": "Search across all projects",
         "syntax": "@SlackClaw search all: <query>",
-        "example": "@SlackClaw search all: deprecated API usage"
+        "example": "@SlackClaw search all: deprecated API usage",
     },
     "coordinate_change": {
         "description": "Make coordinated change across projects",
         "syntax": "@SlackClaw coordinate: <change>",
-        "example": "@SlackClaw coordinate: update to Swift 6 concurrency"
-    }
+        "example": "@SlackClaw coordinate: update to Swift 6 concurrency",
+    },
 }
 
 # Peer Review Configuration
@@ -170,24 +196,20 @@ PEER_REVIEW_CONFIG = {
     "reviewers": {
         "code-quality": {
             "focus": ["readability", "maintainability", "best_practices"],
-            "blocking": True
+            "blocking": True,
         },
         "security": {
             "focus": ["vulnerabilities", "data_exposure", "authentication"],
-            "blocking": True
+            "blocking": True,
         },
         "performance": {
             "focus": ["memory_leaks", "inefficient_algorithms", "n_plus_one"],
-            "blocking": False  # Advisory only
-        }
+            "blocking": False,  # Advisory only
+        },
     },
     "approval_threshold": 2,  # Need 2 approvals minimum
     "auto_merge_on_approval": False,  # Always require human confirmation
-    "required_checks": [
-        "tests_passing",
-        "no_merge_conflicts",
-        "ci_passing"
-    ]
+    "required_checks": ["tests_passing", "no_merge_conflicts", "ci_passing"],
 }
 
 

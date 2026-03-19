@@ -27,7 +27,7 @@ from orchestrator_config import (
     is_orchestrator_channel,
     is_peer_review_channel,
     CHANNEL_ROUTING,
-    PROJECTS
+    PROJECTS,
 )
 from orchestrator import Orchestrator
 from peer_review import PeerReviewCoordinator
@@ -75,10 +75,10 @@ def get_channel_name(channel_id: str) -> str:
         return ""
 
 
-
 # ============================================================================
 # PROJECT AGENT HANDLERS (for #dayist-dev, #nova-dev, etc.)
 # ============================================================================
+
 
 def handle_project_message(event, say, channel_name: str):
     """Handle messages in project-specific channels using specialized project agents."""
@@ -94,7 +94,7 @@ def handle_project_message(event, say, channel_name: str):
     if not project:
         say(
             text=f"❌ Channel `{channel_name}` not configured. See orchestrator_config.py",
-            thread_ts=thread_ts
+            thread_ts=thread_ts,
         )
         return
 
@@ -105,8 +105,7 @@ def handle_project_message(event, say, channel_name: str):
     if thread_ts not in active_sessions:
         active_sessions[thread_ts] = []
         say(
-            text=f"🧵 New session\n📂 Project: `{project['name']}`",
-            thread_ts=thread_ts
+            text=f"🧵 New session\n📂 Project: `{project['name']}`", thread_ts=thread_ts
         )
 
     # Build context (exclude the last user message — agent.handle adds it)
@@ -117,10 +116,7 @@ def handle_project_message(event, say, channel_name: str):
     # Dispatch to specialized project agent
     say(text="🔄 Processing...", thread_ts=thread_ts)
 
-    agent = agent_factory.get_agent(
-        project_key, project,
-        app, channel_id, thread_ts
-    )
+    agent = agent_factory.get_agent(project_key, project, app, channel_id, thread_ts)
     response, agent_label = agent.handle(prompt, context)
 
     active_sessions[thread_ts].append({"role": "assistant", "content": response})
@@ -138,6 +134,7 @@ def handle_project_message(event, say, channel_name: str):
 # ============================================================================
 # ORCHESTRATOR HANDLERS (for #slackclaw-central)
 # ============================================================================
+
 
 def handle_orchestrator_message(event, say):
     """Handle messages in orchestrator channel"""
@@ -174,17 +171,18 @@ def handle_orchestrator_message(event, say):
         if success:
             say(
                 text=f"✅ Synced standards from {source} to {target}",
-                thread_ts=thread_ts
+                thread_ts=thread_ts,
             )
         else:
-            say(
-                text=f"❌ Failed to sync standards",
-                thread_ts=thread_ts
-            )
+            say(text=f"❌ Failed to sync standards", thread_ts=thread_ts)
 
     elif "search all" in prompt_lower:
         # Extract query
-        query = prompt.split(":", 1)[1].strip() if ":" in prompt else prompt.replace("search all", "").strip()
+        query = (
+            prompt.split(":", 1)[1].strip()
+            if ":" in prompt
+            else prompt.replace("search all", "").strip()
+        )
 
         results = orchestrator.search_all_projects(query)
 
@@ -219,13 +217,14 @@ Search across all projects
 
 `@SlackClaw help`
 Show this help""",
-            thread_ts=thread_ts
+            thread_ts=thread_ts,
         )
 
 
 # ============================================================================
 # PEER REVIEW HANDLERS (for #code-review)
 # ============================================================================
+
 
 def handle_peer_review_message(event, say):
     """Handle messages in peer review channel"""
@@ -240,7 +239,7 @@ def handle_peer_review_message(event, say):
         pr_data = {
             "description": "Code changes ready for review",
             "files": ["example.swift"],  # Would extract from message
-            "diff": text  # Simplified - would get actual diff
+            "diff": text,  # Simplified - would get actual diff
         }
 
         # Run peer review
@@ -259,13 +258,14 @@ Files: file1.swift, file2.swift
 Description: Fixed bug in login flow`
 
 The review bots will analyze and provide feedback!""",
-            thread_ts=thread_ts
+            thread_ts=thread_ts,
         )
 
 
 # ============================================================================
 # MAIN MESSAGE HANDLER - Routes to appropriate module
 # ============================================================================
+
 
 def _handle_plugin_command(
     clean_text: str,
@@ -307,7 +307,10 @@ def _handle_plugin_command(
     if lower.startswith("add plugin "):
         name = clean_text[11:].strip()
         result = plugin_manager.install_plugin(name)
-        _handle_result(result, f"✅ Plugin `{name}` installed. Restart any active `run:` session to use it.")
+        _handle_result(
+            result,
+            f"✅ Plugin `{name}` installed. Restart any active `run:` session to use it.",
+        )
         return True
 
     # remove plugin <name>
@@ -341,7 +344,9 @@ def _handle_plugin_command(
         name_or_url = clean_text[15:].strip()
         result = plugin_manager.add_bot_plugin(name_or_url, registry=_bot_extensions)
         installed_name = result.get("name", name_or_url)
-        _handle_result(result, f"✅ Bot extension `{installed_name}` installed and loaded.")
+        _handle_result(
+            result, f"✅ Bot extension `{installed_name}` installed and loaded."
+        )
         return True
 
     # remove bot-plugin <name>
@@ -363,13 +368,19 @@ def _handle_config_command(clean_text: str, say, thread_ts: str) -> bool:
         mode = lower[9:].strip()
         if mode == "max":
             if not shutil.which("claude"):
-                say(text="❌ `claude` CLI not found. Install Claude Code first: https://claude.ai/code", thread_ts=thread_ts)
+                say(
+                    text="❌ `claude` CLI not found. Install Claude Code first: https://claude.ai/code",
+                    thread_ts=thread_ts,
+                )
                 return True
             set_env_var("SESSION_BACKEND", "max")
             say(text="✅ Mode set to `max`. No restart required.", thread_ts=thread_ts)
         elif mode == "api":
             set_env_var("SESSION_BACKEND", mode)
-            say(text=f"✅ Mode set to `{mode}`. No restart required.", thread_ts=thread_ts)
+            say(
+                text=f"✅ Mode set to `{mode}`. No restart required.",
+                thread_ts=thread_ts,
+            )
         else:
             say(text="Usage: `@SlackClaw set mode max|api`", thread_ts=thread_ts)
         return True
@@ -387,7 +398,10 @@ def _handle_config_command(clean_text: str, say, thread_ts: str) -> bool:
             set_env_var("SESSION_MODEL", model)
             say(text=f"✅ Model set to `{model}`.", thread_ts=thread_ts)
         else:
-            say(text="Usage: `@SlackClaw set model opus|sonnet|haiku`", thread_ts=thread_ts)
+            say(
+                text="Usage: `@SlackClaw set model opus|sonnet|haiku`",
+                thread_ts=thread_ts,
+            )
         return True
 
     # usage
@@ -439,7 +453,7 @@ def handle_mention(event, say):
         return
 
     # --- run: session trigger (top-level mentions only) ---
-    is_top_level = (thread_ts == ts)
+    is_top_level = thread_ts == ts
     if is_top_level and clean_text.lower().startswith("run:"):
         task = clean_text[4:].strip()
         if not task:
@@ -536,13 +550,16 @@ def handle_message(event, say):
 # APP STORE CONNECT MONITORING
 # ============================================================================
 
+
 def start_app_store_connect_monitoring():
     """Monitor App Store Connect for all configured projects"""
-    if not all([
-        os.environ.get("APP_STORE_CONNECT_KEY_ID"),
-        os.environ.get("APP_STORE_CONNECT_ISSUER_ID"),
-        os.environ.get("APP_STORE_CONNECT_PRIVATE_KEY_PATH")
-    ]):
+    if not all(
+        [
+            os.environ.get("APP_STORE_CONNECT_KEY_ID"),
+            os.environ.get("APP_STORE_CONNECT_ISSUER_ID"),
+            os.environ.get("APP_STORE_CONNECT_PRIVATE_KEY_PATH"),
+        ]
+    ):
         print("⚠️  App Store Connect not configured")
         return
 
@@ -550,7 +567,7 @@ def start_app_store_connect_monitoring():
         client = AppStoreConnectClient(
             key_id=os.environ["APP_STORE_CONNECT_KEY_ID"],
             issuer_id=os.environ["APP_STORE_CONNECT_ISSUER_ID"],
-            private_key_path=os.environ["APP_STORE_CONNECT_PRIVATE_KEY_PATH"]
+            private_key_path=os.environ["APP_STORE_CONNECT_PRIVATE_KEY_PATH"],
         )
 
         def handle_feedback(feedback: Dict):
@@ -574,10 +591,7 @@ def start_app_store_connect_monitoring():
             # Format and post
             message = format_feedback_for_slack(feedback)
 
-            app.client.chat_postMessage(
-                channel=channel,
-                text=message
-            )
+            app.client.chat_postMessage(channel=channel, text=message)
 
         # Monitor each project with bundle_id
         for project in PROJECTS.values():
@@ -587,7 +601,7 @@ def start_app_store_connect_monitoring():
                     target=client.poll_for_new_feedback,
                     args=(bundle_id, handle_feedback),
                     kwargs={"poll_interval": 600},
-                    daemon=True
+                    daemon=True,
                 )
                 thread.start()
                 print(f"📱 Monitoring {project['name']}")
@@ -600,6 +614,7 @@ def start_app_store_connect_monitoring():
 # ONBOARDING
 # ============================================================================
 
+
 def check_and_post_onboarding() -> None:
     """Post onboarding message to #slackclaw-dev if not already complete."""
     if os.environ.get("ONBOARDING_COMPLETE") == "true":
@@ -608,7 +623,9 @@ def check_and_post_onboarding() -> None:
     # Find the slackclaw-dev channel ID
     channel_id = None
     try:
-        result = app.client.conversations_list(types="public_channel,private_channel", limit=200)
+        result = app.client.conversations_list(
+            types="public_channel,private_channel", limit=200
+        )
         for ch in result.get("channels", []):
             if ch["name"] == "slackclaw-dev":
                 channel_id = ch["id"]
@@ -637,15 +654,18 @@ def check_and_post_onboarding() -> None:
             "elements": [
                 {
                     "type": "button",
-                    "text": {"type": "plain_text", "text": "⚡ Claude Max subscription"},
-                    "action_id": "onboarding_mode_select",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "⚡ Claude Max subscription",
+                    },
+                    "action_id": "onboarding_mode_max",
                     "value": "max",
                     "style": "primary",
                 },
                 {
                     "type": "button",
                     "text": {"type": "plain_text", "text": "🔑 Anthropic API key"},
-                    "action_id": "onboarding_mode_select",
+                    "action_id": "onboarding_mode_api",
                     "value": "api",
                 },
             ],
@@ -662,7 +682,7 @@ def check_and_post_onboarding() -> None:
         print(f"⚠️  Could not post onboarding: {e}")
 
 
-@app.action("onboarding_mode_select")
+@app.action(re.compile("onboarding_mode_(max|api)"))
 def handle_onboarding_mode_select(ack, body, action, client):
     """Handle Max vs API mode selection during onboarding."""
     ack()
@@ -678,16 +698,22 @@ def handle_onboarding_mode_select(ack, body, action, client):
             "Change anytime: `@SlackClaw set mode api`"
         )
         if channel and message_ts:
-            client.chat_update(channel=channel, ts=message_ts, text=text, blocks=[
-                {"type": "section", "text": {"type": "mrkdwn", "text": text}}
-            ])
+            client.chat_update(
+                channel=channel,
+                ts=message_ts,
+                text=text,
+                blocks=[{"type": "section", "text": {"type": "mrkdwn", "text": text}}],
+            )
     else:
         # API mode: ask for model selection
         set_env_var("SESSION_BACKEND", "api")
         model_blocks = [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "Which model would you like to use?"},
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Which model would you like to use?",
+                },
             },
             {
                 "type": "actions",
@@ -700,14 +726,20 @@ def handle_onboarding_mode_select(ack, body, action, client):
                     },
                     {
                         "type": "button",
-                        "text": {"type": "plain_text", "text": "Sonnet 4.6 ✓ recommended · ~$3/Mtok"},
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Sonnet 4.6 ✓ recommended · ~$3/Mtok",
+                        },
                         "action_id": "onboarding_model_select",
                         "value": "claude-sonnet-4-6",
                         "style": "primary",
                     },
                     {
                         "type": "button",
-                        "text": {"type": "plain_text", "text": "Haiku 4.5 · ~$0.25/Mtok"},
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Haiku 4.5 · ~$0.25/Mtok",
+                        },
                         "action_id": "onboarding_model_select",
                         "value": "claude-haiku-4-5-20251001",
                     },
@@ -738,14 +770,18 @@ def handle_onboarding_model_select(ack, body, action, client):
         "Change anytime: `@SlackClaw set model opus|sonnet|haiku`"
     )
     if channel and message_ts:
-        client.chat_update(channel=channel, ts=message_ts, text=text, blocks=[
-            {"type": "section", "text": {"type": "mrkdwn", "text": text}}
-        ])
+        client.chat_update(
+            channel=channel,
+            ts=message_ts,
+            text=text,
+            blocks=[{"type": "section", "text": {"type": "mrkdwn", "text": text}}],
+        )
 
 
 # ============================================================================
 # CLAUDE-SLACK BRIDGE HANDLER
 # ============================================================================
+
 
 @app.action("claude_bridge_input")
 def handle_bridge_input(ack, body, action, client):

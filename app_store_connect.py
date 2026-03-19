@@ -17,39 +17,27 @@ class AppStoreConnectClient:
 
     BASE_URL = "https://api.appstoreconnect.apple.com/v1"
 
-    def __init__(
-        self,
-        key_id: str,
-        issuer_id: str,
-        private_key_path: str
-    ):
+    def __init__(self, key_id: str, issuer_id: str, private_key_path: str):
         self.key_id = key_id
         self.issuer_id = issuer_id
 
         # Load private key
-        with open(private_key_path, 'r') as f:
+        with open(private_key_path, "r") as f:
             self.private_key = f.read()
 
     def _generate_token(self) -> str:
         """Generate JWT token for API authentication"""
-        headers = {
-            "alg": "ES256",
-            "kid": self.key_id,
-            "typ": "JWT"
-        }
+        headers = {"alg": "ES256", "kid": self.key_id, "typ": "JWT"}
 
         payload = {
             "iss": self.issuer_id,
             "iat": int(time.time()),
             "exp": int(time.time()) + 1200,  # 20 minutes
-            "aud": "appstoreconnect-v1"
+            "aud": "appstoreconnect-v1",
         }
 
         token = jwt.encode(
-            payload,
-            self.private_key,
-            algorithm="ES256",
-            headers=headers
+            payload, self.private_key, algorithm="ES256", headers=headers
         )
 
         return token
@@ -60,7 +48,7 @@ class AppStoreConnectClient:
 
         headers = {
             "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         url = f"{self.BASE_URL}{endpoint}"
@@ -83,9 +71,7 @@ class AppStoreConnectClient:
         return None
 
     def get_customer_reviews(
-        self,
-        app_id: str,
-        since: Optional[datetime] = None
+        self, app_id: str, since: Optional[datetime] = None
     ) -> List[Dict]:
         """Get customer reviews for an app"""
         params = {}
@@ -99,9 +85,7 @@ class AppStoreConnectClient:
         return data.get("data", [])
 
     def get_beta_feedback(
-        self,
-        app_id: str,
-        since: Optional[datetime] = None
+        self, app_id: str, since: Optional[datetime] = None
     ) -> List[Dict]:
         """Get TestFlight beta feedback"""
         params = {}
@@ -121,10 +105,7 @@ class AppStoreConnectClient:
             raise
 
     def poll_for_new_feedback(
-        self,
-        bundle_id: str,
-        callback,
-        poll_interval: int = 300  # 5 minutes
+        self, bundle_id: str, callback, poll_interval: int = 300  # 5 minutes
     ):
         """
         Continuously poll for new feedback and invoke callback
@@ -149,34 +130,42 @@ class AppStoreConnectClient:
 
                 for review in reviews:
                     attrs = review["attributes"]
-                    callback({
-                        "type": "review",
-                        "app_id": app_id,
-                        "bundle_id": bundle_id,
-                        "title": attrs.get("title", ""),
-                        "body": attrs.get("body", ""),
-                        "rating": attrs.get("rating", 0),
-                        "created_date": attrs.get("createdDate", ""),
-                        "reviewer_nickname": attrs.get("reviewerNickname", "Anonymous")
-                    })
+                    callback(
+                        {
+                            "type": "review",
+                            "app_id": app_id,
+                            "bundle_id": bundle_id,
+                            "title": attrs.get("title", ""),
+                            "body": attrs.get("body", ""),
+                            "rating": attrs.get("rating", 0),
+                            "created_date": attrs.get("createdDate", ""),
+                            "reviewer_nickname": attrs.get(
+                                "reviewerNickname", "Anonymous"
+                            ),
+                        }
+                    )
 
                 # Get beta feedback
                 beta_feedback = self.get_beta_feedback(app_id, since=last_check)
 
                 for feedback in beta_feedback:
                     attrs = feedback["attributes"]
-                    callback({
-                        "type": "beta_feedback",
-                        "app_id": app_id,
-                        "bundle_id": bundle_id,
-                        "comment": attrs.get("comment", ""),
-                        "created_date": attrs.get("createdDate", ""),
-                        "email": attrs.get("email", "Anonymous")
-                    })
+                    callback(
+                        {
+                            "type": "beta_feedback",
+                            "app_id": app_id,
+                            "bundle_id": bundle_id,
+                            "comment": attrs.get("comment", ""),
+                            "created_date": attrs.get("createdDate", ""),
+                            "email": attrs.get("email", "Anonymous"),
+                        }
+                    )
 
                 last_check = datetime.now()
 
-                print(f"✅ Checked at {last_check.isoformat()} - Found {len(reviews)} reviews, {len(beta_feedback)} feedback")
+                print(
+                    f"✅ Checked at {last_check.isoformat()} - Found {len(reviews)} reviews, {len(beta_feedback)} feedback"
+                )
 
             except Exception as e:
                 print(f"❌ Error polling: {str(e)}")
@@ -212,7 +201,7 @@ if __name__ == "__main__":
     client = AppStoreConnectClient(
         key_id=os.environ["APP_STORE_CONNECT_KEY_ID"],
         issuer_id=os.environ["APP_STORE_CONNECT_ISSUER_ID"],
-        private_key_path=os.environ["APP_STORE_CONNECT_PRIVATE_KEY_PATH"]
+        private_key_path=os.environ["APP_STORE_CONNECT_PRIVATE_KEY_PATH"],
     )
 
     # Get all apps

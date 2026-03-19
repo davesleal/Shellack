@@ -28,7 +28,7 @@ CHANNEL_PROJECTS = {
     "dayist-dev": {
         "path": os.environ.get("DAYIST_PROJECT_PATH"),
         "bundle_id": "com.daveleal.Dayist",
-        "auto_investigate": True  # Auto-dispatch agents for bugs
+        "auto_investigate": True,  # Auto-dispatch agents for bugs
     }
 }
 
@@ -38,7 +38,9 @@ def get_project_config(channel_name: str) -> Optional[Dict]:
     return CHANNEL_PROJECTS.get(channel_name)
 
 
-def execute_claude_task(project_path: str, task: str, thread_context: list = None) -> str:
+def execute_claude_task(
+    project_path: str, task: str, thread_context: list = None
+) -> str:
     """
     Execute a task using Claude with full context
 
@@ -47,10 +49,7 @@ def execute_claude_task(project_path: str, task: str, thread_context: list = Non
     try:
         # Build messages with context
         messages = thread_context or []
-        messages.append({
-            "role": "user",
-            "content": task
-        })
+        messages.append({"role": "user", "content": task})
 
         # Call Claude API with context about the project
         system_prompt = f"""You are a senior iOS developer working on a project located at: {project_path}
@@ -75,7 +74,7 @@ When responding:
             model="claude-sonnet-4-5-20250929",
             max_tokens=4096,
             system=system_prompt,
-            messages=messages
+            messages=messages,
         )
 
         return response.content[0].text
@@ -85,11 +84,7 @@ When responding:
 
 
 def create_autonomous_agent(
-    project_path: str,
-    task: str,
-    thread_ts: str,
-    channel_id: str,
-    context: list = None
+    project_path: str, task: str, thread_ts: str, channel_id: str, context: list = None
 ):
     """
     Create autonomous agent to handle a task
@@ -101,7 +96,7 @@ def create_autonomous_agent(
         app.client.chat_postMessage(
             channel=channel_id,
             thread_ts=thread_ts,
-            text="🤖 Starting autonomous investigation..."
+            text="🤖 Starting autonomous investigation...",
         )
 
         # Execute task
@@ -117,8 +112,8 @@ def create_autonomous_agent(
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"✅ *Investigation Complete*\n\n{result}"
-                    }
+                        "text": f"✅ *Investigation Complete*\n\n{result}",
+                    },
                 },
                 {
                     "type": "actions",
@@ -127,28 +122,26 @@ def create_autonomous_agent(
                             "type": "button",
                             "text": {"type": "plain_text", "text": "Apply Fix"},
                             "style": "primary",
-                            "value": "apply_fix"
+                            "value": "apply_fix",
                         },
                         {
                             "type": "button",
                             "text": {"type": "plain_text", "text": "Run Tests"},
-                            "value": "run_tests"
+                            "value": "run_tests",
                         },
                         {
                             "type": "button",
                             "text": {"type": "plain_text", "text": "Create PR"},
-                            "value": "create_pr"
-                        }
-                    ]
-                }
-            ]
+                            "value": "create_pr",
+                        },
+                    ],
+                },
+            ],
         )
 
     except Exception as e:
         app.client.chat_postMessage(
-            channel=channel_id,
-            thread_ts=thread_ts,
-            text=f"❌ Error: {str(e)}"
+            channel=channel_id, thread_ts=thread_ts, text=f"❌ Error: {str(e)}"
         )
 
 
@@ -168,7 +161,7 @@ def handle_mention(event, say):
     if not config:
         say(
             text=f"❌ Channel not configured. Available: {', '.join(CHANNEL_PROJECTS.keys())}",
-            thread_ts=thread_ts
+            thread_ts=thread_ts,
         )
         return
 
@@ -178,16 +171,10 @@ def handle_mention(event, say):
     # Initialize session if new
     if thread_ts not in active_sessions:
         active_sessions[thread_ts] = []
-        say(
-            text=f"🧵 New session\n📂 Project: `{config['path']}`",
-            thread_ts=thread_ts
-        )
+        say(text=f"🧵 New session\n📂 Project: `{config['path']}`", thread_ts=thread_ts)
 
     # Add to history
-    active_sessions[thread_ts].append({
-        "role": "user",
-        "content": prompt
-    })
+    active_sessions[thread_ts].append({"role": "user", "content": prompt})
 
     # Check for autonomous mode
     if prompt.lower().startswith("auto:") or prompt.lower().startswith("investigate:"):
@@ -197,7 +184,13 @@ def handle_mention(event, say):
 
         thread = threading.Thread(
             target=create_autonomous_agent,
-            args=(config["path"], task, thread_ts, channel_id, active_sessions[thread_ts])
+            args=(
+                config["path"],
+                task,
+                thread_ts,
+                channel_id,
+                active_sessions[thread_ts],
+            ),
         )
         thread.daemon = True
         thread.start()
@@ -206,16 +199,9 @@ def handle_mention(event, say):
     # Regular interaction
     say(text="🔄 Processing...", thread_ts=thread_ts)
 
-    response = execute_claude_task(
-        config["path"],
-        prompt,
-        active_sessions[thread_ts]
-    )
+    response = execute_claude_task(config["path"], prompt, active_sessions[thread_ts])
 
-    active_sessions[thread_ts].append({
-        "role": "assistant",
-        "content": response
-    })
+    active_sessions[thread_ts].append({"role": "assistant", "content": response})
 
     say(text=response, thread_ts=thread_ts)
 
@@ -250,7 +236,7 @@ def start_app_store_connect_monitoring():
         client = AppStoreConnectClient(
             key_id=os.environ["APP_STORE_CONNECT_KEY_ID"],
             issuer_id=os.environ["APP_STORE_CONNECT_ISSUER_ID"],
-            private_key_path=os.environ["APP_STORE_CONNECT_PRIVATE_KEY_PATH"]
+            private_key_path=os.environ["APP_STORE_CONNECT_PRIVATE_KEY_PATH"],
         )
 
         def handle_feedback(feedback: Dict):
@@ -274,10 +260,7 @@ def start_app_store_connect_monitoring():
             # Format and post to Slack
             message = format_feedback_for_slack(feedback)
 
-            result = app.client.chat_postMessage(
-                channel=channel_name,
-                text=message
-            )
+            result = app.client.chat_postMessage(channel=channel_name, text=message)
 
             thread_ts = result["ts"]
 
@@ -299,7 +282,7 @@ def start_app_store_connect_monitoring():
 
                     thread = threading.Thread(
                         target=create_autonomous_agent,
-                        args=(config["path"], task, thread_ts, result["channel"])
+                        args=(config["path"], task, thread_ts, result["channel"]),
                     )
                     thread.daemon = True
                     thread.start()
@@ -311,7 +294,7 @@ def start_app_store_connect_monitoring():
                 thread = threading.Thread(
                     target=client.poll_for_new_feedback,
                     args=(bundle_id, handle_feedback),
-                    kwargs={"poll_interval": 300}  # Check every 5 minutes
+                    kwargs={"poll_interval": 300},  # Check every 5 minutes
                 )
                 thread.daemon = True
                 thread.start()
@@ -325,20 +308,19 @@ if __name__ == "__main__":
     print("🚀 Starting Slack Claude Code Bot...")
 
     # Start App Store Connect monitoring
-    if all([
-        os.environ.get("APP_STORE_CONNECT_KEY_ID"),
-        os.environ.get("APP_STORE_CONNECT_ISSUER_ID"),
-        os.environ.get("APP_STORE_CONNECT_PRIVATE_KEY_PATH")
-    ]):
+    if all(
+        [
+            os.environ.get("APP_STORE_CONNECT_KEY_ID"),
+            os.environ.get("APP_STORE_CONNECT_ISSUER_ID"),
+            os.environ.get("APP_STORE_CONNECT_PRIVATE_KEY_PATH"),
+        ]
+    ):
         start_app_store_connect_monitoring()
     else:
         print("⚠️  App Store Connect credentials not configured")
 
     # Start Slack bot
-    handler = SocketModeHandler(
-        app,
-        os.environ.get("SLACK_APP_TOKEN")
-    )
+    handler = SocketModeHandler(app, os.environ.get("SLACK_APP_TOKEN"))
 
     print("✅ Bot is running!")
     print(f"📱 Monitoring channels: {', '.join(CHANNEL_PROJECTS.keys())}")

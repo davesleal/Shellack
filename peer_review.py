@@ -16,6 +16,7 @@ anthropic_client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 @dataclass
 class CodeReview:
     """Code review result"""
+
     reviewer: str
     status: str  # "approved", "changes_requested", "commented"
     score: int  # 0-100
@@ -39,7 +40,6 @@ Evaluate code for:
 - Proper abstractions
 - DRY principle
 - SOLID principles""",
-
             "security": """You are a security engineer focused on finding vulnerabilities.
 Evaluate code for:
 - Authentication/authorization issues
@@ -48,7 +48,6 @@ Evaluate code for:
 - Insecure dependencies
 - Proper error handling
 - Secrets in code""",
-
             "performance": """You are a performance engineer.
 Evaluate code for:
 - Memory leaks
@@ -56,7 +55,7 @@ Evaluate code for:
 - Database N+1 queries
 - Unnecessary network calls
 - Blocking operations
-- Resource cleanup"""
+- Resource cleanup""",
         }
 
     def _call_claude(self, messages: list, system: str):
@@ -68,7 +67,9 @@ Evaluate code for:
         )
 
     def review(self, changes: Dict) -> CodeReview:
-        system_prompt = self.system_prompts.get(self.focus_area, "You are a code reviewer.")
+        system_prompt = self.system_prompts.get(
+            self.focus_area, "You are a code reviewer."
+        )
         system_prompt += """
 
 IMPORTANT: Respond ONLY with valid JSON matching this exact schema:
@@ -112,9 +113,13 @@ Diff:
         except Exception as e:
             print(f"Error in {self.focus_area} review: {e}")
             return CodeReview(
-                reviewer=self.focus_area, status="error", score=0,
-                strengths=[], concerns=[f"Review failed: {str(e)}"],
-                suggestions=[], blocking_issues=[],
+                reviewer=self.focus_area,
+                status="error",
+                score=0,
+                strengths=[],
+                concerns=[f"Review failed: {str(e)}"],
+                suggestions=[],
+                blocking_issues=[],
             )
 
 
@@ -125,7 +130,7 @@ class PeerReviewCoordinator:
         self.reviewers = {
             "code-quality": PeerReviewAgent("code-quality"),
             "security": PeerReviewAgent("security"),
-            "performance": PeerReviewAgent("performance")
+            "performance": PeerReviewAgent("performance"),
         }
 
     def review_pr(self, pr_data: Dict) -> Dict[str, CodeReview]:
@@ -149,9 +154,7 @@ class PeerReviewCoordinator:
 
     def format_review_summary(self, reviews: Dict[str, CodeReview]) -> str:
         """Format reviews into Slack message"""
-        blocking_count = sum(
-            len(r.blocking_issues) for r in reviews.values()
-        )
+        blocking_count = sum(len(r.blocking_issues) for r in reviews.values())
 
         summary = "## 🔍 Peer Review Summary\n\n"
 
@@ -181,7 +184,9 @@ class PeerReviewCoordinator:
 
         # Overall recommendation
         if blocking_count > 0:
-            summary += f"\n❌ **Cannot merge** - {blocking_count} blocking issue(s) found"
+            summary += (
+                f"\n❌ **Cannot merge** - {blocking_count} blocking issue(s) found"
+            )
         elif not reviews:
             summary += "\n✅ **No reviewers** - skipped"
         else:
@@ -197,16 +202,23 @@ class PeerReviewCoordinator:
 class StagedPeerReview:
     """Orchestrates Stage 1 (automated) + Stage 2 (cross-project) peer review."""
 
-    def __init__(self, app, code_review_channel_id: str, dave_user_id: str,
-                 projects: dict = None):
+    def __init__(
+        self, app, code_review_channel_id: str, dave_user_id: str, projects: dict = None
+    ):
         self.app = app
         self.review_channel = code_review_channel_id
         self.dave_user_id = dave_user_id
         self.projects = projects or {}
         self.coordinator = PeerReviewCoordinator()
 
-    def trigger(self, summary: str, changed_files: list, project_key: str,
-                origin_thread_ts: str, origin_channel_id: str):
+    def trigger(
+        self,
+        summary: str,
+        changed_files: list,
+        project_key: str,
+        origin_thread_ts: str,
+        origin_channel_id: str,
+    ):
         """Fire-and-forget: run Stage 1 then Stage 2."""
         pr_data = {
             "description": summary,
@@ -252,10 +264,12 @@ class StagedPeerReview:
         platform = project.get("platform")
         language = project.get("language")
         peers = [
-            key for key, cfg in self.projects.items()
-            if key != project_key and (
-                (platform and cfg.get("platform") == platform) or
-                (language and cfg.get("language") == language)
+            key
+            for key, cfg in self.projects.items()
+            if key != project_key
+            and (
+                (platform and cfg.get("platform") == platform)
+                or (language and cfg.get("language") == language)
             )
         ][:2]
 
@@ -282,7 +296,7 @@ if __name__ == "__main__":
 +        throw AuthError.loginFailed
 +    }
 +    self.user = user
-"""
+""",
     }
 
     reviews = coordinator.review_pr(pr_data)

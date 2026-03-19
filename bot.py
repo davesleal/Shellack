@@ -44,7 +44,7 @@ def execute_claude_code_command(project_path: str, prompt: str) -> str:
             cwd=project_path,
             capture_output=True,
             text=True,
-            timeout=300  # 5 minute timeout
+            timeout=300,  # 5 minute timeout
         )
 
         if result.returncode == 0:
@@ -58,7 +58,9 @@ def execute_claude_code_command(project_path: str, prompt: str) -> str:
         return f"Error executing command: {str(e)}"
 
 
-def create_autonomous_agent(project_path: str, task: str, thread_ts: str, channel_id: str):
+def create_autonomous_agent(
+    project_path: str, task: str, thread_ts: str, channel_id: str
+):
     """
     Create an autonomous agent to handle a task
 
@@ -68,7 +70,7 @@ def create_autonomous_agent(project_path: str, task: str, thread_ts: str, channe
     app.client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_ts,
-        text=f"🤖 Starting autonomous agent for: {task}"
+        text=f"🤖 Starting autonomous agent for: {task}",
     )
 
     # Execute the task using Claude Code
@@ -76,9 +78,7 @@ def create_autonomous_agent(project_path: str, task: str, thread_ts: str, channe
 
     # Post result
     app.client.chat_postMessage(
-        channel=channel_id,
-        thread_ts=thread_ts,
-        text=f"✅ Task complete:\n\n{result}"
+        channel=channel_id, thread_ts=thread_ts, text=f"✅ Task complete:\n\n{result}"
     )
 
 
@@ -99,7 +99,7 @@ def handle_mention(event, say):
     if not project_path:
         say(
             text=f"❌ This channel is not configured for Claude Code. Available channels: {', '.join(CHANNEL_PROJECTS.keys())}",
-            thread_ts=thread_ts
+            thread_ts=thread_ts,
         )
         return
 
@@ -111,28 +111,23 @@ def handle_mention(event, say):
         active_sessions[thread_ts] = []
         say(
             text=f"🧵 Starting new session in {channel_name}\n📂 Project: `{project_path}`",
-            thread_ts=thread_ts
+            thread_ts=thread_ts,
         )
 
     # Add to conversation history
-    active_sessions[thread_ts].append({
-        "role": "user",
-        "content": prompt
-    })
+    active_sessions[thread_ts].append({"role": "user", "content": prompt})
 
     # Check for autonomous mode
     if prompt.lower().startswith("auto:"):
         task = prompt[5:].strip()
-        say(
-            text=f"🚀 Dispatching autonomous agent...",
-            thread_ts=thread_ts
-        )
+        say(text=f"🚀 Dispatching autonomous agent...", thread_ts=thread_ts)
 
         # Run agent in background (in production, use a task queue)
         import threading
+
         agent_thread = threading.Thread(
             target=create_autonomous_agent,
-            args=(project_path, task, thread_ts, channel_id)
+            args=(project_path, task, thread_ts, channel_id),
         )
         agent_thread.start()
         return
@@ -143,10 +138,7 @@ def handle_mention(event, say):
     response = execute_claude_code_command(project_path, prompt)
 
     # Add response to history
-    active_sessions[thread_ts].append({
-        "role": "assistant",
-        "content": response
-    })
+    active_sessions[thread_ts].append({"role": "assistant", "content": response})
 
     # Post response
     say(text=response, thread_ts=thread_ts)
@@ -185,9 +177,9 @@ def handle_bug_report(ack, command, say):
         result = say(
             channel=channel_name,
             text=f"🚨 *New Bug Report from App Store Connect*\n\n"
-                 f"*App:* {app_name}\n"
-                 f"*Feedback:* {feedback}\n\n"
-                 f"```\n{crash_log[:500]}...\n```"
+            f"*App:* {app_name}\n"
+            f"*Feedback:* {feedback}\n\n"
+            f"```\n{crash_log[:500]}...\n```",
         )
 
         thread_ts = result["ts"]
@@ -198,9 +190,10 @@ def handle_bug_report(ack, command, say):
             task = f"Investigate this crash and propose a fix:\n\nUser feedback: {feedback}\n\nCrash log:\n{crash_log}"
 
             import threading
+
             agent_thread = threading.Thread(
                 target=create_autonomous_agent,
-                args=(project_path, task, thread_ts, result["channel"])
+                args=(project_path, task, thread_ts, result["channel"]),
             )
             agent_thread.start()
 
@@ -210,9 +203,6 @@ def handle_bug_report(ack, command, say):
 
 if __name__ == "__main__":
     # Run in Socket Mode (easier for development, no public URL needed)
-    handler = SocketModeHandler(
-        app,
-        os.environ.get("SLACK_APP_TOKEN")
-    )
+    handler = SocketModeHandler(app, os.environ.get("SLACK_APP_TOKEN"))
     print("🚀 Slack Claude Code Bot is running!")
     handler.start()

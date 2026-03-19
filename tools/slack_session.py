@@ -6,6 +6,7 @@ Runs the SessionBackend in a background thread, buffers output into chunks,
 posts/edits messages in the Slack thread, routes user input back to the backend,
 and enforces idle timeouts with warning messages.
 """
+
 from __future__ import annotations
 
 import threading
@@ -16,12 +17,12 @@ from slack_sdk import WebClient
 
 from tools.session_backend import SessionBackend
 
-_IDLE_W1 = 15 * 60   # 15 min → first warning
-_IDLE_W2 = 25 * 60   # 25 min → second warning
+_IDLE_W1 = 15 * 60  # 15 min → first warning
+_IDLE_W2 = 25 * 60  # 25 min → second warning
 _IDLE_MAX = 30 * 60  # 30 min → close session
 
-_CHUNK_PAUSE = 3.0   # seconds between forced flushes
-_EDIT_WINDOW = 5.0   # seconds within which we edit the last message
+_CHUNK_PAUSE = 3.0  # seconds between forced flushes
+_EDIT_WINDOW = 5.0  # seconds within which we edit the last message
 
 
 class SlackSession:
@@ -173,7 +174,9 @@ class SlackSession:
     def _on_idle_25(self) -> None:
         if self._closed:
             return
-        self._post_new("Session timing out in 5 minutes — reply or click to keep it alive")
+        self._post_new(
+            "Session timing out in 5 minutes — reply or click to keep it alive"
+        )
         with self._timer_lock:
             self._idle_timer = threading.Timer(_IDLE_MAX - _IDLE_W2, self._on_idle_30)
             self._idle_timer.daemon = True

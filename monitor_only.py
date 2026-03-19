@@ -27,7 +27,7 @@ def start_monitoring():
         client = AppStoreConnectClient(
             key_id=os.environ["APP_STORE_CONNECT_KEY_ID"],
             issuer_id=os.environ["APP_STORE_CONNECT_ISSUER_ID"],
-            private_key_path=os.environ["APP_STORE_CONNECT_PRIVATE_KEY_PATH"]
+            private_key_path=os.environ["APP_STORE_CONNECT_PRIVATE_KEY_PATH"],
         )
 
         def handle_feedback(feedback):
@@ -54,19 +54,16 @@ def start_monitoring():
                     blocks=[
                         {
                             "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": message
-                            }
+                            "text": {"type": "mrkdwn", "text": message},
                         },
                         {
                             "type": "context",
                             "elements": [
                                 {
                                     "type": "mrkdwn",
-                                    "text": "💡 *To investigate:* Run `claude code` locally and ask about this issue"
+                                    "text": "💡 *To investigate:* Run `claude code` locally and ask about this issue",
                                 }
-                            ]
+                            ],
                         },
                         {
                             "type": "actions",
@@ -75,33 +72,33 @@ def start_monitoring():
                                     "type": "button",
                                     "text": {
                                         "type": "plain_text",
-                                        "text": "📝 Add to Backlog"
+                                        "text": "📝 Add to Backlog",
                                     },
                                     "value": "add_backlog",
-                                    "action_id": "add_backlog"
+                                    "action_id": "add_backlog",
                                 },
                                 {
                                     "type": "button",
                                     "text": {
                                         "type": "plain_text",
-                                        "text": "🔍 Investigating"
+                                        "text": "🔍 Investigating",
                                     },
                                     "value": "investigating",
-                                    "action_id": "investigating"
+                                    "action_id": "investigating",
                                 },
                                 {
                                     "type": "button",
                                     "text": {
                                         "type": "plain_text",
-                                        "text": "✅ Resolved"
+                                        "text": "✅ Resolved",
                                     },
                                     "style": "primary",
                                     "value": "resolved",
-                                    "action_id": "resolved"
-                                }
-                            ]
-                        }
-                    ]
+                                    "action_id": "resolved",
+                                },
+                            ],
+                        },
+                    ],
                 )
 
                 print(f"✅ Posted feedback to Slack (thread: {result['ts']})")
@@ -116,9 +113,7 @@ def start_monitoring():
         print(f"💰 No AI costs - using Slack + App Store Connect only\n")
 
         client.poll_for_new_feedback(
-            BUNDLE_ID,
-            handle_feedback,
-            poll_interval=CHECK_INTERVAL
+            BUNDLE_ID, handle_feedback, poll_interval=CHECK_INTERVAL
         )
 
     except Exception as e:
@@ -129,30 +124,21 @@ def start_monitoring():
 def handle_add_backlog(ack, action, say):
     """Mark as added to backlog"""
     ack()
-    say(
-        text="📝 Added to backlog",
-        thread_ts=action["message"]["ts"]
-    )
+    say(text="📝 Added to backlog", thread_ts=action["message"]["ts"])
 
 
 @app.action("investigating")
 def handle_investigating(ack, action, say):
     """Mark as investigating"""
     ack()
-    say(
-        text="🔍 Investigation started",
-        thread_ts=action["message"]["ts"]
-    )
+    say(text="🔍 Investigation started", thread_ts=action["message"]["ts"])
 
 
 @app.action("resolved")
 def handle_resolved(ack, action, say):
     """Mark as resolved"""
     ack()
-    say(
-        text="✅ Marked as resolved",
-        thread_ts=action["message"]["ts"]
-    )
+    say(text="✅ Marked as resolved", thread_ts=action["message"]["ts"])
 
 
 @app.command("/check-reviews")

@@ -8,16 +8,16 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 LABEL_MAP = {
-    "crash":         ["crash", "bug"],
-    "investigate":   ["bug"],
-    "review":        ["review"],
-    "testing":       ["testing"],
+    "crash": ["crash", "bug"],
+    "investigate": ["bug"],
+    "review": ["review"],
+    "testing": ["testing"],
     "documentation": ["documentation"],
 }
 
 PLATFORM_LABELS = {
-    "ios":    "ios",
-    "macos":  "macos",
+    "ios": "ios",
+    "macos": "macos",
     "server": "server",
 }
 
@@ -45,8 +45,9 @@ class GitHubClient:
         platform = project.get("platform", "")
         return PLATFORM_LABELS.get(platform)
 
-    def create_issue(self, project_key: str, title: str, body: str,
-                     task_type: str) -> Optional[dict]:
+    def create_issue(
+        self, project_key: str, title: str, body: str, task_type: str
+    ) -> Optional[dict]:
         """Create a GitHub issue. Returns {"number": int, "url": str} or None on error."""
         repo = self._repo(project_key)
         if not repo:
@@ -67,7 +68,9 @@ class GitHubClient:
                 data = resp.json()
                 return {"number": data["number"], "url": data["html_url"]}
             else:
-                logger.error(f"GitHub issue creation failed [{resp.status_code}]: {resp.json()}")
+                logger.error(
+                    f"GitHub issue creation failed [{resp.status_code}]: {resp.json()}"
+                )
                 return None
         except Exception as e:
             logger.error(f"GitHub API error: {e}")

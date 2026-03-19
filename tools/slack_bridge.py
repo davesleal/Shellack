@@ -84,10 +84,14 @@ def detect_channel_id() -> tuple[str, str]:
     (misconfiguration that would cause silent wrong-channel routing).
     """
     try:
-        remote = subprocess.check_output(
-            ["git", "remote", "get-url", "origin"],
-            stderr=subprocess.DEVNULL,
-        ).decode().strip()
+        remote = (
+            subprocess.check_output(
+                ["git", "remote", "get-url", "origin"],
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+        )
         slug = re.sub(r"\.git$", "", remote)
         slug = re.sub(r"^git@github\.com:", "", slug)
         slug = re.sub(r"^https://github\.com/", "", slug)
@@ -133,4 +137,6 @@ def post_session_start(channel_id: str, project_name: str) -> None:
     resp.raise_for_status()
     data = resp.json()
     if not data.get("ok"):
-        logger.warning("[claude-slack] post_session_start failed: %s", data.get("error"))
+        logger.warning(
+            "[claude-slack] post_session_start failed: %s", data.get("error")
+        )

@@ -7,6 +7,7 @@ Namespaces:
   2. MCP Servers          — claude mcp add/remove
   3. SlackClaw Extensions — git clone into extensions/, importlib hot-reload
 """
+
 from __future__ import annotations
 
 import importlib
@@ -42,9 +43,7 @@ class PluginManager:
     def _run(self, cmd: list[str]) -> dict[str, Any]:
         """Run a shell command safely. Returns {ok, stdout, stderr, error}."""
         try:
-            proc = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=60
-            )
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
         except FileNotFoundError:
             return {
                 "ok": False,
@@ -197,13 +196,15 @@ class PluginManager:
         try:
             proc = subprocess.run(
                 ["claude", "plugin", "list"],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True,
+                text=True,
+                timeout=60,
             )
-            plugins = [
-                line.strip()
-                for line in proc.stdout.splitlines()
-                if line.strip()
-            ] if proc.returncode == 0 else []
+            plugins = (
+                [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+                if proc.returncode == 0
+                else []
+            )
         except (FileNotFoundError, subprocess.TimeoutExpired):
             plugins = []
 

@@ -6,6 +6,7 @@ SessionBackend is the abstract interface. Two implementations:
 - APIBackend: Anthropic SDK streaming, manages conversation history.
 - MaxBackend: claude CLI subprocess per turn, --session-id / --resume for continuity.
 """
+
 from __future__ import annotations
 
 import json
@@ -117,10 +118,14 @@ class MaxBackend(SessionBackend):
         self._cwd = cwd
         self._session_id = str(uuid.uuid4())
         cmd = [
-            "claude", "-p", task,
-            "--output-format", "stream-json",
+            "claude",
+            "-p",
+            task,
+            "--output-format",
+            "stream-json",
             "--verbose",
-            "--session-id", self._session_id,
+            "--session-id",
+            self._session_id,
         ]
         if system_prompt:
             cmd += ["--system-prompt", system_prompt]
@@ -130,10 +135,14 @@ class MaxBackend(SessionBackend):
         if self._session_id is None:
             raise RuntimeError("next_turn called before first_turn")
         cmd = [
-            "claude", "-p", user_input,
-            "--output-format", "stream-json",
+            "claude",
+            "-p",
+            user_input,
+            "--output-format",
+            "stream-json",
             "--verbose",
-            "--resume", self._session_id,
+            "--resume",
+            self._session_id,
         ]
         yield from self._run(cmd)
 

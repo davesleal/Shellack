@@ -10,7 +10,7 @@ from typing import Dict, List
 from orchestrator_config import (
     get_all_projects,
     is_orchestrator_channel,
-    GLOBAL_STANDARDS
+    GLOBAL_STANDARDS,
 )
 
 
@@ -90,7 +90,7 @@ class Orchestrator:
             if "## Code Conventions" in source_content:
                 start = source_content.index("## Code Conventions")
                 end = source_content.find("\n##", start + 1)
-                conventions = source_content[start:end if end != -1 else None]
+                conventions = source_content[start : end if end != -1 else None]
 
                 # Add to target
                 if target_claude_md.exists():
@@ -104,9 +104,9 @@ class Orchestrator:
                     t_start = target_content.index("## Code Conventions")
                     t_end = target_content.find("\n##", t_start + 1)
                     target_content = (
-                        target_content[:t_start] +
-                        conventions +
-                        (target_content[t_end:] if t_end != -1 else "")
+                        target_content[:t_start]
+                        + conventions
+                        + (target_content[t_end:] if t_end != -1 else "")
                     )
                 else:
                     # Append
@@ -144,12 +144,7 @@ class Orchestrator:
             try:
                 # Use ripgrep or grep
                 cmd = ["rg", "-l", query, str(project_path)]
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=10
-                )
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
 
                 if result.returncode == 0:
                     matches = result.stdout.strip().split("\n")
@@ -163,7 +158,9 @@ class Orchestrator:
 
         return results
 
-    def apply_global_standard(self, language: str, standard_key: str) -> Dict[str, bool]:
+    def apply_global_standard(
+        self, language: str, standard_key: str
+    ) -> Dict[str, bool]:
         """
         Apply a global standard to all projects of a given language
 
@@ -188,7 +185,11 @@ class Orchestrator:
                 project_path = Path(project["path"])
                 claude_md = project_path / "CLAUDE.md"
 
-                content = claude_md.read_text() if claude_md.exists() else f"# {project['name']}\n\n"
+                content = (
+                    claude_md.read_text()
+                    if claude_md.exists()
+                    else f"# {project['name']}\n\n"
+                )
 
                 if "## Global Standards" not in content:
                     content += "\n## Global Standards\n\n"

@@ -27,9 +27,15 @@ class JournalWriter:
         docs_journal.write_text("# Project Journal\n\n")
         return docs_journal
 
-    def append_entry(self, title: str, context: str, approach: str,
-                     outcome: str, insights: str,
-                     issue_number: Optional[int] = None):
+    def append_entry(
+        self,
+        title: str,
+        context: str,
+        approach: str,
+        outcome: str,
+        insights: str,
+        issue_number: Optional[int] = None,
+    ):
         """Append a dated narrative entry to the project journal."""
         today = date.today().isoformat()
         issue_line = f"\n\n**GitHub Issue:** #{issue_number}" if issue_number else ""
