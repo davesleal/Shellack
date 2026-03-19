@@ -36,6 +36,7 @@ from tools.session_backend import APIBackend, MaxBackend
 from tools.slack_session import SlackSession
 from tools.usage_tracker import UsageTracker
 from tools.config_writer import set_env_var
+from tools.plugin_manager import PluginManager
 
 # Load environment
 load_dotenv()
@@ -57,6 +58,10 @@ RUN_SESSIONS: dict = {}
 
 # Usage tracking — persists to usage.json, monthly auto-reset
 usage_tracker = UsageTracker()
+
+# Plugin management
+plugin_manager = PluginManager()
+_bot_extensions: dict = {}
 
 
 def get_channel_name(channel_id: str) -> str:
@@ -261,6 +266,93 @@ The review bots will analyze and provide feedback!""",
 # MAIN MESSAGE HANDLER - Routes to appropriate module
 # ============================================================================
 
+def _handle_plugin_command(
+    clean_text: str,
+    say,
+    user_id: str,
+    channel_id: str,
+    thread_ts: str,
+) -> bool:
+    """Handle plugin management commands. Returns True if the command was consumed."""
+    lower = clean_text.lower()
+
+    def _post_error(error_text: str) -> None:
+        app.client.chat_postEphemeral(
+            channel=channel_id,
+            user=user_id,
+            text=f"❌ {error_text}",
+        )
+
+    def _post_success(text: str) -> None:
+        say(text=text, thread_ts=thread_ts)
+
+    def _handle_result(result: dict, success_text: str) -> None:
+        if result.get("ok"):
+            _post_success(success_text)
+        else:
+            _post_error(result.get("error", "Unknown error"))
+
+    # plugins — list all
+    if lower == "plugins":
+        result = plugin_manager.list_all(registry=_bot_extensions)
+        lines = ["🔌 *Installed plugins:*"]
+        lines.append(f"*Claude Code plugins:* {', '.join(result['plugins']) or 'none'}")
+        lines.append(f"*MCP servers:* {', '.join(result['mcps']) or 'none'}")
+        lines.append(f"*Bot extensions:* {', '.join(result['bot_plugins']) or 'none'}")
+        _post_success("\n".join(lines))
+        return True
+
+    # add plugin <name>
+    if lower.startswith("add plugin "):
+        name = clean_text[11:].strip()
+        result = plugin_manager.install_plugin(name)
+        _handle_result(result, f"✅ Plugin `{name}` installed. Restart any active `run:` session to use it.")
+        return True
+
+    # remove plugin <name>
+    if lower.startswith("remove plugin "):
+        name = clean_text[14:].strip()
+        result = plugin_manager.uninstall_plugin(name)
+        _handle_result(result, f"✅ Plugin `{name}` removed.")
+        return True
+
+    # add mcp <name> <command>
+    if lower.startswith("add mcp "):
+        rest = clean_text[8:].strip()
+        parts = rest.split(None, 1)
+        if len(parts) < 2:
+            _post_error("Usage: `@SlackClaw add mcp <name> <command>`")
+            return True
+        mcp_name, command = parts
+        result = plugin_manager.add_mcp(mcp_name, command)
+        _handle_result(result, f"✅ MCP server `{mcp_name}` added.")
+        return True
+
+    # remove mcp <name>
+    if lower.startswith("remove mcp "):
+        name = clean_text[11:].strip()
+        result = plugin_manager.remove_mcp(name)
+        _handle_result(result, f"✅ MCP server `{name}` removed.")
+        return True
+
+    # add bot-plugin <name_or_url>
+    if lower.startswith("add bot-plugin "):
+        name_or_url = clean_text[15:].strip()
+        result = plugin_manager.add_bot_plugin(name_or_url, registry=_bot_extensions)
+        installed_name = result.get("name", name_or_url)
+        _handle_result(result, f"✅ Bot extension `{installed_name}` installed and loaded.")
+        return True
+
+    # remove bot-plugin <name>
+    if lower.startswith("remove bot-plugin "):
+        name = clean_text[18:].strip()
+        result = plugin_manager.remove_bot_plugin(name, registry=_bot_extensions)
+        _handle_result(result, f"✅ Bot extension `{name}` removed.")
+        return True
+
+    return False
+
+
 def _handle_config_command(clean_text: str, say, thread_ts: str) -> bool:
     """Handle config commands. Returns True if the command was consumed."""
     lower = clean_text.lower()
@@ -332,6 +424,11 @@ def handle_mention(event, say):
 
     # --- config commands (any channel, any context) ---
     if _handle_config_command(clean_text, say, thread_ts):
+        return
+
+    # --- plugin management commands ---
+    user_id = event.get("user", "")
+    if _handle_plugin_command(clean_text, say, user_id, channel_id, thread_ts):
         return
 
     # --- run: session trigger (top-level mentions only) ---
