@@ -11,6 +11,7 @@ from pathlib import Path
 from tools.github_client import GitHubClient
 from tools.lifecycle import LifecycleNotifier
 from tools.journal_writer import JournalWriter
+from tools.session_backend import quick_reply
 from .sub_agents import (
     detect_sub_agent,
     CrashInvestigatorAgent,
@@ -299,15 +300,17 @@ Be concise and precise. Reference specific files/patterns when relevant."""
                 response = agent.run(prompt, thread_context)
             else:
                 label = self.project["name"]
-                messages = list(thread_context or [])
-                messages.append({"role": "user", "content": prompt})
-                api_response = self.client.messages.create(
-                    model="claude-sonnet-4-5-20250929",
-                    max_tokens=4096,
-                    system=self._system_prompt,
-                    messages=messages,
+                full_prompt = prompt
+                if thread_context:
+                    history = "\n".join(
+                        f"{m['role'].title()}: {m['content']}" for m in thread_context
+                    )
+                    full_prompt = f"{history}\n\nUser: {prompt}"
+                response = quick_reply(
+                    full_prompt,
+                    system_prompt=self._system_prompt,
+                    cwd=self.project.get("path", "."),
                 )
-                response = api_response.content[0].text
         except Exception as e:
             self._lifecycle.failed(str(e))
             return f"Error: {e}", "Error"

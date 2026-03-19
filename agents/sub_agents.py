@@ -6,22 +6,29 @@ Each sub-agent has a focused system prompt and skill set.
 
 from anthropic import Anthropic
 
+from tools.session_backend import quick_reply
+
 
 class BaseSubAgent:
     def __init__(self, client: Anthropic, project_context: dict):
-        self.client = client
+        self.client = (
+            client  # kept for backward compat; AI calls go through quick_reply
+        )
         self.project = project_context
 
     def run(self, prompt: str, thread_context: list = None) -> str:
-        messages = list(thread_context or [])
-        messages.append({"role": "user", "content": prompt})
-        response = self.client.messages.create(
-            model="claude-sonnet-4-5-20250929",
-            max_tokens=4096,
-            system=self.system_prompt(),
-            messages=messages
+        # Prepend thread context as plain text so both Max and API backends see it
+        full_prompt = prompt
+        if thread_context:
+            history = "\n".join(
+                f"{m['role'].title()}: {m['content']}" for m in thread_context
+            )
+            full_prompt = f"{history}\n\nUser: {prompt}"
+        return quick_reply(
+            full_prompt,
+            system_prompt=self.system_prompt(),
+            cwd=self.project.get("path", "."),
         )
-        return response.content[0].text
 
     def system_prompt(self) -> str:
         raise NotImplementedError
@@ -61,11 +68,11 @@ class CodeReviewAgent(BaseSubAgent):
 
     def system_prompt(self) -> str:
         p = self.project
-        platform = p['platform']
-        lang = p['language']
+        platform = p["platform"]
+        lang = p["language"]
         conventions = {
             "swift": "Swift API Design Guidelines, prefer guard for early returns, avoid force unwrap, use async/await",
-            "python": "PEP 8, type hints required, max line 100, docstrings on public functions"
+            "python": "PEP 8, type hints required, max line 100, docstrings on public functions",
         }.get(lang, "standard conventions for " + lang)
 
         return f"""You are a senior {lang} engineer performing code review for {p['name']}.
@@ -94,7 +101,7 @@ class TestingAgent(BaseSubAgent):
 
     def system_prompt(self) -> str:
         p = self.project
-        framework = "XCTest / Swift Testing" if p['language'] == "swift" else "pytest"
+        framework = "XCTest / Swift Testing" if p["language"] == "swift" else "pytest"
         return f"""You are a test engineering specialist for {p['name']}.
 
 Project: {p['name']}

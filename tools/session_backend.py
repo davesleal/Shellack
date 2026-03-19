@@ -193,3 +193,27 @@ class MaxBackend(SessionBackend):
 
     def close(self) -> None:
         self._session_id = None
+
+
+def quick_reply(prompt: str, system_prompt: str = "", cwd: str = ".") -> str:
+    """Single-turn AI call routed through the configured backend.
+
+    Reads SESSION_BACKEND and SESSION_MODEL from os.environ so the caller
+    is always billed through whichever backend the user configured — never
+    silently falls back to the API when Max is selected.
+
+    Max mode  → claude CLI subprocess (subscription, zero API cost).
+    API mode  → Anthropic SDK (costs API tokens at the configured model rate).
+    """
+    backend_mode = os.environ.get("SESSION_BACKEND", "api")
+    if backend_mode == "max" and MaxBackend.available():
+        backend: SessionBackend = MaxBackend()
+    else:
+        model = os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
+        backend = APIBackend(model=model)
+
+    try:
+        chunks = list(backend.first_turn(prompt, system_prompt=system_prompt, cwd=cwd))
+        return "".join(chunks)
+    finally:
+        backend.close()
