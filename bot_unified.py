@@ -34,6 +34,8 @@ from app_store_connect import AppStoreConnectClient, format_feedback_for_slack
 from agents import AgentFactory
 from tools.session_backend import APIBackend, MaxBackend
 from tools.slack_session import SlackSession
+from tools.usage_tracker import UsageTracker
+from tools.config_writer import set_env_var
 
 # Load environment
 load_dotenv()
@@ -52,6 +54,9 @@ active_sessions: Dict[str, list] = {}
 
 # run: session registry — keyed by thread_ts, cleaned up when session closes
 RUN_SESSIONS: dict = {}
+
+# Usage tracking — persists to usage.json, monthly auto-reset
+usage_tracker = UsageTracker()
 
 
 def get_channel_name(channel_id: str) -> str:
@@ -251,6 +256,58 @@ The review bots will analyze and provide feedback!""",
 # MAIN MESSAGE HANDLER - Routes to appropriate module
 # ============================================================================
 
+def _handle_config_command(clean_text: str, say, thread_ts: str) -> bool:
+    """Handle config commands. Returns True if the command was consumed."""
+    lower = clean_text.lower()
+
+    # set mode max|api
+    if lower.startswith("set mode "):
+        mode = lower[9:].strip()
+        if mode in ("max", "api"):
+            set_env_var("SESSION_BACKEND", mode)
+            say(text=f"✅ Mode set to `{mode}`. No restart required.", thread_ts=thread_ts)
+        else:
+            say(text="Usage: `@SlackClaw set mode max|api`", thread_ts=thread_ts)
+        return True
+
+    # set model opus|sonnet|haiku
+    if lower.startswith("set model "):
+        alias = lower[10:].strip()
+        model_map = {
+            "opus": "claude-opus-4-6",
+            "sonnet": "claude-sonnet-4-6",
+            "haiku": "claude-haiku-4-5-20251001",
+        }
+        model = model_map.get(alias)
+        if model:
+            set_env_var("SESSION_MODEL", model)
+            say(text=f"✅ Model set to `{model}`.", thread_ts=thread_ts)
+        else:
+            say(text="Usage: `@SlackClaw set model opus|sonnet|haiku`", thread_ts=thread_ts)
+        return True
+
+    # usage
+    if lower == "usage":
+        say(text=usage_tracker.format_usage_message(), thread_ts=thread_ts)
+        return True
+
+    # config
+    if lower == "config":
+        mode = os.environ.get("SESSION_BACKEND", "api")
+        model = os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
+        onboarding = os.environ.get("ONBOARDING_COMPLETE", "false")
+        lines = [
+            "🦞 *SlackClaw — Config*",
+            f"Backend: `{mode}`",
+            f"Model: `{model}`",
+            f"Onboarding: {'complete ✓' if onboarding == 'true' else 'pending'}",
+        ]
+        say(text="\n".join(lines), thread_ts=thread_ts)
+        return True
+
+    return False
+
+
 @app.event("app_mention")
 def handle_mention(event, say):
     """Route messages to the appropriate handler based on channel."""
@@ -267,6 +324,10 @@ def handle_mention(event, say):
     # Strip bot mention to get clean text
     raw_text = event.get("text", "")
     clean_text = re.sub(r"<@[A-Z0-9]+>", "", raw_text).strip()
+
+    # --- config commands (any channel, any context) ---
+    if _handle_config_command(clean_text, say, thread_ts):
+        return
 
     # --- run: session trigger (top-level mentions only) ---
     is_top_level = (thread_ts == ts)
