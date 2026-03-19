@@ -117,7 +117,7 @@ class UsageTracker:
         else:
             lines.append("Model: Subscription")
         lines += [
-            f"Sessions: {stats['session_count']} run: sessions started",
+            f"Sessions: {stats['session_count']} run: sessions",
             f"Quick replies: {stats['mention_count']} @mentions",
         ]
         if mode == "api":
