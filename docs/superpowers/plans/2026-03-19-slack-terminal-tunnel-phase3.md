@@ -250,9 +250,9 @@ class TestAddBotPlugin:
         assert "myext" in registry
         assert registry["myext"] is fake_mod
 
-    def test_import_failure_cleans_up_directory(self, tmp_path):
+    def test_import_failure_cleans_up_directory(self, fresh_plugin_manager, tmp_path):
         ext_dir = tmp_path / "extensions"
-        pm = PluginManager(extensions_dir=str(ext_dir))
+        pm = fresh_plugin_manager.PluginManager(extensions_dir=str(ext_dir))
         with patch("subprocess.run", return_value=_make_completed(0)) as mock_run, \
              patch("importlib.import_module", side_effect=ImportError("bad module")):
             result = pm.add_bot_plugin("myplugin")
