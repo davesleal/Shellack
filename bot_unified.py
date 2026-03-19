@@ -259,6 +259,11 @@ def handle_mention(event, say):
     ts = event.get("ts", "")
     thread_ts = event.get("thread_ts", ts)
 
+    # If this is a thread reply and the thread has an active run: session,
+    # defer to handle_message — both handlers fire for @mentions in threads
+    if thread_ts != ts and thread_ts in RUN_SESSIONS:
+        return
+
     # Strip bot mention to get clean text
     raw_text = event.get("text", "")
     clean_text = re.sub(r"<@[A-Z0-9]+>", "", raw_text).strip()

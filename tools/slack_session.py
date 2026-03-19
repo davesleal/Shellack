@@ -165,17 +165,19 @@ class SlackSession:
         if self._closed:
             return
         self._post_new("Session has been idle for 15 minutes. Still there?")
-        self._idle_timer = threading.Timer(_IDLE_W2 - _IDLE_W1, self._on_idle_25)
-        self._idle_timer.daemon = True
-        self._idle_timer.start()
+        with self._timer_lock:
+            self._idle_timer = threading.Timer(_IDLE_W2 - _IDLE_W1, self._on_idle_25)
+            self._idle_timer.daemon = True
+            self._idle_timer.start()
 
     def _on_idle_25(self) -> None:
         if self._closed:
             return
         self._post_new("Session timing out in 5 minutes — reply or click to keep it alive")
-        self._idle_timer = threading.Timer(_IDLE_MAX - _IDLE_W2, self._on_idle_30)
-        self._idle_timer.daemon = True
-        self._idle_timer.start()
+        with self._timer_lock:
+            self._idle_timer = threading.Timer(_IDLE_MAX - _IDLE_W2, self._on_idle_30)
+            self._idle_timer.daemon = True
+            self._idle_timer.start()
 
     def _on_idle_30(self) -> None:
         self._close("Session timed out after 30 minutes of inactivity.")
