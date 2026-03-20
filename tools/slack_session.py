@@ -27,6 +27,30 @@ _EDIT_WINDOW = 5.0  # seconds within which we edit the last message
 _MAX_INLINE_CHARS = 800  # longer than this → canvas or truncate
 
 _CODE_FENCE_RE = re.compile(r"```[\s\S]+?```")
+# Matches code blocks (multi-line) and inline code — skip these during mrkdwn conversion
+_CODE_SEGMENT_RE = re.compile(r"(```[\s\S]*?```|`[^`\n]+`)")
+
+
+def _md_to_mrkdwn(text: str) -> str:
+    """Convert Claude markdown to Slack mrkdwn, leaving code blocks untouched."""
+    parts = _CODE_SEGMENT_RE.split(text)
+    out = []
+    for i, part in enumerate(parts):
+        if i % 2 == 1:  # code block — pass through unchanged
+            out.append(part)
+            continue
+        # ## Heading / ### Heading → *Heading*
+        part = re.sub(r"^#{1,6}\s+(.+)$", r"*\1*", part, flags=re.MULTILINE)
+        # **bold** → *bold*
+        part = re.sub(r"\*\*(.+?)\*\*", r"*\1*", part, flags=re.DOTALL)
+        # ~~strike~~ → ~strike~
+        part = re.sub(r"~~(.+?)~~", r"~\1~", part, flags=re.DOTALL)
+        # Bullet lists: "- item" or "* item" → "• item" (only at line start)
+        part = re.sub(r"^[ \t]*[-*]\s+", "• ", part, flags=re.MULTILINE)
+        # Horizontal rule --- → thin line
+        part = re.sub(r"^---+$", "─" * 24, part, flags=re.MULTILINE)
+        out.append(part)
+    return "".join(out)
 
 
 class SlackSession:
@@ -177,6 +201,7 @@ class SlackSession:
         if not text:
             return
 
+        text = _md_to_mrkdwn(text)
         has_code = bool(_CODE_FENCE_RE.search(text))
         is_long = len(text) > _MAX_INLINE_CHARS
 

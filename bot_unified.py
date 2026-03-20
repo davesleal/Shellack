@@ -34,7 +34,7 @@ from peer_review import PeerReviewCoordinator
 from app_store_connect import AppStoreConnectClient, format_feedback_for_slack
 from agents import AgentFactory
 from tools.session_backend import APIBackend, MaxBackend
-from tools.slack_session import SlackSession
+from tools.slack_session import SlackSession, _md_to_mrkdwn
 from tools.usage_tracker import UsageTracker
 from tools.config_writer import set_env_var
 from tools.plugin_manager import PluginManager
@@ -135,7 +135,7 @@ def handle_project_message(event, say, channel_name: str):
 
     # Label sub-agent responses so it's clear who answered
     header = f"🤖 *{agent_label}*\n" if agent_label != project["name"] else ""
-    say(text=f"{header}{response}", thread_ts=thread_ts)
+    say(text=f"{header}{_md_to_mrkdwn(response)}", thread_ts=thread_ts)
 
     usage_tracker.record_mention(
         os.environ.get("SESSION_BACKEND", "api"),
