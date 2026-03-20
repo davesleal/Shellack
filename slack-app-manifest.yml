@@ -17,7 +17,10 @@ oauth_config:
   scopes:
     bot:
       - app_mentions:read
+      - canvases:read
+      - canvases:write
       - channels:history
+      - channels:join
       - channels:read
       - chat:write
       - files:read
@@ -28,6 +31,8 @@ oauth_config:
       - im:read
       - mpim:history
       - mpim:read
+      - reactions:read
+      - reactions:write
       - users:read
 
 settings:
