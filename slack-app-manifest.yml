@@ -1,8 +1,8 @@
 display_information:
-  name: SlackClaw
+  name: Shellack
   description: Bridge Slack with Claude AI for autonomous development workflows
   background_color: "#5B4CFF"
-  long_description: "SlackClaw integrates Claude AI with your Slack workspace to provide natural conversations about your codebase, autonomous bug investigations, and automated App Store Connect monitoring. Features: thread-based sessions, autonomous agents, App Store Connect integration, and zero-cost monitoring mode."
+  long_description: "Shellack integrates Claude AI with your Slack workspace to provide natural conversations about your codebase, autonomous bug investigations, and automated App Store Connect monitoring. Features: thread-based sessions, autonomous agents, App Store Connect integration, and zero-cost monitoring mode."
 
 features:
   app_home:
@@ -10,7 +10,7 @@ features:
     messages_tab_enabled: true
     messages_tab_read_only_enabled: false
   bot_user:
-    display_name: SlackClaw
+    display_name: Shellack
     always_online: true
 
 oauth_config:

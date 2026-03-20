@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SlackClaw Unified Bot
+Shellack Unified Bot
 Modular architecture with channel-based routing
 
 Channels:
@@ -309,16 +309,16 @@ def handle_orchestrator_message(event, say):
         say(
             text="""**Orchestrator Commands:**
 
-`@SlackClaw update all CLAUDE.md: <rule>`
+`@Shellack update all CLAUDE.md: <rule>`
 Update CLAUDE.md files across all projects
 
-`@SlackClaw sync standards from <source> to <target>`
+`@Shellack sync standards from <source> to <target>`
 Sync coding standards between projects
 
-`@SlackClaw search all: <query>`
+`@Shellack search all: <query>`
 Search across all projects
 
-`@SlackClaw help`
+`@Shellack help`
 Show this help""",
             thread_ts=thread_ts,
         )
@@ -428,7 +428,7 @@ def _handle_plugin_command(
         rest = clean_text[8:].strip()
         parts = rest.split(None, 1)
         if len(parts) < 2:
-            _post_error("Usage: `@SlackClaw add mcp <name> <command>`")
+            _post_error("Usage: `@Shellack add mcp <name> <command>`")
             return True
         mcp_name, command = parts
         result = plugin_manager.add_mcp(mcp_name, command)
@@ -485,7 +485,7 @@ def _handle_config_command(clean_text: str, say, thread_ts: str) -> bool:
                 thread_ts=thread_ts,
             )
         else:
-            say(text="Usage: `@SlackClaw set mode max|api`", thread_ts=thread_ts)
+            say(text="Usage: `@Shellack set mode max|api`", thread_ts=thread_ts)
         return True
 
     # set model opus|sonnet|haiku
@@ -502,7 +502,7 @@ def _handle_config_command(clean_text: str, say, thread_ts: str) -> bool:
             say(text=f"✅ Model set to `{model}`.", thread_ts=thread_ts)
         else:
             say(
-                text="Usage: `@SlackClaw set model opus|sonnet|haiku`",
+                text="Usage: `@Shellack set model opus|sonnet|haiku`",
                 thread_ts=thread_ts,
             )
         return True
@@ -518,7 +518,7 @@ def _handle_config_command(clean_text: str, say, thread_ts: str) -> bool:
         model = os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
         onboarding = os.environ.get("ONBOARDING_COMPLETE", "false")
         lines = [
-            "🦞 *SlackClaw — Config*",
+            "🦞 *Shellack — Config*",
             f"Backend: `{mode}`",
             f"Model: `{model}`",
             f"Onboarding: {'complete ✓' if onboarding == 'true' else 'pending'}",
@@ -560,7 +560,7 @@ def handle_mention(event, say):
     if is_top_level and clean_text.lower().startswith("run:"):
         task = clean_text[4:].strip()
         if not task:
-            say(text="Usage: `@SlackClaw run: <task description>`", thread_ts=thread_ts)
+            say(text="Usage: `@Shellack run: <task description>`", thread_ts=thread_ts)
             return
 
         # Pick backend
@@ -767,7 +767,7 @@ def check_and_post_onboarding() -> None:
             "text": {
                 "type": "mrkdwn",
                 "text": (
-                    "👋 *Welcome to SlackClaw!* Let's get you set up.\n\n"
+                    "👋 *Welcome to Shellack!* Let's get you set up.\n\n"
                     "How would you like to power AI sessions?"
                 ),
             },
@@ -797,7 +797,7 @@ def check_and_post_onboarding() -> None:
     try:
         app.client.chat_postMessage(
             channel=channel_id,
-            text="👋 Welcome to SlackClaw! Choose your AI backend.",
+            text="👋 Welcome to Shellack! Choose your AI backend.",
             blocks=blocks,
         )
         print("📋 Onboarding message posted to #slackclaw-dev")
@@ -818,7 +818,7 @@ def handle_onboarding_mode_select(ack, body, action, client):
         set_env_var("ONBOARDING_COMPLETE", "true")
         text = (
             "✅ *Mode set to Claude Max.* All AI calls will use your Max subscription.\n\n"
-            "Change anytime: `@SlackClaw set mode api`"
+            "Change anytime: `@Shellack set mode api`"
         )
         if channel and message_ts:
             client.chat_update(
@@ -890,7 +890,7 @@ def handle_onboarding_model_select(ack, body, action, client):
     set_env_var("ONBOARDING_COMPLETE", "true")
     text = (
         f"✅ *Model set to `{model}`.* Ready to go!\n\n"
-        "Change anytime: `@SlackClaw set model opus|sonnet|haiku`"
+        "Change anytime: `@Shellack set model opus|sonnet|haiku`"
     )
     if channel and message_ts:
         client.chat_update(
@@ -1006,7 +1006,7 @@ def handle_bridge_input(ack, body, action, client):
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("🦞 SlackClaw Unified Bot")
+    print("🦞 Shellack Unified Bot")
     print("=" * 60)
     print()
     print("📡 Modules loaded:")
