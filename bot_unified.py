@@ -125,11 +125,24 @@ def handle_project_message(event, say, channel_name: str):
 
     active_sessions[thread_ts].append({"role": "user", "content": prompt})
 
-    # Dispatch to specialized project agent
-    say(text="🔄 Processing...", thread_ts=thread_ts)
+    msg_ts = event["ts"]
+    try:
+        app.client.reactions_add(channel=channel_id, name="claude", timestamp=msg_ts)
+    except Exception:
+        pass
 
-    agent = agent_factory.get_agent(project_key, project, app, channel_id, thread_ts)
-    response, agent_label = agent.handle(prompt, context)
+    try:
+        agent = agent_factory.get_agent(
+            project_key, project, app, channel_id, thread_ts
+        )
+        response, agent_label = agent.handle(prompt, context)
+    finally:
+        try:
+            app.client.reactions_remove(
+                channel=channel_id, name="claude", timestamp=msg_ts
+            )
+        except Exception:
+            pass
 
     active_sessions[thread_ts].append({"role": "assistant", "content": response})
 
@@ -499,13 +512,26 @@ def handle_mention(event, say):
         # Append Slack-specific output rules to every run: session
         system_prompt = (system_prompt or "") + _SLACK_CONVERSATIONAL_PROMPT
 
+        try:
+            app.client.reactions_add(channel=channel_id, name="claude", timestamp=ts)
+        except Exception:
+            pass
+
         def _on_run_close(
             _mode=os.environ.get("SESSION_BACKEND", "api"),
             _model=os.environ.get("SESSION_MODEL", "claude-sonnet-4-6"),
             _ts=thread_ts,
+            _channel=channel_id,
+            _msg_ts=ts,
         ):
             usage_tracker.record_session(_mode, _model)
             RUN_SESSIONS.pop(_ts, None)
+            try:
+                app.client.reactions_remove(
+                    channel=_channel, name="claude", timestamp=_msg_ts
+                )
+            except Exception:
+                pass
 
         session = SlackSession(
             thread_ts=thread_ts,
