@@ -67,7 +67,7 @@ def start_monitoring():
 
     # Monitor for new feedback
     client.poll_for_new_feedback(
-        "com.daveleal.Dayist",
+        "com.example.Dayist",
         post_to_slack,
         poll_interval=600  # Every 10 minutes
     )
@@ -182,7 +182,7 @@ See: https://modelcontextprotocol.io/introduction
 
 ## Verdict
 
-**Best approach for you:**
+**Recommended approach:**
 1. ✅ Monitor App Store Connect automatically (free/cheap)
 2. ✅ Post to Slack for visibility (free)
 3. ✅ Investigate with Claude Code CLI (your subscription)

@@ -7,7 +7,7 @@ PROJECT_CONFIG = {
     "path": "/tmp/dayist",
     "platform": "ios",
     "language": "swift",
-    "github_repo": "davesleal/Dayist",
+    "github_repo": "YOUR_ORG/Dayist",
 }
 
 

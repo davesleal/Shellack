@@ -17,7 +17,7 @@ def notifier(app):
         channel_id="C123",
         thread_ts="111.222",
         project_name="Dayist",
-        dave_user_id="U999",
+        owner_user_id="U999",
     )
 
 
@@ -56,7 +56,7 @@ def test_done_posts_to_thread_and_channel(notifier, app):
     assert "[Dayist]" in channel_call.kwargs["text"]
 
 
-def test_needs_human_mentions_dave(notifier, app):
+def test_needs_human_mentions_owner(notifier, app):
     notifier.needs_human("ambiguous scope")
     calls = app.client.chat_postMessage.call_args_list
     assert len(calls) == 2

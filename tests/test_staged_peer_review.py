@@ -14,7 +14,7 @@ def make_app(channel_id="C_REVIEW"):
 def test_stage1_posts_to_code_review_channel():
     app = make_app()
     spr = StagedPeerReview(app=app, code_review_channel_id="C_REVIEW",
-                           dave_user_id="U999")
+                           owner_user_id="U999")
 
     with patch.object(spr.coordinator, "review_pr") as mock_review:
         mock_review.return_value = {
@@ -35,10 +35,10 @@ def test_stage1_posts_to_code_review_channel():
     assert review_post is not None
 
 
-def test_stage1_tags_dave_on_blocking_issue():
+def test_stage1_tags_owner_on_blocking_issue():
     app = make_app()
     spr = StagedPeerReview(app=app, code_review_channel_id="C_REVIEW",
-                           dave_user_id="U999")
+                           owner_user_id="U999")
 
     with patch.object(spr.coordinator, "review_pr") as mock_review:
         mock_review.return_value = {
@@ -59,7 +59,7 @@ def test_stage2_posts_cross_project_review_request():
         "nova": {"platform": "ios", "language": "swift", "name": "NOVA"},
     }
     spr = StagedPeerReview(app=app, code_review_channel_id="C_REVIEW",
-                           dave_user_id="U999", projects=projects)
+                           owner_user_id="U999", projects=projects)
 
     with patch.object(spr.coordinator, "review_pr", return_value={}):
         spr.trigger("Summary", ["file.swift"], "dayist", "111.222", "C_DAYIST")

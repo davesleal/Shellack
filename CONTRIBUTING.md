@@ -182,7 +182,7 @@ Looking for contribution ideas? Check issues tagged with:
 
 **Reporting vulnerabilities:**
 - DO NOT open public issues for security bugs
-- Email: dave@example.com (replace with actual)
+- Email: you@example.com
 - Include detailed description and reproduction steps
 
 **Security considerations:**
@@ -193,8 +193,8 @@ Looking for contribution ideas? Check issues tagged with:
 
 ## 💬 Community
 
-- [Discussions](https://github.com/davesleal/SlackClaw/discussions) - Questions and ideas
-- [Issues](https://github.com/davesleal/SlackClaw/issues) - Bug reports and feature requests
+- [Discussions](https://github.com/YOUR_ORG/SlackClaw/discussions) - Questions and ideas
+- [Issues](https://github.com/YOUR_ORG/SlackClaw/issues) - Bug reports and feature requests
 
 ## 📜 License
 

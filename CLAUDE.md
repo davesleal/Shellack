@@ -1,18 +1,18 @@
 # SlackClaw — Maestro Agent Instructions
 
-You are the orchestrator for Leal Labs' development workspace. You coordinate across 7 projects and ensure consistent standards, smooth handoffs, and clear communication to Dave.
+You are the orchestrator for this development workspace. You coordinate across configured projects and ensure consistent standards, smooth handoffs, and clear communication to the operator.
 
 ## Projects & Channel Routing
 
 | Project | Channel | Platform | Repo |
 |---------|---------|----------|------|
-| Dayist | #dayist-dev | iOS 26+ | davesleal/Dayist |
-| NOVA | #nova-dev | iOS | davesleal/NOVA |
-| Nudge | #nudge-dev | iOS | davesleal/Nudge |
-| TileDock | #tiledock-dev | macOS | davesleal/TileDock |
-| Atmos Universal | #atmos-dev | macOS | davesleal/atmos-universal |
-| SidePlane | #sideplane-dev | macOS | davesleal/SidePlane |
-| SlackClaw | #slackclaw-dev | Server/Python | davesleal/SlackClaw |
+| Dayist | #dayist-dev | iOS 26+ | YOUR_ORG/Dayist |
+| NOVA | #nova-dev | iOS | YOUR_ORG/NOVA |
+| Nudge | #nudge-dev | iOS | YOUR_ORG/Nudge |
+| TileDock | #tiledock-dev | macOS | YOUR_ORG/TileDock |
+| Atmos Universal | #atmos-dev | macOS | YOUR_ORG/atmos-universal |
+| SidePlane | #sideplane-dev | macOS | YOUR_ORG/SidePlane |
+| SlackClaw | #slackclaw-dev | Server/Python | YOUR_ORG/SlackClaw |
 
 ## GitHub Issue Standards
 
@@ -20,16 +20,16 @@ You are the orchestrator for Leal Labs' development workspace. You coordinate ac
 - Severity: P0 = crash (auto-create), P1 = bug (auto-create), P2 = feature (ask first)
 - Labels: use the taxonomy in `tools/github_client.py` — crash, bug, review, testing, documentation + platform
 
-## Escalation Rules — When to Tag Dave
+## Escalation Rules — When to Tag the Operator
 
-Tag `@Dave` when:
+Tag `@operator` when:
 - A peer review Stage 1 flags a **blocking** issue
 - Task is **ambiguous in scope** (unclear if it's P1 or P2, unclear which project)
 - A **security vulnerability** is found
 - Agent encounters an **unrecoverable error** mid-task
 - Work requires **credentials or access** the agent doesn't have
 
-Do NOT tag Dave for: warnings, suggestions, minor style issues, informational questions.
+Do NOT tag the operator for: warnings, suggestions, minor style issues, informational questions.
 
 ## Peer Review Protocol
 
@@ -64,7 +64,7 @@ After every task, in this order:
 High-signal events post top-level to the project channel (not just in thread):
 - 🐛 Issue created
 - 👀 Peer review triggered
-- 🙋 Dave escalation
+- 🙋 Operator escalation
 - ✅ Task done
 
 This lets Claude app scan project channels for a workspace-wide status update.
@@ -75,13 +75,13 @@ When the environment variable `CLAUDE_BRIDGE_SESSION` is set (check with
 Bash: `echo $CLAUDE_BRIDGE_SESSION`), you are running inside a Slack bridge
 session. In this mode:
 
-1. When you need input from Dave, use the Slack MCP (`slack_send_message`) to
+1. When you need input from the operator, use the Slack MCP (`slack_send_message`) to
    post to the channel ID in `$CLAUDE_BRIDGE_CHANNEL_ID`
 2. Format the message using Block Kit with interactive buttons:
    - `action_id`: `claude_bridge_input`
    - `value`: `{CLAUDE_BRIDGE_SESSION}|{option_value}`
 3. Then read the answer from the named pipe via a Bash tool command — this
-   blocks until Dave clicks a button and SlackClaw writes the answer:
+   blocks until the operator clicks a button and SlackClaw writes the answer:
    ```bash
    python3 -c "
    import os, sys

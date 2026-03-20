@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 from tools.github_client import GitHubClient
 
 PROJECTS = {
-    "dayist": {"github_repo": "davesleal/Dayist", "platform": "ios"},
+    "dayist": {"github_repo": "YOUR_ORG/Dayist", "platform": "ios"},
 }
 
 
@@ -15,13 +15,13 @@ def client():
 def test_create_issue_returns_number_and_url(client):
     mock_response = MagicMock()
     mock_response.status_code = 201
-    mock_response.json.return_value = {"number": 42, "html_url": "https://github.com/davesleal/Dayist/issues/42"}
+    mock_response.json.return_value = {"number": 42, "html_url": "https://github.com/YOUR_ORG/Dayist/issues/42"}
 
     with patch("tools.github_client.requests.post", return_value=mock_response):
         result = client.create_issue("dayist", "Login crash", "Details here", "crash")
 
     assert result["number"] == 42
-    assert result["url"] == "https://github.com/davesleal/Dayist/issues/42"
+    assert result["url"] == "https://github.com/YOUR_ORG/Dayist/issues/42"
 
 
 def test_create_issue_returns_none_on_api_error(client):

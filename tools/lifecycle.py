@@ -9,13 +9,13 @@ logger = logging.getLogger(__name__)
 
 class LifecycleNotifier:
     def __init__(
-        self, app, channel_id: str, thread_ts: str, project_name: str, dave_user_id: str
+        self, app, channel_id: str, thread_ts: str, project_name: str, owner_user_id: str
     ):
         self.app = app
         self.channel_id = channel_id
         self.thread_ts = thread_ts
         self.project_name = project_name
-        self.dave_user_id = dave_user_id
+        self.owner_user_id = owner_user_id
 
     def _post_thread(self, text: str):
         """Post reply in the active thread."""
@@ -66,7 +66,7 @@ class LifecycleNotifier:
         self._post_channel(f"✅ [{self.project_name}] Done: {summary}{issue_text}")
 
     def needs_human(self, reason: str):
-        self._post_thread(f"🙋 <@{self.dave_user_id}> — {reason}")
+        self._post_thread(f"🙋 <@{self.owner_user_id}> — {reason}")
         self._post_channel(
-            f"🙋 [{self.project_name}] <@{self.dave_user_id}> — {reason}"
+            f"🙋 [{self.project_name}] <@{self.owner_user_id}> — {reason}"
         )

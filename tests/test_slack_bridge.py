@@ -75,7 +75,7 @@ FAKE_PROJECTS = {
     "slackclaw": {
         "name": "SlackClaw",
         "primary_channel": "slackclaw-dev",
-        "github_repo": "davesleal/SlackClaw",
+        "github_repo": "YOUR_ORG/SlackClaw",
     }
 }
 
@@ -90,7 +90,7 @@ FAKE_ROUTING_MISSING = {
 
 def test_detect_known_repo_returns_channel_id():
     from tools.slack_bridge import detect_channel_id
-    with patch("subprocess.check_output", return_value=b"git@github.com:davesleal/SlackClaw.git"), \
+    with patch("subprocess.check_output", return_value=b"git@github.com:YOUR_ORG/SlackClaw.git"), \
          patch("tools.slack_bridge.PROJECTS", FAKE_PROJECTS), \
          patch("tools.slack_bridge.CHANNEL_ROUTING", FAKE_ROUTING_OK):
         channel_id, project_name = detect_channel_id()
@@ -110,7 +110,7 @@ def test_detect_unknown_repo_falls_back():
 
 def test_detect_missing_channel_id_falls_back_with_warning(capsys):
     from tools.slack_bridge import detect_channel_id
-    with patch("subprocess.check_output", return_value=b"git@github.com:davesleal/SlackClaw.git"), \
+    with patch("subprocess.check_output", return_value=b"git@github.com:YOUR_ORG/SlackClaw.git"), \
          patch("tools.slack_bridge.PROJECTS", FAKE_PROJECTS), \
          patch("tools.slack_bridge.CHANNEL_ROUTING", FAKE_ROUTING_MISSING):
         channel_id, project_name = detect_channel_id()

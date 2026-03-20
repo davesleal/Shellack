@@ -2,11 +2,11 @@
 
 ## 2026-03-18 — Slack↔Terminal Bridge
 
-**Context:** Dave wanted to respond to Claude Code prompts from any device (phone, tablet, another machine) without switching to the terminal to type `1`, `2`, `3`. The idea: Claude Code posts Block Kit button messages to the project's Slack channel; clicking a button feeds the answer back to Claude's stdin through a named pipe.
+**Context:** The operator wanted to respond to Claude Code prompts from any device (phone, tablet, another machine) without switching to the terminal to type `1`, `2`, `3`. The idea: Claude Code posts Block Kit button messages to the project's Slack channel; clicking a button feeds the answer back to Claude's stdin through a named pipe.
 
 **Approach:** Designed around a session-scoped named pipe. The `claude-slack` wrapper creates a FIFO at `/tmp/claude_bridge/<uuid>`, writes a session JSON file, then launches `claude` with the pipe read-end as stdin. The key technical challenge was the pipe lifecycle: opening a named pipe blocks until both ends are open. We solved this with the keep-alive write-end pattern — open `O_WRONLY|O_NONBLOCK` first (unblocks the open call), then open `O_RDONLY|O_NONBLOCK`, then clear `O_NONBLOCK` from the read-end via `fcntl` so the subprocess's stdin blocks normally. A new `tools/slack_bridge.py` module handles Block Kit formatting and project channel detection (git remote URL → `PROJECTS` match → `CHANNEL_ROUTING` lookup). A new `@app.action("claude_bridge_input")` handler in `bot_unified.py` receives button clicks, writes the answer to the pipe, and updates the Slack message to show confirmation.
 
-**Outcome:** `claude-slack` is installed at `/usr/local/bin/claude-slack` as a drop-in replacement for `claude`. Running it from any repo posts a 🟢 session-start to the correct project channel and enables Slack-button-based responses. 48 tests pass. The bridge handles concurrent sessions cleanly (session UUID in button values prevents cross-contamination), and all failure modes (stale sessions, dead pipes, missing channels) produce ephemeral errors to Dave only.
+**Outcome:** `claude-slack` is installed at `/usr/local/bin/claude-slack` as a drop-in replacement for `claude`. Running it from any repo posts a 🟢 session-start to the correct project channel and enables Slack-button-based responses. 48 tests pass. The bridge handles concurrent sessions cleanly (session UUID in button values prevents cross-contamination), and all failure modes (stale sessions, dead pipes, missing channels) produce ephemeral errors to the operator only.
 
 **Insights:** Named pipes have a subtle lifecycle that trips up most implementations. The double-open trick (write-end first non-blocking, read-end second, then clear non-blocking) is the correct POSIX pattern but isn't well-documented for Python. Worth writing up: the `O_NONBLOCK` flag exists to prevent the `open()` call from hanging, but once both ends are open you need to clear it from the read-end or the subprocess will get `EAGAIN` on every read instead of blocking. The `os.fdopen(read_fd, "rb")` wrapper is also critical — passing a raw integer fd to `subprocess.Popen` with default `close_fds=True` would close the fd before the child can inherit it. Two small details, one correct bridge.
 
@@ -58,7 +58,7 @@
 - Configured for: Dayist (iOS), TileDock (macOS), SidePlane (macOS)
 
 **Challenge:** Bundle ID case sensitivity
-**Solution:** Updated config to use lowercase `com.daveleal.dayist` matching App Store Connect
+**Solution:** Updated config to use lowercase bundle ID matching App Store Connect
 
 ### Multi-Agent Vision (Emerging)
 
@@ -157,14 +157,8 @@ SlackClaw/
 
 6. **Multi-agent thinking** - Combining official Claude + SlackClaw + GitHub creates more than sum of parts
 
-### Contributors
-- Dave Leal (@daveleal) - Creator, Architecture
-- Claude Sonnet 4.5 (via Claude Code) - Implementation Partner
-
 ### Resources
-- Repository: https://github.com/davesleal/SlackClaw
-- Slack Workspace: Leal Labs
-- Primary Developer: Dave Leal
+- Repository: https://github.com/YOUR_ORG/SlackClaw
 
 ---
 
@@ -181,11 +175,11 @@ SlackClaw/
 
 ## 2026-03-18 — Specialized Product Agents
 
-**Context:** Dave wanted each project agent to be truly specialized — carrying its project's CLAUDE.md as system context, auto-creating GitHub issues for bugs, posting structured lifecycle updates to Slack, triggering staged peer review before completing significant work, and maintaining a per-project narrative journal.
+**Context:** The operator wanted each project agent to be truly specialized — carrying its project's CLAUDE.md as system context, auto-creating GitHub issues for bugs, posting structured lifecycle updates to Slack, triggering staged peer review before completing significant work, and maintaining a per-project narrative journal.
 
-**Approach:** Built three new tool classes (GitHubClient, LifecycleNotifier, JournalWriter), refactored PeerReviewAgent to use structured JSON output, added StagedPeerReview for two-stage autonomous review, rewrote ProjectAgent to own the full task lifecycle, updated AgentFactory to scope agents per thread rather than per project, and wired everything through bot_unified.py. Wrote a Maestro CLAUDE.md defining coordination protocol across all 7 Leal Labs projects. Full TDD throughout — 28 tests covering all new modules.
+**Approach:** Built three new tool classes (GitHubClient, LifecycleNotifier, JournalWriter), refactored PeerReviewAgent to use structured JSON output, added StagedPeerReview for two-stage autonomous review, rewrote ProjectAgent to own the full task lifecycle, updated AgentFactory to scope agents per thread rather than per project, and wired everything through bot_unified.py. Wrote a Maestro CLAUDE.md defining coordination protocol across all 7 projects. Full TDD throughout — 28 tests covering all new modules.
 
-**Outcome:** Each project agent now carries its project's CLAUDE.md context, automatically creates and closes GitHub issues for crash tasks, posts 🔵🐛🔨👀✅ lifecycle events to Slack threads with high-signal events cross-posted top-level to the project channel for Claude app visibility, triggers staged peer review in #code-review before marking work done, and appends narrative JOURNAL.md entries. The system is designed for Dave to ping Claude app for workspace-wide status from any project channel.
+**Outcome:** Each project agent now carries its project's CLAUDE.md context, automatically creates and closes GitHub issues for crash tasks, posts 🔵🐛🔨👀✅ lifecycle events to Slack threads with high-signal events cross-posted top-level to the project channel for Claude app visibility, triggers staged peer review in #code-review before marking work done, and appends narrative JOURNAL.md entries. The system is designed for the operator to ping Claude app for workspace-wide status from any project channel.
 
 **Insights:** The "thread-scoped agent" pattern (keying AgentFactory by thread_ts rather than project_key) was a key architectural decision — it means each conversation carries its own lifecycle context, preventing state from bleeding across parallel conversations. The dual-post pattern (thread for detail, channel for signal) lets Claude app scan any project channel and immediately understand what's happening, without needing a central "status channel" — the project channels become their own status boards.
 

@@ -27,7 +27,7 @@ Interact with Claude Code directly from Slack, enabling natural conversations ab
 ## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/davesleal/SlackClaw.git
+git clone https://github.com/YOUR_ORG/SlackClaw.git
 cd SlackClaw
 ./setup.sh
 ```
@@ -65,7 +65,7 @@ The setup script will:
 
 ```bash
 # Clone the repository
-git clone https://github.com/davesleal/SlackClaw.git
+git clone https://github.com/YOUR_ORG/SlackClaw.git
 cd SlackClaw
 
 # Run automated setup
@@ -102,7 +102,7 @@ ANTHROPIC_API_KEY=sk-ant-your-key
 
 # GitHub integration (issue auto-creation)
 GITHUB_TOKEN=ghp_your_token_here      # Needs 'repo' scope
-DAVE_SLACK_USER_ID=U0XXXXXXX          # Your Slack user ID (Profile → ··· → Copy member ID)
+OPERATOR_SLACK_USER_ID=U0XXXXXXX      # Your Slack user ID (Profile → ··· → Copy member ID)
 CODE_REVIEW_CHANNEL_ID=code-review    # Channel for peer review posts
 
 APP_STORE_CONNECT_KEY_ID=your-key     # Optional
@@ -267,8 +267,8 @@ python bot_enhanced.py
 
 ```bash
 # Copy launch agent
-cp com.daveleal.slackclaw.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.daveleal.slackclaw.plist
+cp com.your-org.slackclaw.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.your-org.slackclaw.plist
 ```
 
 ### Cloud Deployment
@@ -308,7 +308,7 @@ SlackClaw/
 ## 🗺️ Roadmap
 
 - ✅ **Slack↔Terminal Bridge** — `claude-slack` wrapper: Block Kit buttons relay Claude Code prompts to the project channel so you never need to switch to the terminal to select options. Run `claude-slack` instead of `claude` from any project repo.
-- 📌 **GitHub Issue Canvas Echo** ([#11](https://github.com/davesleal/SlackClaw/issues/11)) — Mirror open GitHub issues into a Slack Canvas per project channel
+- 📌 **GitHub Issue Canvas Echo** ([#11](https://github.com/YOUR_ORG/SlackClaw/issues/11)) — Mirror open GitHub issues into a Slack Canvas per project channel
 
 ## 🔐 Security
 
@@ -341,8 +341,8 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## 📮 Support
 
 - 📚 [Documentation](./SETUP_GUIDE.md)
-- 🐛 [Report Issues](https://github.com/davesleal/SlackClaw/issues)
-- 💬 [Discussions](https://github.com/davesleal/SlackClaw/discussions)
+- 🐛 [Report Issues](https://github.com/YOUR_ORG/SlackClaw/issues)
+- 💬 [Discussions](https://github.com/YOUR_ORG/SlackClaw/discussions)
 
 ## 🎯 Roadmap
 
@@ -357,6 +357,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 **Built for developers who want to ship faster** 🚢
 
-Made with ❤️ by [Dave Leal](https://github.com/davesleal)
-
-[⭐ Star this repo](https://github.com/davesleal/SlackClaw) if you find it useful!
+[⭐ Star this repo](https://github.com/YOUR_ORG/SlackClaw) if you find it useful!

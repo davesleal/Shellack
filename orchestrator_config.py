@@ -7,71 +7,87 @@ Multi-project coordination and peer review system
 import os
 from typing import Dict, List, Optional
 
+# GitHub org/user — override with GITHUB_ORG env var
+_GITHUB_ORG = os.environ.get("GITHUB_ORG", "YOUR_ORG")
+
 # Project Registry
-# All projects that SlackClaw can access
+# All projects that SlackClaw can access.
+# Override paths via env vars; see .env.example for all supported variables.
 PROJECTS = {
     "dayist": {
         "name": "Dayist",
-        "path": os.environ.get("DAYIST_PROJECT_PATH", "/Users/daveleal/Repos/Dayist"),
-        "bundle_id": "com.daveleal.dayist",  # Fixed: lowercase to match App Store Connect
+        "path": os.environ.get(
+            "DAYIST_PROJECT_PATH", os.path.expanduser("~/Repos/Dayist")
+        ),
+        "bundle_id": os.environ.get("DAYIST_BUNDLE_ID", ""),
         "primary_channel": "dayist-dev",
         "language": "swift",
         "platform": "ios",
-        "github_repo": "davesleal/Dayist",
+        "github_repo": f"{_GITHUB_ORG}/Dayist",
     },
     "nova": {
         "name": "NOVA",
-        "path": "/Users/daveleal/Repos/NOVA",
-        "bundle_id": None,  # Set to actual bundle ID when ready
+        "path": os.environ.get("NOVA_PROJECT_PATH", os.path.expanduser("~/Repos/NOVA")),
+        "bundle_id": os.environ.get("NOVA_BUNDLE_ID", None),
         "primary_channel": "nova-dev",
         "language": "swift",
         "platform": "ios",
-        "github_repo": "davesleal/NOVA",
+        "github_repo": f"{_GITHUB_ORG}/NOVA",
     },
     "nudge": {
         "name": "Nudge",
-        "path": "/Users/daveleal/Repos/Nudge",
-        "bundle_id": None,  # Set to actual bundle ID when ready
+        "path": os.environ.get(
+            "NUDGE_PROJECT_PATH", os.path.expanduser("~/Repos/Nudge")
+        ),
+        "bundle_id": os.environ.get("NUDGE_BUNDLE_ID", None),
         "primary_channel": "nudge-dev",
         "language": "swift",
         "platform": "ios",
-        "github_repo": "davesleal/Nudge",
+        "github_repo": f"{_GITHUB_ORG}/Nudge",
     },
     "slackclaw": {
         "name": "SlackClaw",
-        "path": "/Users/daveleal/Repos/SlackClaw",
+        "path": os.environ.get(
+            "SLACKCLAW_PROJECT_PATH", os.path.expanduser("~/Repos/SlackClaw")
+        ),
         "bundle_id": None,
         "primary_channel": "slackclaw-dev",
         "language": "python",
         "platform": "server",
-        "github_repo": "davesleal/SlackClaw",
+        "github_repo": f"{_GITHUB_ORG}/SlackClaw",
     },
     "tiledock": {
         "name": "TileDock",
-        "path": "/Users/daveleal/Repos/TileDock",
-        "bundle_id": "com.daveleal.MacDock",
+        "path": os.environ.get(
+            "TILEDOCK_PROJECT_PATH", os.path.expanduser("~/Repos/TileDock")
+        ),
+        "bundle_id": os.environ.get("TILEDOCK_BUNDLE_ID", ""),
         "primary_channel": "tiledock-dev",
         "language": "swift",
         "platform": "macos",
-        "github_repo": "davesleal/TileDock",
+        "github_repo": f"{_GITHUB_ORG}/TileDock",
     },
     "atmosuniversal": {
         "name": "Atmos Universal",
-        "path": "/Users/daveleal/Applications/atmos-universal",
-        "bundle_id": None,  # Not on App Store
+        "path": os.environ.get(
+            "ATMOS_PROJECT_PATH", os.path.expanduser("~/Repos/atmos-universal")
+        ),
+        "bundle_id": os.environ.get("ATMOS_BUNDLE_ID", None),
         "primary_channel": "atmos-dev",
         "language": "swift",
         "platform": "macos",
-        "github_repo": "davesleal/atmos-universal",
+        "github_repo": f"{_GITHUB_ORG}/atmos-universal",
     },
     "sideplane": {
         "name": "SidePlane",
-        "path": "/Users/daveleal/Repos/SidePlane",
-        "bundle_id": "com.daveleal.sideplane",
+        "path": os.environ.get(
+            "SIDEPLANE_PROJECT_PATH", os.path.expanduser("~/Repos/SidePlane")
+        ),
+        "bundle_id": os.environ.get("SIDEPLANE_BUNDLE_ID", ""),
         "primary_channel": "sideplane-dev",
         "language": "swift",
         "platform": "macos",
-        "github_repo": "davesleal/SidePlane",
+        "github_repo": f"{_GITHUB_ORG}/SidePlane",
     },
 }
 

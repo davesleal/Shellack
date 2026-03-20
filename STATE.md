@@ -7,11 +7,11 @@
 ## 🟢 What's Running
 
 ### SlackClaw Bot
-**Location:** `/Users/daveleal/Repos/SlackClaw`
+**Location:** `~/Repos/SlackClaw`
 **Status:** Should be running (check with `ps aux | grep bot_unified`)
 **Start Command:**
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd ~/Repos/SlackClaw
 source venv/bin/activate
 python bot_unified.py
 ```
@@ -46,17 +46,17 @@ python bot_unified.py
 **Projects:**
 | Project | Path | Bundle ID | Channel | Platform |
 |---------|------|-----------|---------|----------|
-| Dayist | /Users/daveleal/Applications/Dayist App | com.daveleal.dayist | dayist-dev | iOS |
-| NOVA | /Users/daveleal/Repos/NOVA | None | nova-dev | iOS |
-| Nudge | /Users/daveleal/Repos/Nudge | None | nudge-dev | iOS |
-| TileDock | /Users/daveleal/Applications/MacDock | com.daveleal.MacDock | tiledock-dev | macOS |
-| Atmos | /Users/daveleal/Applications/atmos-universal | None | atmos-dev | macOS |
-| SidePlane | /Users/daveleal/Applications/Mac2Vision | com.daveleal.sideplane | sideplane-dev | macOS |
-| SlackClaw | /Users/daveleal/Repos/SlackClaw | N/A | slackclaw-dev | Server |
+| Dayist | ~/Applications/Dayist App | com.your-org.dayist | dayist-dev | iOS |
+| NOVA | ~/Repos/NOVA | None | nova-dev | iOS |
+| Nudge | ~/Repos/Nudge | None | nudge-dev | iOS |
+| TileDock | ~/Applications/MacDock | com.your-org.MacDock | tiledock-dev | macOS |
+| Atmos | ~/Applications/atmos-universal | None | atmos-dev | macOS |
+| SidePlane | ~/Applications/Mac2Vision | com.your-org.sideplane | sideplane-dev | macOS |
+| SlackClaw | ~/Repos/SlackClaw | N/A | slackclaw-dev | Server |
 
 ### Credentials
 **File:** `.env` (gitignored)
-**Location:** `/Users/daveleal/Repos/SlackClaw/.env`
+**Location:** `~/Repos/SlackClaw/.env`
 
 **Contains:**
 - `SLACK_BOT_TOKEN` - Bot token (rotated)
@@ -67,7 +67,7 @@ python bot_unified.py
 - `APP_STORE_CONNECT_ISSUER_ID` - ASC issuer ID
 - `APP_STORE_CONNECT_PRIVATE_KEY_PATH` - Path to .p8 file
 
-**Private Key Location:** `/Users/daveleal/.appstoreconnect/AuthKey_6HRA34Z2AQ.p8`
+**Private Key Location:** `~/.appstoreconnect/AuthKey_XXXXX.p8`
 
 ---
 
@@ -75,13 +75,13 @@ python bot_unified.py
 
 ### 1. Anthropic API Credits (MONITORING)
 **Problem:** API returns 400 "credit balance too low" despite $20 in account
-**Status:** Credits visible in console (Leal Labs org: `d7645a43-5c57-42ca-aa41-0cda64cfce61`)
+**Status:** Credits visible in console (check your Anthropic organization settings)
 **Likely Cause:** API auth layer hasn't synced yet (can take 10-15 min)
 **Action:** Wait and retry. Should resolve automatically.
 
 **Test Command:**
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd ~/Repos/SlackClaw
 source venv/bin/activate
 python3 -c "
 from anthropic import Anthropic
@@ -170,7 +170,7 @@ except Exception as e:
 - Stage 1: Quality/Security/Performance review posted to `#code-review`
 - Stage 2: Cross-project agent review request posted to `#code-review`
 - `PeerReviewAgent` parses structured JSON output (blocking/non-blocking issues)
-- Dave is @-mentioned for blocking issues
+- The operator is @-mentioned for blocking issues
 
 ✅ **Per-project journaling**
 - `JournalWriter` appends narrative entries to `docs/JOURNAL.md` in each project repo
@@ -178,7 +178,7 @@ except Exception as e:
 - Entries formatted for blog-post readability
 
 ✅ **Maestro CLAUDE.md written**
-- Coordination protocol defined for all 7 Leal Labs projects
+- Coordination protocol defined for all 7 projects
 - Covers thread-scoped agent pattern, dual-post lifecycle, and staged review protocol
 
 **Test Coverage:** 28 tests, all passing (as of 2026-03-18)
@@ -221,7 +221,7 @@ In #slackclaw-central:
 ## 🏗️ Architecture Overview
 
 ```
-Slack Workspace (Leal Labs)
+Slack Workspace (your organization)
 │
 ├─ Official Claude App
 │  ├─ Slack MCP (read messages/channels)
@@ -253,7 +253,7 @@ Slack Workspace (Leal Labs)
 
 ### SlackClaw Repository
 ```
-/Users/daveleal/Repos/SlackClaw/
+~/Repos/SlackClaw/
 ├── bot_unified.py              # Main bot (run this)
 ├── orchestrator_config.py      # Project registry
 ├── orchestrator.py             # Cross-project ops
@@ -270,8 +270,8 @@ Slack Workspace (Leal Labs)
 ```
 
 ### Other Important Files
-- `/Users/daveleal/.appstoreconnect/AuthKey_6HRA34Z2AQ.p8` - ASC private key
-- `/Users/daveleal/.claude/settings.json` - Claude Code config
+- `~/.appstoreconnect/AuthKey_XXXXX.p8` - ASC private key
+- `~/.claude/settings.json` - Claude Code config
 - GitHub repos for all 7 projects (see orchestrator_config.py for paths)
 
 ---
@@ -285,7 +285,7 @@ ps aux | grep bot_unified
 
 If not running:
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd ~/Repos/SlackClaw
 source venv/bin/activate
 python bot_unified.py
 ```
@@ -319,7 +319,7 @@ Should get a response with project context.
 pkill -f bot_unified
 
 # Start fresh
-cd /Users/daveleal/Repos/SlackClaw
+cd ~/Repos/SlackClaw
 source venv/bin/activate
 python bot_unified.py
 ```
@@ -358,16 +358,15 @@ Edit `slack-app-manifest.yml` → reapply in Slack app settings
 
 **Anthropic API Issues:**
 - Console: https://console.anthropic.com
-- Organization: Leal Labs (`d7645a43-5c57-42ca-aa41-0cda64cfce61`)
-- Credits: $20.00 (should be active)
+- Check your organization settings for credit balance
 
 **Slack Issues:**
-- Workspace: Leal Labs
+- Workspace: your organization's Slack workspace
 - Bot: @SlackClaw
 - App settings: https://api.slack.com/apps
 
 **GitHub:**
-- Repository: https://github.com/davesleal/SlackClaw
+- Repository: https://github.com/YOUR_ORG/SlackClaw
 - Issues: Track bugs/features there
 
 ---
@@ -397,7 +396,7 @@ Edit `slack-app-manifest.yml` → reapply in Slack app settings
 - `orchestrator_config.py` — all CHANNEL_ROUTING entries now have `channel_id` (5 real IDs populated)
 - `SETUP_GUIDE.md` — Step 8 added with install and smoke-test instructions
 - 48 tests passing (was 28; +20 new bridge tests)
-- Symlink: `/usr/local/bin/claude-slack → /Users/daveleal/Repos/SlackClaw/claude-slack`
+- Symlink: `/usr/local/bin/claude-slack → ~/Repos/SlackClaw/claude-slack`
 
 **What to do next session:**
 1. Live end-to-end test: run `claude-slack` from a project repo, confirm session-start in Slack, post Block Kit prompt, click button, verify answer reaches Claude

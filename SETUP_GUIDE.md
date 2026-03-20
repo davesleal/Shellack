@@ -147,7 +147,7 @@ chmod 600 ~/.appstoreconnect/AuthKey_*.p8
 ### 4.1 Install Dependencies
 
 ```bash
-cd "/Users/daveleal/Repos/SlackClaw"
+cd ~/Repos/SlackClaw
 pip install -r requirements.txt
 ```
 
@@ -174,13 +174,13 @@ ANTHROPIC_API_KEY=sk-ant-your-key-here
 
 # GitHub integration (issue auto-creation)
 GITHUB_TOKEN=ghp_your_token_here      # Needs 'repo' scope — github.com/settings/tokens
-DAVE_SLACK_USER_ID=U0XXXXXXX          # Your Slack user ID (Profile → ··· → Copy member ID)
+OPERATOR_SLACK_USER_ID=U0XXXXXXX      # Your Slack user ID (Profile → ··· → Copy member ID)
 CODE_REVIEW_CHANNEL_ID=code-review    # Channel name for staged peer review posts
 
 # App Store Connect (optional)
 APP_STORE_CONNECT_KEY_ID=YOUR_KEY_ID
 APP_STORE_CONNECT_ISSUER_ID=YOUR_ISSUER_ID
-APP_STORE_CONNECT_PRIVATE_KEY_PATH=/Users/daveleal/.appstoreconnect/AuthKey_XXXXX.p8
+APP_STORE_CONNECT_PRIVATE_KEY_PATH=~/.appstoreconnect/AuthKey_XXXXX.p8
 
 # Projects
 DAYIST_PROJECT_PATH=/path/to/your/project
@@ -194,7 +194,7 @@ Edit `bot_enhanced.py` to map your channels:
 CHANNEL_PROJECTS = {
     "dayist-dev": {
         "path": "/path/to/your/project",
-        "bundle_id": "com.daveleal.Dayist",
+        "bundle_id": "com.example.Dayist",
         "auto_investigate": True
     },
     # Add more projects:
@@ -232,7 +232,7 @@ python bot_enhanced.py
 You should see:
 ```
 🚀 Starting Slack Claude Code Bot...
-🔍 Monitoring App Store Connect for com.daveleal.Dayist
+🔍 Monitoring App Store Connect for com.example.Dayist
 ✅ Bot is running!
 📱 Monitoring channels: dayist-dev
 ```
@@ -260,7 +260,7 @@ In `#dayist-dev` channel:
 
 ### Option A: Run as Service (macOS)
 
-Create `~/Library/LaunchAgents/com.daveleal.claude-bot.plist`:
+Create `~/Library/LaunchAgents/com.your-org.claude-bot.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -268,14 +268,14 @@ Create `~/Library/LaunchAgents/com.daveleal.claude-bot.plist`:
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.daveleal.claude-bot</string>
+    <string>com.your-org.claude-bot</string>
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/python3</string>
-        <string>/Users/daveleal/Repos/SlackClaw/bot_enhanced.py</string>
+        <string>~/Repos/SlackClaw/bot_enhanced.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Users/daveleal/Repos/SlackClaw</string>
+    <string>~/Repos/SlackClaw</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
@@ -290,7 +290,7 @@ Create `~/Library/LaunchAgents/com.daveleal.claude-bot.plist`:
 
 Load the service:
 ```bash
-launchctl load ~/Library/LaunchAgents/com.daveleal.claude-bot.plist
+launchctl load ~/Library/LaunchAgents/com.your-org.claude-bot.plist
 ```
 
 ### Option B: Run in tmux/screen
@@ -300,7 +300,7 @@ launchctl load ~/Library/LaunchAgents/com.daveleal.claude-bot.plist
 tmux new -s claude-bot
 
 # Run bot
-cd "/Users/daveleal/Repos/SlackClaw"
+cd ~/Repos/SlackClaw
 python bot_enhanced.py
 
 # Detach: Ctrl+B, then D
@@ -524,7 +524,7 @@ buttons on any device, instead of switching to the terminal.
 ### Install
 
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd ~/Repos/SlackClaw
 chmod +x claude-slack
 ln -sf "$(pwd)/claude-slack" /usr/local/bin/claude-slack
 ```
@@ -544,7 +544,7 @@ claude-slack -p "do X"    # non-interactive prompt
 2. A 🟢 session-start message is posted to that channel.
 3. When Claude Code needs input, post a Block Kit message using
    `tools/slack_bridge.py::format_bridge_blocks` via the Slack MCP.
-4. Dave clicks a button on any device → the answer feeds back to Claude's stdin.
+4. The operator clicks a button on any device → the answer feeds back to Claude's stdin.
 
 ### Prerequisite
 

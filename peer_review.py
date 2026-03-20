@@ -203,11 +203,11 @@ class StagedPeerReview:
     """Orchestrates Stage 1 (automated) + Stage 2 (cross-project) peer review."""
 
     def __init__(
-        self, app, code_review_channel_id: str, dave_user_id: str, projects: dict = None
+        self, app, code_review_channel_id: str, owner_user_id: str, projects: dict = None
     ):
         self.app = app
         self.review_channel = code_review_channel_id
-        self.dave_user_id = dave_user_id
+        self.owner_user_id = owner_user_id
         self.projects = projects or {}
         self.coordinator = PeerReviewCoordinator()
 
@@ -256,7 +256,7 @@ class StagedPeerReview:
             self.app.client.chat_postMessage(
                 channel=self.review_channel,
                 thread_ts=review_thread_ts,
-                text=f"🙋 <@{self.dave_user_id}> — blocking issues found, needs review",
+                text=f"🙋 <@{self.owner_user_id}> — blocking issues found, needs review",
             )
 
         # Stage 2: tag ≤2 peer project agents with same platform/language

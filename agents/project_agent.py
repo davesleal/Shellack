@@ -167,7 +167,7 @@ class ProjectAgent:
             channel_id=channel_id,
             thread_ts=thread_ts,
             project_name=project_config["name"],
-            dave_user_id=os.environ.get("DAVE_SLACK_USER_ID", ""),
+            owner_user_id=os.environ.get("OWNER_SLACK_USER_ID", ""),
         )
         self._github = GitHubClient(
             token=os.environ.get("GITHUB_TOKEN", ""),
@@ -182,7 +182,7 @@ class ProjectAgent:
             code_review_channel_id=os.environ.get(
                 "CODE_REVIEW_CHANNEL_ID", "code-review"
             ),
-            dave_user_id=os.environ.get("DAVE_SLACK_USER_ID", ""),
+            owner_user_id=os.environ.get("OWNER_SLACK_USER_ID", ""),
             projects=_all_projects,
         )
         self._opened_issue_number: int | None = None

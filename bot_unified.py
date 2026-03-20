@@ -899,7 +899,7 @@ def handle_bridge_input(ack, body, action, client):
                 f"({e.strerror})"
             ),
         )
-        return  # leave buttons active so Dave can retry
+        return  # leave buttons active so the user can retry
 
     # Update message: replace buttons with confirmation text
     # (Slack has no native disabled state; replacement is the correct approach)

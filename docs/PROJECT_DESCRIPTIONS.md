@@ -8,7 +8,7 @@ Use these as Slack channel topics to give Claude, SlackClaw, and GitHub context.
 **Channel:** `#dayist-dev`
 **Topic:**
 ```
-Dayist - iOS Personal Command Center • SwiftUI + SwiftData + CloudKit • Tasks, Calendar, Health, Subscriptions • https://github.com/davesleal/Dayist • App Store: com.daveleal.dayist
+Dayist - iOS Personal Command Center • SwiftUI + SwiftData + CloudKit • Tasks, Calendar, Health, Subscriptions • https://github.com/YOUR_ORG/Dayist • App Store: com.your-org.dayist
 ```
 
 **Full Description:**
@@ -24,7 +24,7 @@ iOS 26+ personal productivity and wellness app. Unifies tasks, calendar, health 
 **Channel:** `#nova-dev`
 **Topic:**
 ```
-NOVA - iOS App • Swift • https://github.com/davesleal/NOVA • In Development
+NOVA - iOS App • Swift • https://github.com/YOUR_ORG/NOVA • In Development
 ```
 
 **Full Description:**
@@ -40,7 +40,7 @@ iOS application (details TBD - update this description with project specifics)
 **Channel:** `#nudge-dev`
 **Topic:**
 ```
-Nudge - iOS App • Swift • https://github.com/davesleal/Nudge • In Development
+Nudge - iOS App • Swift • https://github.com/YOUR_ORG/Nudge • In Development
 ```
 
 **Full Description:**
@@ -56,7 +56,7 @@ iOS application (details TBD - update this description with project specifics)
 **Channel:** `#tiledock-dev`
 **Topic:**
 ```
-TileDock - macOS Grid Control Surface • SwiftUI • One tap. Many actions. • https://github.com/davesleal/TileDock • gridboard.app • App Store: com.daveleal.MacDock
+TileDock - macOS Grid Control Surface • SwiftUI • One tap. Many actions. • https://github.com/YOUR_ORG/TileDock • gridboard.app • App Store: com.your-org.MacDock
 ```
 
 **Full Description:**
@@ -73,7 +73,7 @@ macOS control surface app with grid-based layout. One tap triggers multiple acti
 **Channel:** `#atmos-dev`
 **Topic:**
 ```
-Atmos Universal - macOS Weather App • SwiftUI • https://github.com/davesleal/atmos-universal • Not on App Store
+Atmos Universal - macOS Weather App • SwiftUI • https://github.com/YOUR_ORG/atmos-universal • Not on App Store
 ```
 
 **Full Description:**
@@ -89,7 +89,7 @@ macOS weather application. Universal design for macOS platform. (Update with spe
 **Channel:** `#sideplane-dev`
 **Topic:**
 ```
-SidePlane - macOS Vision Companion • SwiftUI • Mac2Vision bridge • https://github.com/davesleal/SidePlane • App Store: com.daveleal.sideplane
+SidePlane - macOS Vision Companion • SwiftUI • Mac2Vision bridge • https://github.com/YOUR_ORG/SidePlane • App Store: com.your-org.sideplane
 ```
 
 **Full Description:**
@@ -106,7 +106,7 @@ macOS application for bridging Mac functionality with Vision Pro. Formerly Mac2V
 **Channel:** `#slackclaw-dev`
 **Topic:**
 ```
-SlackClaw - Slack AI Bot • Python + Claude API • Multi-project dev automation • https://github.com/davesleal/SlackClaw • Orchestrator + Peer Review
+SlackClaw - Slack AI Bot • Python + Claude API • Multi-project dev automation • https://github.com/YOUR_ORG/SlackClaw • Orchestrator + Peer Review
 ```
 
 **Full Description:**
@@ -147,13 +147,13 @@ Peer Review Channel • Autonomous code review • 3 agents: Quality, Security, 
 
 | Project | Platform | Status | App Store | Repo |
 |---------|----------|--------|-----------|------|
-| Dayist | iOS 26+ | Active | ✅ com.daveleal.dayist | [Dayist](https://github.com/davesleal/Dayist) |
-| NOVA | iOS | Dev | ❌ | [NOVA](https://github.com/davesleal/NOVA) |
-| Nudge | iOS | Dev | ❌ | [Nudge](https://github.com/davesleal/Nudge) |
-| TileDock | macOS | Active | ✅ com.daveleal.MacDock | [TileDock](https://github.com/davesleal/TileDock) |
-| Atmos | macOS | Dev | ❌ | [atmos-universal](https://github.com/davesleal/atmos-universal) |
-| SidePlane | macOS | Active | ✅ com.daveleal.sideplane | [SidePlane](https://github.com/davesleal/SidePlane) |
-| SlackClaw | Server | Prod | N/A | [SlackClaw](https://github.com/davesleal/SlackClaw) |
+| Dayist | iOS 26+ | Active | ✅ com.your-org.dayist | [Dayist](https://github.com/YOUR_ORG/Dayist) |
+| NOVA | iOS | Dev | ❌ | [NOVA](https://github.com/YOUR_ORG/NOVA) |
+| Nudge | iOS | Dev | ❌ | [Nudge](https://github.com/YOUR_ORG/Nudge) |
+| TileDock | macOS | Active | ✅ com.your-org.MacDock | [TileDock](https://github.com/YOUR_ORG/TileDock) |
+| Atmos | macOS | Dev | ❌ | [atmos-universal](https://github.com/YOUR_ORG/atmos-universal) |
+| SidePlane | macOS | Active | ✅ com.your-org.sideplane | [SidePlane](https://github.com/YOUR_ORG/SidePlane) |
+| SlackClaw | Server | Prod | N/A | [SlackClaw](https://github.com/YOUR_ORG/SlackClaw) |
 
 ---
 
