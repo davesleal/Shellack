@@ -7,6 +7,7 @@ dispatches to sub-agents based on task type.
 
 import logging
 import os
+import re
 from pathlib import Path
 from tools.github_client import GitHubClient
 from tools.lifecycle import LifecycleNotifier
@@ -21,6 +22,18 @@ from .sub_agents import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Matches XML-style tool call blocks that the claude CLI may narrate in text output
+_TOOL_XML_RE = re.compile(
+    r"<(write_file|read_file|bash|str_replace_editor|create_file|delete_file)"
+    r"[^>]*>[\s\S]*?</\1>",
+    re.IGNORECASE,
+)
+
+
+def _clean_response(text: str) -> str:
+    """Strip tool call XML from claude CLI output before posting to Slack."""
+    return _TOOL_XML_RE.sub("", text).strip()
 
 
 CODE_CHANGING_AGENTS = (CrashInvestigatorAgent, TestingAgent)
@@ -226,16 +239,26 @@ class ProjectAgent:
         if watch_out:
             prompt += f"\n## Watch Out For\n{watch_out}\n"
         prompt += f"\n{conventions}"
-        prompt += """
-## Your Role
-You have deep knowledge of this specific codebase and can:
-- Analyze and explain code in context of this project's patterns
-- Investigate bugs with platform-specific expertise
-- Implement features following project conventions
-- Coordinate code reviews with sub-agents
-- Post findings to #code-review when appropriate
-
-Be concise and precise. Reference specific files/patterns when relevant."""
+        backend_mode = os.environ.get("SESSION_BACKEND", "api")
+        if backend_mode == "max":
+            role_text = (
+                "\n## Your Role\n"
+                "You have full Claude Code tool access (file read/write, bash, git) in the project directory.\n"
+                "Make changes directly. Don't narrate what you're about to do — just do it and summarise the outcome in one sentence per action.\n"
+            )
+        else:
+            role_text = (
+                "\n## Your Role\n"
+                "You are a *conversational* assistant in Slack with NO tool access.\n"
+                "You cannot read files or run commands — answer from context only.\n"
+                'If the task needs file access or code changes, say: "Try `@SlackClaw run: <task>`"\n'
+            )
+        role_text += (
+            "\n**Reasoning format:** If you need to think before answering, put a one-line "
+            "summary on the first line prefixed with `Thinking: `, then a blank line, then "
+            "your answer. Omit if no reasoning is needed.\n\nBe concise."
+        )
+        prompt += role_text
 
         # Prepend CLAUDE.md (project rules take highest priority)
         claude_md = self._load_claude_md()
@@ -275,10 +298,10 @@ Be concise and precise. Reference specific files/patterns when relevant."""
         # Summarise task for lifecycle
         words = prompt.split()[:8]
         task_summary = " ".join(words) + ("..." if len(prompt.split()) > 8 else "")
-        self._lifecycle.started(task_summary)
 
-        # Auto-create GitHub issue for bugs/crashes
+        # Auto-create GitHub issue for bugs/crashes (significant task)
         if is_bug_task and task_type:
+            self._lifecycle.started(task_summary)
             title = f"[{task_type.title()}] {task_summary}"
             body = f"Reported via Slack:\n\n> {prompt}"
             issue = self._github.create_issue(self.project_key, title, body, task_type)
@@ -291,10 +314,9 @@ Be concise and precise. Reference specific files/patterns when relevant."""
                 )
 
         # Run sub-agent or main agent
-        self._lifecycle.in_progress("Analyzing...")
-
         try:
             if sub_agent_class:
+                self._lifecycle.in_progress("Analyzing...")
                 agent = sub_agent_class(self.client, self.project)
                 label = sub_agent_class.__name__.replace("Agent", "")
                 response = agent.run(prompt, thread_context)
@@ -315,6 +337,9 @@ Be concise and precise. Reference specific files/patterns when relevant."""
             self._lifecycle.failed(str(e))
             return f"Error: {e}", "Error"
 
+        # Strip tool call XML before any further processing or posting
+        response = _clean_response(response)
+
         # Determine if this is a significant task
         code_changed = self._is_code_changing(sub_agent_class, response)
         issue_created = self._opened_issue_number is not None
@@ -324,11 +349,8 @@ Be concise and precise. Reference specific files/patterns when relevant."""
             self._trigger_peer_review(prompt, response)
             if self._opened_issue_number:
                 self._github.close_issue(self.project_key, self._opened_issue_number)
-
-        summary = " ".join(response.split()[:12]) + "..."
-        self._lifecycle.done(summary, issue_number=self._opened_issue_number)
-
-        if is_significant:
+            summary = " ".join(response.split()[:12]) + "..."
+            self._lifecycle.done(summary, issue_number=self._opened_issue_number)
             self._write_journal(prompt, response)
 
         return response, label

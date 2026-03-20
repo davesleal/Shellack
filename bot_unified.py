@@ -146,9 +146,20 @@ def handle_project_message(event, say, channel_name: str):
 
     active_sessions[thread_ts].append({"role": "assistant", "content": response})
 
-    # Label sub-agent responses so it's clear who answered
+    # Split reasoning prefix from answer if present
+    thinking = None
+    answer = response
+    if response.startswith("Thinking: "):
+        parts = response.split("\n\n", 1)
+        thinking = parts[0][len("Thinking: ") :].strip()
+        answer = parts[1].strip() if len(parts) > 1 else ""
+
     header = f"🤖 *{agent_label}*\n" if agent_label != project["name"] else ""
-    say(text=f"{header}{_md_to_mrkdwn(response)}", thread_ts=thread_ts)
+
+    if thinking:
+        say(text=f"_{thinking}_", thread_ts=thread_ts)
+    if answer:
+        say(text=f"{header}{_md_to_mrkdwn(answer)}", thread_ts=thread_ts)
 
     usage_tracker.record_mention(
         os.environ.get("SESSION_BACKEND", "api"),

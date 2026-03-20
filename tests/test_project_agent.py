@@ -50,13 +50,14 @@ def test_handle_resets_opened_issue_number_each_call(tmp_path):
     assert agent._opened_issue_number is None
 
 
-def test_handle_calls_lifecycle_started(tmp_path):
+def test_handle_skips_lifecycle_for_plain_qa(tmp_path):
+    """Lifecycle started() must NOT fire for plain Q&A — only for bug/crash tasks."""
     agent, app, client = make_agent(tmp_path)
     with patch(QUICK_REPLY_PATH, return_value="Answer"), patch.object(
         agent._lifecycle, "started"
     ) as mock_started, patch.object(agent, "_trigger_peer_review"):
         agent.handle("explain the codebase", [])
-    mock_started.assert_called_once()
+    mock_started.assert_not_called()
 
 
 def test_handle_returns_error_tuple_on_exception(tmp_path):
