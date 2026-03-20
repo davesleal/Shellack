@@ -34,7 +34,7 @@ from peer_review import PeerReviewCoordinator
 from app_store_connect import AppStoreConnectClient, format_feedback_for_slack
 from agents import AgentFactory
 from tools.session_backend import APIBackend, MaxBackend
-from tools.slack_session import SlackSession, _md_to_mrkdwn
+from tools.slack_session import SlackSession
 from tools.usage_tracker import UsageTracker
 from tools.config_writer import set_env_var
 from tools.plugin_manager import PluginManager
@@ -92,10 +92,45 @@ def get_channel_name(channel_id: str) -> str:
 # ============================================================================
 
 
+def _post_smart(channel_id: str, thread_ts: str, text: str) -> None:
+    """Post text to a thread with canvas routing for large/code content."""
+    from tools.slack_session import _md_to_mrkdwn, _CODE_FENCE_RE, _MAX_INLINE_CHARS
+
+    text = _md_to_mrkdwn(text)
+    has_code = bool(_CODE_FENCE_RE.search(text))
+    is_long = len(text) > _MAX_INLINE_CHARS
+
+    if has_code or is_long:
+        # Try to route to canvas
+        try:
+            resp = app.client.canvases_create(
+                title="🦞 Agent Output",
+                document_content={"type": "markdown", "markdown": text},
+            )
+            canvas_id = resp.get("canvas_id") or (resp.get("canvas") or {}).get("id")
+            if canvas_id:
+                summary = _CODE_FENCE_RE.split(text)[0].strip()[:300]
+                notice = (summary + "\n" if summary else "") + (
+                    f"📄 Full output in canvas (`{canvas_id}`)"
+                )
+                app.client.chat_postMessage(
+                    channel=channel_id, thread_ts=thread_ts, text=notice
+                )
+                return
+        except Exception:
+            pass
+        # Canvas unavailable — truncate
+        if is_long:
+            text = text[:_MAX_INLINE_CHARS] + "… _(truncated)_"
+
+    app.client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, text=text)
+
+
 def handle_project_message(event, say, channel_name: str):
     """Handle messages in project-specific channels using specialized project agents."""
     text = event["text"]
-    thread_ts = event.get("thread_ts", event["ts"])
+    msg_ts = event["ts"]
+    thread_ts = event.get("thread_ts", msg_ts)
     channel_id = event["channel"]
 
     # Get project config and resolve project key
@@ -104,49 +139,61 @@ def handle_project_message(event, say, channel_name: str):
     project = PROJECTS.get(project_key) if project_key else None
 
     if not project:
-        say(
-            text=f"❌ Channel `{channel_name}` not configured. See orchestrator_config.py",
+        app.client.chat_postMessage(
+            channel=channel_id,
             thread_ts=thread_ts,
+            text=f"❌ Channel `{channel_name}` not configured. See orchestrator_config.py",
         )
         return
 
     # Remove bot mention
     prompt = text.split(">", 1)[1].strip() if ">" in text else text
 
-    # Initialize session
+    # Initialise session context
     if thread_ts not in active_sessions:
         active_sessions[thread_ts] = []
-        say(
-            text=f"🧵 New session\n📂 Project: `{project['name']}`", thread_ts=thread_ts
-        )
 
-    # Build context (exclude the last user message — agent.handle adds it)
     context = list(active_sessions[thread_ts])
-
     active_sessions[thread_ts].append({"role": "user", "content": prompt})
 
-    msg_ts = event["ts"]
+    # 1. React :claude: on the user's message — visible immediately
     try:
         app.client.reactions_add(channel=channel_id, name="claude", timestamp=msg_ts)
     except Exception:
         pass
 
+    # 2. Post acknowledgment in thread so the user sees we got their message
+    try:
+        ack = app.client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            text="_On it..._",
+        )
+        ack_ts = ack["ts"]
+    except Exception:
+        ack_ts = None
+
+    # 3. Run the agent
     try:
         agent = agent_factory.get_agent(
             project_key, project, app, channel_id, thread_ts
         )
         response, agent_label = agent.handle(prompt, context)
-    finally:
+    except Exception as exc:
+        app.client.chat_postMessage(
+            channel=channel_id, thread_ts=thread_ts, text=f"❌ Error: {exc}"
+        )
         try:
             app.client.reactions_remove(
                 channel=channel_id, name="claude", timestamp=msg_ts
             )
         except Exception:
             pass
+        return
 
     active_sessions[thread_ts].append({"role": "assistant", "content": response})
 
-    # Split reasoning prefix from answer if present
+    # 4. Split reasoning from answer
     thinking = None
     answer = response
     if response.startswith("Thinking: "):
@@ -156,10 +203,30 @@ def handle_project_message(event, say, channel_name: str):
 
     header = f"🤖 *{agent_label}*\n" if agent_label != project["name"] else ""
 
-    if thinking:
-        say(text=f"_{thinking}_", thread_ts=thread_ts)
+    # 5. Update the ack message with reasoning log (if any), else delete it
+    if ack_ts:
+        try:
+            if thinking:
+                app.client.chat_update(
+                    channel=channel_id,
+                    ts=ack_ts,
+                    text=f"_🤔 {thinking}_",
+                )
+            else:
+                # Remove the placeholder ack — answer comes next
+                app.client.chat_delete(channel=channel_id, ts=ack_ts)
+        except Exception:
+            pass
+
+    # 6. Post the actual answer (with canvas routing for large/code content)
     if answer:
-        say(text=f"{header}{_md_to_mrkdwn(answer)}", thread_ts=thread_ts)
+        _post_smart(channel_id, thread_ts, f"{header}{answer}")
+
+    # 7. Remove :claude: reaction — we're done
+    try:
+        app.client.reactions_remove(channel=channel_id, name="claude", timestamp=msg_ts)
+    except Exception:
+        pass
 
     usage_tracker.record_mention(
         os.environ.get("SESSION_BACKEND", "api"),
@@ -593,9 +660,13 @@ def handle_message(event, say):
         # Session closed but not yet popped — clean up and fall through
         RUN_SESSIONS.pop(thread_ts, None)
 
-    # Fall through to existing behavior for active_sessions (quick reply threads)
+    # Continue an active quick-reply thread — but ONLY for messages without a
+    # bot @mention (those are already handled by the app_mention event handler,
+    # routing them here again causes duplicate processing).
     if thread_ts and thread_ts in active_sessions:
-        handle_mention(event, say)
+        raw_text = event.get("text", "")
+        if not re.search(r"<@[A-Z0-9]+>", raw_text):
+            handle_mention(event, say)
 
 
 # ============================================================================
@@ -942,6 +1013,19 @@ if __name__ == "__main__":
     print("  ✅ Project Agents (dedicated channels)")
     print("  ✅ Orchestrator (#slackclaw-central)")
     print("  ✅ Peer Review (#code-review)")
+    print()
+
+    # Auto-join all configured channels
+    print("📥 Joining configured channels...")
+    for ch_name, config in CHANNEL_ROUTING.items():
+        channel_id = config.get("channel_id")
+        if not channel_id:
+            continue
+        try:
+            app.client.conversations_join(channel=channel_id)
+            print(f"  ✅ #{ch_name}")
+        except Exception as e:
+            print(f"  ⚠️  #{ch_name}: {e}")
     print()
 
     # Start App Store Connect monitoring
