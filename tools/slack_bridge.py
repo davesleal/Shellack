@@ -1,5 +1,5 @@
 """
-SlackClaw — Slack↔Terminal Bridge utilities
+Shellack — Slack↔Terminal Bridge utilities
 
 Provides Block Kit formatting for interactive Claude Code input prompts,
 project channel detection, and session-start notification.

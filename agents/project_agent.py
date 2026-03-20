@@ -251,7 +251,7 @@ class ProjectAgent:
                 "\n## Your Role\n"
                 "You are a *conversational* assistant in Slack with NO tool access.\n"
                 "You cannot read files or run commands — answer from context only.\n"
-                'If the task needs file access or code changes, say: "Try `@SlackClaw run: <task>`"\n'
+                'If the task needs file access or code changes, say: "Try `@Shellack run: <task>`"\n'
             )
         role_text += (
             "\n**Reasoning format:** If you need to think before answering, put a one-line "

@@ -885,7 +885,7 @@ class StagedPeerReview:
             self.app.client.chat_postMessage(
                 channel=self.review_channel,
                 thread_ts=review_thread_ts,
-                text=f"[{peer_key}-review] @SlackClaw please review the above changes from a {peer_key} perspective.",
+                text=f"[{peer_key}-review] @Shellack please review the above changes from a {peer_key} perspective.",
             )
 ```
 
@@ -931,8 +931,8 @@ In `orchestrator_config.py`, update each project entry:
     ...
 },
 "slackclaw": {
-    "name": "SlackClaw",
-    "github_repo": "davesleal/SlackClaw",
+    "name": "Shellack",
+    "github_repo": "davesleal/Shellack",
     ...
 },
 "tiledock": {
@@ -1288,14 +1288,14 @@ git commit -m "feat: wire agent factory with thread-scoped context in bot_unifie
 ## Task 9: Write `CLAUDE.md` (Maestro instructions)
 
 **Files:**
-- Create: `CLAUDE.md` (SlackClaw root)
+- Create: `CLAUDE.md` (Shellack root)
 
 - [ ] **Step 9.1: Write maestro CLAUDE.md**
 
-Create `/Users/daveleal/Repos/SlackClaw/CLAUDE.md`:
+Create `/Users/daveleal/Repos/Shellack/CLAUDE.md`:
 
 ```markdown
-# SlackClaw — Maestro Agent Instructions
+# Shellack — Maestro Agent Instructions
 
 You are the orchestrator for Leal Labs' development workspace. You coordinate across 7 projects and ensure consistent standards, smooth handoffs, and clear communication to Dave.
 
@@ -1309,7 +1309,7 @@ You are the orchestrator for Leal Labs' development workspace. You coordinate ac
 | TileDock | #tiledock-dev | macOS | davesleal/TileDock |
 | Atmos Universal | #atmos-dev | macOS | davesleal/atmos-universal |
 | SidePlane | #sideplane-dev | macOS | davesleal/SidePlane |
-| SlackClaw | #slackclaw-dev | Server/Python | davesleal/SlackClaw |
+| Shellack | #slackclaw-dev | Server/Python | davesleal/Shellack |
 
 ## GitHub Issue Standards
 
@@ -1346,8 +1346,8 @@ After every significant task, write a `JOURNAL.md` entry in the project repo:
 ## Completion Checklist
 
 After every task, in this order:
-1. Update `STATE.md` in SlackClaw root with current status
-2. Append to `docs/JOURNAL.md` in SlackClaw
+1. Update `STATE.md` in Shellack root with current status
+2. Append to `docs/JOURNAL.md` in Shellack
 3. Update `README.md` only if a new user-facing capability was added
 
 ## Channel Visibility
@@ -1365,7 +1365,7 @@ This lets Claude app scan project channels for a workspace-wide status update.
 
 ```bash
 git add CLAUDE.md
-git commit -m "docs: add maestro CLAUDE.md with coordination protocol for SlackClaw"
+git commit -m "docs: add maestro CLAUDE.md with coordination protocol for Shellack"
 ```
 
 ---

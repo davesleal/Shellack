@@ -1,5 +1,5 @@
 # tests/test_bot_plugin_commands.py
-"""Integration tests for @SlackClaw plugin management commands."""
+"""Integration tests for @Shellack plugin management commands."""
 import importlib
 import pytest
 from unittest.mock import MagicMock, patch

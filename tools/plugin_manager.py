@@ -1,11 +1,11 @@
 # tools/plugin_manager.py
 """
-PluginManager — manages three plugin namespaces for SlackClaw.
+PluginManager — manages three plugin namespaces for Shellack.
 
 Namespaces:
   1. Claude Code Plugins  — claude plugin install/uninstall
   2. MCP Servers          — claude mcp add/remove
-  3. SlackClaw Extensions — git clone into extensions/, importlib hot-reload
+  3. Shellack Extensions — git clone into extensions/, importlib hot-reload
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ _DEFAULT_EXTENSIONS_DIR = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "extensions"
 )
 _DEFAULT_CLAUDE_SETTINGS = os.path.expanduser("~/.claude/settings.json")
-_OFFICIAL_ORG = "https://github.com/SlackClaw-plugins"
+_OFFICIAL_ORG = "https://github.com/Shellack-plugins"
 
 
 class PluginManager:
@@ -85,7 +85,7 @@ class PluginManager:
         return self._run(["claude", "mcp", "remove", name])
 
     # -----------------------------------------------------------------------
-    # SlackClaw Bot Extensions
+    # Shellack Bot Extensions
     # -----------------------------------------------------------------------
 
     def add_bot_plugin(
@@ -97,7 +97,7 @@ class PluginManager:
         Clone a bot extension and hot-reload it via importlib.
 
         name_or_url:
-          - bare name  → clones from https://github.com/SlackClaw-plugins/<name>
+          - bare name  → clones from https://github.com/Shellack-plugins/<name>
           - https://…  → clones from provided URL verbatim
 
         registry: module-level _bot_extensions dict from bot_unified (pass-by-ref).
@@ -109,8 +109,8 @@ class PluginManager:
             return {
                 "ok": False,
                 "error": (
-                    "Unknown plugin source. Use a bare name (official SlackClaw-plugins org) "
-                    "or a full GitHub URL: `@SlackClaw add bot-plugin https://github.com/org/repo`"
+                    "Unknown plugin source. Use a bare name (official Shellack-plugins org) "
+                    "or a full GitHub URL: `@Shellack add bot-plugin https://github.com/org/repo`"
                 ),
             }
 

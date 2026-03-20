@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SlackClaw Orchestrator Configuration
+Shellack Orchestrator Configuration
 Multi-project coordination and peer review system
 """
 
@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 _GITHUB_ORG = os.environ.get("GITHUB_ORG", "YOUR_ORG")
 
 # Project Registry
-# All projects that SlackClaw can access.
+# All projects that Shellack can access.
 # Override paths via env vars; see .env.example for all supported variables.
 PROJECTS = {
     "dayist": {
@@ -46,15 +46,15 @@ PROJECTS = {
         "github_repo": f"{_GITHUB_ORG}/Nudge",
     },
     "slackclaw": {
-        "name": "SlackClaw",
+        "name": "Shellack",
         "path": os.environ.get(
-            "SLACKCLAW_PROJECT_PATH", os.path.expanduser("~/Repos/SlackClaw")
+            "SLACKCLAW_PROJECT_PATH", os.path.expanduser("~/Repos/Shellack")
         ),
         "bundle_id": None,
         "primary_channel": "slackclaw-dev",
         "language": "python",
         "platform": "server",
-        "github_repo": f"{_GITHUB_ORG}/SlackClaw",
+        "github_repo": f"{_GITHUB_ORG}/Shellack",
     },
     "tiledock": {
         "name": "TileDock",
@@ -185,23 +185,23 @@ GLOBAL_STANDARDS = {
 ORCHESTRATOR_COMMANDS = {
     "update_all_claude_md": {
         "description": "Update CLAUDE.md in all projects",
-        "syntax": "@SlackClaw update all CLAUDE.md: <rule>",
-        "example": "@SlackClaw update all CLAUDE.md: prefer async/await over callbacks",
+        "syntax": "@Shellack update all CLAUDE.md: <rule>",
+        "example": "@Shellack update all CLAUDE.md: prefer async/await over callbacks",
     },
     "sync_standards": {
         "description": "Sync coding standards between projects",
-        "syntax": "@SlackClaw sync standards from <source> to <target>",
-        "example": "@SlackClaw sync standards from dayist to nova",
+        "syntax": "@Shellack sync standards from <source> to <target>",
+        "example": "@Shellack sync standards from dayist to nova",
     },
     "global_search": {
         "description": "Search across all projects",
-        "syntax": "@SlackClaw search all: <query>",
-        "example": "@SlackClaw search all: deprecated API usage",
+        "syntax": "@Shellack search all: <query>",
+        "example": "@Shellack search all: deprecated API usage",
     },
     "coordinate_change": {
         "description": "Make coordinated change across projects",
-        "syntax": "@SlackClaw coordinate: <change>",
-        "example": "@SlackClaw coordinate: update to Swift 6 concurrency",
+        "syntax": "@Shellack coordinate: <change>",
+        "example": "@Shellack coordinate: update to Swift 6 concurrency",
     },
 }
 

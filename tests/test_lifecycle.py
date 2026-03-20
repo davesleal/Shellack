@@ -47,13 +47,12 @@ def test_issue_created_posts_to_thread_and_channel(notifier, app):
     assert "#42" in channel_call.kwargs["text"]
 
 
-def test_done_posts_to_thread_and_channel(notifier, app):
+def test_done_posts_to_thread_only(notifier, app):
     notifier.done("fixed login crash", issue_number=42)
     calls = app.client.chat_postMessage.call_args_list
-    assert len(calls) == 2
-    channel_call = next(c for c in calls if "thread_ts" not in c.kwargs)
-    assert "✅" in channel_call.kwargs["text"]
-    assert "[Dayist]" in channel_call.kwargs["text"]
+    assert len(calls) == 1
+    assert calls[0].kwargs["thread_ts"] == "111.222"
+    assert "✅" in calls[0].kwargs["text"]
 
 
 def test_needs_human_mentions_owner(notifier, app):
@@ -64,12 +63,12 @@ def test_needs_human_mentions_owner(notifier, app):
     assert any("U999" in t for t in texts)
 
 
-def test_pending_review_includes_thread_link_in_channel_post(notifier, app):
+def test_pending_review_posts_to_thread_only(notifier, app):
     notifier.pending_review(thread_link="https://slack.com/thread/123")
     calls = app.client.chat_postMessage.call_args_list
-    assert len(calls) == 2
-    channel_call = next(c for c in calls if "thread_ts" not in c.kwargs)
-    assert "https://slack.com/thread/123" in channel_call.kwargs["text"]
+    assert len(calls) == 1
+    assert calls[0].kwargs["thread_ts"] == "111.222"
+    assert "👀" in calls[0].kwargs["text"]
 
 
 def test_failed_posts_to_thread_only(notifier, app):

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Enable `@SlackClaw run: <task>` in any project channel to start a full bidirectional Claude session in that Slack thread — output streamed in chunks, input via typed thread replies.
+**Goal:** Enable `@Shellack run: <task>` in any project channel to start a full bidirectional Claude session in that Slack thread — output streamed in chunks, input via typed thread replies.
 
 **Architecture:** A `SessionBackend` abstraction with two implementations. `APIBackend` uses the Anthropic SDK with streaming and manages conversation history in memory. `MaxBackend` spawns a fresh `claude -p` subprocess per turn, using `--session-id <uuid>` on the first turn to pre-assign an ID and `--resume <uuid>` on subsequent turns — this isolates concurrent sessions cleanly without any `--continue` collision risk. A `SlackSession` owns one thread lifecycle: runs the backend in a background thread, buffers output, posts chunks to Slack, and routes typed thread replies back to the backend. `bot_unified.py` detects `run:` in top-level mentions, creates sessions, and routes thread replies.
 
@@ -114,7 +114,7 @@ def test_api_backend_close_clears_history():
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd /Users/daveleal/Repos/Shellack
 source venv/bin/activate
 pytest tests/test_session_backend.py -v 2>&1 | head -20
 ```
@@ -868,7 +868,7 @@ Wire `run:` trigger, `RUN_SESSIONS`, and thread reply routing into the existing 
 
 ```python
 # tests/test_bot_run_trigger.py
-"""Tests for @SlackClaw run: trigger and thread reply routing."""
+"""Tests for @Shellack run: trigger and thread reply routing."""
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -881,7 +881,7 @@ def _make_event(text, channel="C123", ts="100.0", thread_ts=None):
 
 
 def test_run_prefix_creates_slack_session():
-    """Top-level @SlackClaw run: creates a SlackSession in RUN_SESSIONS."""
+    """Top-level @Shellack run: creates a SlackSession in RUN_SESSIONS."""
     import importlib
     import bot_unified
     importlib.reload(bot_unified)
@@ -1029,7 +1029,7 @@ def handle_mention(event, say):
     if is_top_level and clean_text.lower().startswith("run:"):
         task = clean_text[4:].strip()
         if not task:
-            say(text="Usage: `@SlackClaw run: <task description>`", thread_ts=thread_ts)
+            say(text="Usage: `@Shellack run: <task description>`", thread_ts=thread_ts)
             return
 
         # Pick backend
@@ -1127,21 +1127,21 @@ Expected: all tests pass, no regressions.
 
 Start the bot:
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd /Users/daveleal/Repos/Shellack
 source venv/bin/activate
 SESSION_BACKEND=api python bot_unified.py
 ```
 
 In Slack, in a project channel:
 ```
-@SlackClaw run: list the python files in the root directory
+@Shellack run: list the python files in the root directory
 ```
 
 Expected:
 - Response appears in thread within a few seconds
 - Typing a follow-up in the thread continues the conversation
 - Typing `stop` closes the session
-- A regular `@SlackClaw what is this?` still works normally
+- A regular `@Shellack what is this?` still works normally
 
 - [ ] **Step 9: Commit**
 

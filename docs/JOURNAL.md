@@ -1,4 +1,4 @@
-# SlackClaw Project Journal
+# Shellack Project Journal
 
 ## 2026-03-18 — Slack↔Terminal Bridge
 
@@ -16,7 +16,7 @@
 
 ### Major Milestone: Architecture Complete
 
-**Context:** Built SlackClaw from scratch as a Slack bot integrated with Claude AI for development workflows across multiple projects.
+**Context:** Built Shellack from scratch as a Slack bot integrated with Claude AI for development workflows across multiple projects.
 
 ### Architecture Decisions
 
@@ -42,7 +42,7 @@
 **Projects Configured:**
 - **iOS:** Dayist, NOVA, Nudge
 - **macOS:** TileDock, Atmos Universal, SidePlane
-- **Meta:** SlackClaw itself
+- **Meta:** Shellack itself
 
 **Channel Routing:**
 - Dedicated channels: `#dayist-dev`, `#nova-dev`, `#nudge-dev`, `#tiledock-dev`, `#atmos-dev`, `#sideplane-dev`
@@ -68,15 +68,15 @@ Developer
     ↓
 Claude (Official App) - Orchestrator/Brain
     ↓                    ↓
-SlackClaw              GitHub App
+Shellack              GitHub App
 (Code Execution)       (Version Control)
 ```
 
 **Key Insight:** Token-efficient delegation
 - Claude handles conversation intelligence and decision-making
-- SlackClaw executes code operations (file access, changes, tests)
+- Shellack executes code operations (file access, changes, tests)
 - GitHub App manages PR workflow and CI/CD
-- Claude delegates to SlackClaw instead of reading full files directly
+- Claude delegates to Shellack instead of reading full files directly
 
 **Benefits:**
 - Reduces Claude API token consumption
@@ -94,7 +94,7 @@ SlackClaw              GitHub App
 
 #### 2. OAuth Redirect Error
 **Problem:** Claude Slack app OAuth failing with redirect URI error
-**Status:** Likely temporary Anthropic service issue, non-blocking for SlackClaw
+**Status:** Likely temporary Anthropic service issue, non-blocking for Shellack
 
 #### 3. Private Key Configuration
 **Problem:** User initially put private key contents in .env instead of file path
@@ -111,13 +111,13 @@ SlackClaw              GitHub App
 **Permissions:**
 - App Store Connect: Read-only access to reviews/feedback
 - Slack: Bot scope limited to necessary permissions
-- File system: SlackClaw has direct access to configured project paths
+- File system: Shellack has direct access to configured project paths
 
 ### Next Steps
 
 **Immediate:**
 1. ✅ Create project descriptions for Slack channels
-2. ⚠️ Develop Claude ↔ SlackClaw delegation protocol
+2. ⚠️ Develop Claude ↔ Shellack delegation protocol
 3. ⚠️ Implement project journal automation
 4. ⚠️ Test multi-agent workflows
 
@@ -129,7 +129,7 @@ SlackClaw              GitHub App
 
 ### Files Structure
 ```
-SlackClaw/
+Shellack/
 ├── bot_unified.py              # Main unified bot
 ├── orchestrator_config.py      # Project registry
 ├── orchestrator.py             # Cross-project ops
@@ -155,10 +155,10 @@ SlackClaw/
 
 5. **Documentation as you build** - Created ARCHITECTURE.md and README.md during development, not after
 
-6. **Multi-agent thinking** - Combining official Claude + SlackClaw + GitHub creates more than sum of parts
+6. **Multi-agent thinking** - Combining official Claude + Shellack + GitHub creates more than sum of parts
 
 ### Resources
-- Repository: https://github.com/YOUR_ORG/SlackClaw
+- Repository: https://github.com/YOUR_ORG/Shellack
 
 ---
 
@@ -166,7 +166,7 @@ SlackClaw/
 
 ### 2026-03-18 - Session Summary
 **Duration:** ~2 hours
-**Focus:** Complete SlackClaw setup from concept to running bot
+**Focus:** Complete Shellack setup from concept to running bot
 **Key Achievement:** Multi-project Slack bot with AI integration, orchestration, and peer review capabilities
 **Status:** Production-ready, monitoring App Store Connect for 3 apps
 **Next Session:** Multi-agent synergy implementation

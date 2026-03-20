@@ -1,7 +1,7 @@
 """
-UsageTracker — tracks SlackClaw session/mention counts and API token usage.
+UsageTracker — tracks Shellack session/mention counts and API token usage.
 
-Persists to usage.json in the SlackClaw root. Monthly reset: on every read,
+Persists to usage.json in the Shellack root. Monthly reset: on every read,
 compare the stored reset_month to the current month — if different, zero all
 counters and update reset_month. No cron required.
 """
@@ -95,7 +95,7 @@ class UsageTracker:
             return self._load()
 
     def format_usage_message(self) -> str:
-        """Return a formatted Slack message string for @SlackClaw usage.
+        """Return a formatted Slack message string for @Shellack usage.
 
         Mode and model are read from os.environ (live values) so the display
         always reflects current config, even right after a monthly reset.
@@ -110,7 +110,7 @@ class UsageTracker:
             month_label = month
 
         lines = [
-            f"🦞 *SlackClaw — Usage ({month_label})*",
+            f"🦞 *Shellack — Usage ({month_label})*",
             f"Mode: {'Claude Max' if mode == 'max' else 'Anthropic API'}",
         ]
         if mode == "api":

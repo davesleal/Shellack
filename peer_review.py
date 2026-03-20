@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SlackClaw Peer Review System
+Shellack Peer Review System
 Autonomous agents review each other's work
 """
 
@@ -277,7 +277,7 @@ class StagedPeerReview:
             self.app.client.chat_postMessage(
                 channel=self.review_channel,
                 thread_ts=review_thread_ts,
-                text=f"[{peer_key}-review] @SlackClaw please review the above changes from a {peer_key} perspective.",
+                text=f"[{peer_key}-review] @Shellack please review the above changes from a {peer_key} perspective.",
             )
 
 

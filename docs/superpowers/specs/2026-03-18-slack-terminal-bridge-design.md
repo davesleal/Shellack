@@ -37,7 +37,7 @@ Claude Code (in session)
   └─ when needing input: uses Slack MCP to post Block Kit message with buttons
      buttons carry value = "<session_id>|<answer_value>"
 
-SlackClaw (always running)
+Shellack (always running)
   └─ @app.action("claude_bridge_input") handler:
        parses session_id and answer from button value
        loads /tmp/claude_bridge/<session_id>.json → gets pipe path
@@ -52,7 +52,7 @@ SlackClaw (always running)
 
 ### 1. `claude-slack` (new script, `/usr/local/bin/claude-slack`)
 
-Python script. Shebang: `#!/usr/bin/env python3`. Must be run from the same Python environment as SlackClaw (same venv) so `orchestrator_config` is importable.
+Python script. Shebang: `#!/usr/bin/env python3`. Must be run from the same Python environment as Shellack (same venv) so `orchestrator_config` is importable.
 
 **Responsibilities:**
 
@@ -126,7 +126,7 @@ fcntl.fcntl(read_fd, fcntl.F_SETFL, _flags & ~os.O_NONBLOCK)
 
 channel_id, project_name = detect_channel_id()
 
-# Write session file for SlackClaw to look up
+# Write session file for Shellack to look up
 session_file = f"/tmp/claude_bridge/{session_id}.json"
 with open(session_file, "w") as f:
     json.dump({"pipe": pipe_path, "channel_id": channel_id,
@@ -307,7 +307,7 @@ Add `import os, json` at the top of `bot_unified.py`.
 
 ### 4. How Claude Code knows to use the bridge
 
-When `CLAUDE_BRIDGE_SESSION` is set in the environment, Claude Code is running inside a `claude-slack` session. The following rule is added to `CLAUDE.md` (SlackClaw root) so it is loaded into every Claude Code session's system prompt:
+When `CLAUDE_BRIDGE_SESSION` is set in the environment, Claude Code is running inside a `claude-slack` session. The following rule is added to `CLAUDE.md` (Shellack root) so it is loaded into every Claude Code session's system prompt:
 
 ```markdown
 ## Claude-Slack Bridge
@@ -351,11 +351,11 @@ Channel IDs are found via Slack app settings or `slack_search_channels`.
 ### Happy path
 
 ```
-1. cd /SlackClaw && claude-slack
-2. Wrapper: detects davesleal/SlackClaw → channel ID C_SLACKCLAW
+1. cd /Shellack && claude-slack
+2. Wrapper: detects davesleal/Shellack → channel ID C_SLACKCLAW
 3. Creates session abc123, pipe at /tmp/claude_bridge/abc123
 4. Opens write-end fd (keep-alive), then read-end fd
-5. Posts "🟢 Claude Code session started — SlackClaw" to #slackclaw-dev
+5. Posts "🟢 Claude Code session started — Shellack" to #slackclaw-dev
 6. Starts `claude` with stdin=read_fd, env includes CLAUDE_BRIDGE_SESSION=abc123,
    CLAUDE_BRIDGE_CHANNEL_ID=C_SLACKCLAW
 
@@ -365,7 +365,7 @@ Channel IDs are found via Slack app settings or `slack_search_channels`.
    button values: "abc123|A", "abc123|B", "abc123|C"
 
 10. Dave clicks "B" on phone
-11. Slack sends action payload to SlackClaw
+11. Slack sends action payload to Shellack
 12. handle_bridge_input: parses "abc123|B"
     reads /tmp/claude_bridge/abc123.json → pipe path
     opens pipe write-end (O_NONBLOCK), writes "B\n"
@@ -376,7 +376,7 @@ Channel IDs are found via Slack app settings or `slack_search_channels`.
 
 ### Concurrent sessions
 
-Two simultaneous `claude-slack` sessions (e.g. SlackClaw + Dayist) each get unique session IDs. Button values carry the session ID, so each click writes to the correct pipe. No shared state between sessions.
+Two simultaneous `claude-slack` sessions (e.g. Shellack + Dayist) each get unique session IDs. Button values carry the session ID, so each click writes to the correct pipe. No shared state between sessions.
 
 ---
 
@@ -426,7 +426,7 @@ Adding `text` input later requires only a new branch in `format_bridge_blocks` a
 
 ## Environment Variables
 
-`SLACK_BOT_TOKEN` is already required by SlackClaw (no change).
+`SLACK_BOT_TOKEN` is already required by Shellack (no change).
 
 Two new **runtime** vars set by the wrapper — no user configuration required:
 
@@ -441,7 +441,7 @@ Two new **runtime** vars set by the wrapper — no user configuration required:
 
 ```bash
 # Shebang in claude-slack: #!/usr/bin/env python3
-# Must use same Python/venv as SlackClaw so orchestrator_config is importable
+# Must use same Python/venv as Shellack so orchestrator_config is importable
 
 chmod +x claude-slack
 ln -sf "$(pwd)/claude-slack" /usr/local/bin/claude-slack

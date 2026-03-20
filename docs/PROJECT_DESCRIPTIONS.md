@@ -1,6 +1,6 @@
 # Project Descriptions for Slack Channels
 
-Use these as Slack channel topics to give Claude, SlackClaw, and GitHub context.
+Use these as Slack channel topics to give Claude, Shellack, and GitHub context.
 
 ---
 
@@ -102,11 +102,11 @@ macOS application for bridging Mac functionality with Vision Pro. Formerly Mac2V
 
 ---
 
-## SlackClaw
+## Shellack
 **Channel:** `#slackclaw-dev`
 **Topic:**
 ```
-SlackClaw - Slack AI Bot • Python + Claude API • Multi-project dev automation • https://github.com/YOUR_ORG/SlackClaw • Orchestrator + Peer Review
+Shellack - Slack AI Bot • Python + Claude API • Multi-project dev automation • https://github.com/YOUR_ORG/Shellack • Orchestrator + Peer Review
 ```
 
 **Full Description:**
@@ -153,7 +153,7 @@ Peer Review Channel • Autonomous code review • 3 agents: Quality, Security, 
 | TileDock | macOS | Active | ✅ com.your-org.MacDock | [TileDock](https://github.com/YOUR_ORG/TileDock) |
 | Atmos | macOS | Dev | ❌ | [atmos-universal](https://github.com/YOUR_ORG/atmos-universal) |
 | SidePlane | macOS | Active | ✅ com.your-org.sideplane | [SidePlane](https://github.com/YOUR_ORG/SidePlane) |
-| SlackClaw | Server | Prod | N/A | [SlackClaw](https://github.com/YOUR_ORG/SlackClaw) |
+| Shellack | Server | Prod | N/A | [Shellack](https://github.com/YOUR_ORG/Shellack) |
 
 ---
 
@@ -167,7 +167,7 @@ Peer Review Channel • Autonomous code review • 3 agents: Quality, Security, 
    - Paste the topic text
    - Save
 
-3. **Result:** Claude, SlackClaw, and GitHub all see:
+3. **Result:** Claude, Shellack, and GitHub all see:
    - What the project is
    - Where the code lives
    - Key technologies

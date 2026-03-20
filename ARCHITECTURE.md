@@ -1,11 +1,11 @@
-# SlackClaw Architecture
+# Shellack Architecture
 
 Modular unified bot with channel-based routing.
 
 ## Architecture Overview
 
 ```
-SlackClaw Unified Bot (single process)
+Shellack Unified Bot (single process)
 │
 ├─ Project Agents
 │  ├─ #dayist-dev    → Dayist project
@@ -55,9 +55,9 @@ Handle project-specific work:
 **Example:**
 ```
 #dayist-dev
-@SlackClaw what files are in Views/Settings?
-@SlackClaw fix the login bug
-@SlackClaw run tests
+@Shellack what files are in Views/Settings?
+@Shellack fix the login bug
+@Shellack run tests
 ```
 
 ### 2. Orchestrator (`orchestrator.py`)
@@ -73,9 +73,9 @@ Cross-project coordination:
 **Example:**
 ```
 #slackclaw-central
-@SlackClaw update all CLAUDE.md: prefer composition over inheritance
-@SlackClaw sync standards from dayist to nova
-@SlackClaw search all: deprecated UserDefaults
+@Shellack update all CLAUDE.md: prefer composition over inheritance
+@Shellack sync standards from dayist to nova
+@Shellack search all: deprecated UserDefaults
 ```
 
 ### 3. Peer Review (`peer_review.py`)
@@ -123,7 +123,7 @@ python bot_unified.py
 ## File Structure
 
 ```
-SlackClaw/
+Shellack/
 ├── bot_unified.py              # Main unified bot
 ├── orchestrator_config.py      # Configuration
 ├── orchestrator.py             # Cross-project operations
@@ -165,7 +165,7 @@ CHANNEL_ROUTING = {
 3. Create Slack channel:
 ```
 /create #new-project-dev
-/invite @SlackClaw
+/invite @Shellack
 ```
 
 Done! The bot automatically picks up the new project.

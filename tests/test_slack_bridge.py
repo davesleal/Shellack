@@ -73,9 +73,9 @@ def test_format_choice_empty_options_raises():
 
 FAKE_PROJECTS = {
     "slackclaw": {
-        "name": "SlackClaw",
+        "name": "Shellack",
         "primary_channel": "slackclaw-dev",
-        "github_repo": "YOUR_ORG/SlackClaw",
+        "github_repo": "YOUR_ORG/Shellack",
     }
 }
 
@@ -90,12 +90,12 @@ FAKE_ROUTING_MISSING = {
 
 def test_detect_known_repo_returns_channel_id():
     from tools.slack_bridge import detect_channel_id
-    with patch("subprocess.check_output", return_value=b"git@github.com:YOUR_ORG/SlackClaw.git"), \
+    with patch("subprocess.check_output", return_value=b"git@github.com:YOUR_ORG/Shellack.git"), \
          patch("tools.slack_bridge.PROJECTS", FAKE_PROJECTS), \
          patch("tools.slack_bridge.CHANNEL_ROUTING", FAKE_ROUTING_OK):
         channel_id, project_name = detect_channel_id()
     assert channel_id == "C_SC"
-    assert project_name == "SlackClaw"
+    assert project_name == "Shellack"
 
 
 def test_detect_unknown_repo_falls_back():
@@ -110,12 +110,12 @@ def test_detect_unknown_repo_falls_back():
 
 def test_detect_missing_channel_id_falls_back_with_warning(capsys):
     from tools.slack_bridge import detect_channel_id
-    with patch("subprocess.check_output", return_value=b"git@github.com:YOUR_ORG/SlackClaw.git"), \
+    with patch("subprocess.check_output", return_value=b"git@github.com:YOUR_ORG/Shellack.git"), \
          patch("tools.slack_bridge.PROJECTS", FAKE_PROJECTS), \
          patch("tools.slack_bridge.CHANNEL_ROUTING", FAKE_ROUTING_MISSING):
         channel_id, project_name = detect_channel_id()
     assert channel_id == "C0AMEEP7EFL"
-    assert project_name == "SlackClaw"
+    assert project_name == "Shellack"
     captured = capsys.readouterr()
     assert "WARNING" in captured.err
 
@@ -141,7 +141,7 @@ def test_post_session_start_success():
     from tools.slack_bridge import post_session_start
     import os
     with patch.dict(os.environ, {"SLACK_BOT_TOKEN": "xoxb-test"}):
-        post_session_start("C_SC", "SlackClaw")  # must not raise
+        post_session_start("C_SC", "Shellack")  # must not raise
 
 
 @responses.activate
@@ -153,5 +153,5 @@ def test_post_session_start_logs_warning_on_slack_error(caplog):
     import os
     with patch.dict(os.environ, {"SLACK_BOT_TOKEN": "xoxb-test"}):
         with caplog.at_level(logging.WARNING):
-            post_session_start("CBAD", "SlackClaw")
+            post_session_start("CBAD", "Shellack")
     assert "channel_not_found" in caplog.text

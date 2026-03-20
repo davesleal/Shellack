@@ -1,5 +1,5 @@
 # tests/test_bot_run_trigger.py
-"""Tests for @SlackClaw run: trigger and thread reply routing."""
+"""Tests for @Shellack run: trigger and thread reply routing."""
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -12,7 +12,7 @@ def _make_event(text, channel="C123", ts="100.0", thread_ts=None):
 
 
 def test_run_prefix_creates_slack_session():
-    """Top-level @SlackClaw run: creates a SlackSession in RUN_SESSIONS."""
+    """Top-level @Shellack run: creates a SlackSession in RUN_SESSIONS."""
     import importlib
     import bot_unified
     importlib.reload(bot_unified)

@@ -23,7 +23,7 @@ What actually happened.
 ## Environment
 - OS: [e.g., macOS 14.0, Ubuntu 22.04]
 - Python version: [e.g., 3.9.6]
-- SlackClaw mode: [full AI / zero-cost / hybrid]
+- Shellack mode: [full AI / zero-cost / hybrid]
 - Installation method: [setup.sh / manual]
 
 ## Logs

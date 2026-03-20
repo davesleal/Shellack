@@ -9,7 +9,12 @@ logger = logging.getLogger(__name__)
 
 class LifecycleNotifier:
     def __init__(
-        self, app, channel_id: str, thread_ts: str, project_name: str, owner_user_id: str
+        self,
+        app,
+        channel_id: str,
+        thread_ts: str,
+        project_name: str,
+        owner_user_id: str,
     ):
         self.app = app
         self.channel_id = channel_id
@@ -55,17 +60,15 @@ class LifecycleNotifier:
 
     def pending_review(self, thread_link: str = ""):
         self._post_thread("👀 Sending to #code-review...")
-        link_text = f" → {thread_link}" if thread_link else ""
-        self._post_channel(f"👀 [{self.project_name}] Peer review requested{link_text}")
 
     def done(self, summary: str, issue_number: Optional[int] = None):
         issue_text = (
             f", issue #{issue_number} closed" if issue_number is not None else ""
         )
         self._post_thread(f"✅ Done: {summary}{issue_text}")
-        self._post_channel(f"✅ [{self.project_name}] Done: {summary}{issue_text}")
 
     def needs_human(self, reason: str):
+        # Escalation: post in thread AND top-level so it's visible in the channel
         self._post_thread(f"🙋 <@{self.owner_user_id}> — {reason}")
         self._post_channel(
             f"🙋 [{self.project_name}] <@{self.owner_user_id}> — {reason}"

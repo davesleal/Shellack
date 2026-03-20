@@ -8,12 +8,12 @@ Turn Slack into a full bidirectional terminal for Claude — sessions triggered 
 
 ### Unified SessionBackend
 
-All AI calls in SlackClaw (quick `@SlackClaw` replies and `run:` sessions) route through a single `SessionBackend` abstraction. Two implementations:
+All AI calls in Shellack (quick `@Shellack` replies and `run:` sessions) route through a single `SessionBackend` abstraction. Two implementations:
 
 - **`MaxBackend`**: spawns a `claude` subprocess that stays alive for the entire session. Passes the initial prompt via stdin and reads `--output-format stream-json` from stdout. The subprocess remains running between turns — no `--continue` needed, because the process never exits until the session ends. **One subprocess per session.** Concurrent sessions each have their own isolated subprocess, eliminating any `--continue` collision risk.
 - **`APIBackend`**: uses `anthropic` SDK with `messages.stream()`. Manages conversation history list in memory on `SlackSession`. Implements tool use loop. Costs API credits per token.
 
-Backend configured via `SESSION_BACKEND=max|api` in `.env`. Switched live via `@SlackClaw set mode max|api` — no bot restart required.
+Backend configured via `SESSION_BACKEND=max|api` in `.env`. Switched live via `@Shellack set mode max|api` — no bot restart required.
 
 ### Components
 
@@ -23,7 +23,7 @@ Backend configured via `SESSION_BACKEND=max|api` in `.env`. Switched live via `@
 
 **`tools/usage_tracker.py`** — Tracks token counts and estimated cost per month. Persisted in `usage.json`. Monthly reset checked on read (compare stored `reset_month` to current month).
 
-**`tools/plugin_manager.py`** — Shells out to `claude plugin install/uninstall` and `claude mcp add/remove`. Manages SlackClaw extensions in `extensions/` with hot-reload.
+**`tools/plugin_manager.py`** — Shells out to `claude plugin install/uninstall` and `claude mcp add/remove`. Manages Shellack extensions in `extensions/` with hot-reload.
 
 **`bot_unified.py`** — Extended with: `run:` session trigger, unified `RUN_SESSIONS` dict (keyed by `thread_ts`) replacing the old `active_sessions` map, `set mode/model` commands, `usage` command, `config` command, `plugins` command, `add/remove plugin/mcp/bot-plugin` commands, typed thread reply routing to active sessions.
 
@@ -31,9 +31,9 @@ Backend configured via `SESSION_BACKEND=max|api` in `.env`. Switched live via `@
 
 ## Trigger
 
-`@SlackClaw run: <task>` in any project channel. Channel determines project context (existing `CHANNEL_ROUTING` lookup). Creates a `SlackSession` in that thread.
+`@Shellack run: <task>` in any project channel. Channel determines project context (existing `CHANNEL_ROUTING` lookup). Creates a `SlackSession` in that thread.
 
-Existing `@SlackClaw <message>` behavior (quick reply via `ProjectAgent`) is unchanged.
+Existing `@Shellack <message>` behavior (quick reply via `ProjectAgent`) is unchanged.
 
 ---
 
@@ -105,13 +105,13 @@ All persist to `.env` immediately. No bot restart required.
 
 | Command | Effect |
 |---------|--------|
-| `@SlackClaw set mode max` | Switch to Max subscription backend |
-| `@SlackClaw set mode api` | Switch to API backend |
-| `@SlackClaw set model opus` | Set model to claude-opus-4-6 (API mode) |
-| `@SlackClaw set model sonnet` | Set model to claude-sonnet-4-6 (API mode) |
-| `@SlackClaw set model haiku` | Set model to claude-haiku-4-5-20251001 (API mode) |
-| `@SlackClaw usage` | Show current month stats and estimated cost |
-| `@SlackClaw config` | Show all current settings |
+| `@Shellack set mode max` | Switch to Max subscription backend |
+| `@Shellack set mode api` | Switch to API backend |
+| `@Shellack set model opus` | Set model to claude-opus-4-6 (API mode) |
+| `@Shellack set model sonnet` | Set model to claude-sonnet-4-6 (API mode) |
+| `@Shellack set model haiku` | Set model to claude-haiku-4-5-20251001 (API mode) |
+| `@Shellack usage` | Show current month stats and estimated cost |
+| `@Shellack config` | Show all current settings |
 
 ---
 
@@ -120,20 +120,20 @@ All persist to `.env` immediately. No bot restart required.
 Three namespaces under one interface:
 
 ### Claude Code Plugins
-`@SlackClaw add plugin <name>` → shells out to `claude plugin install <name>`
-`@SlackClaw remove plugin <name>` → shells out to `claude plugin uninstall <name>`
+`@Shellack add plugin <name>` → shells out to `claude plugin install <name>`
+`@Shellack remove plugin <name>` → shells out to `claude plugin uninstall <name>`
 
 Note: `claude plugin` is the stable public CLI surface for Claude Code extensions.
 
 ### MCP Servers
-`@SlackClaw add mcp <name> <command>` → shells out to `claude mcp add <name> <command>`, updates `~/.claude/settings.json`
-`@SlackClaw remove mcp <name>` → shells out to `claude mcp remove <name>`
+`@Shellack add mcp <name> <command>` → shells out to `claude mcp add <name> <command>`, updates `~/.claude/settings.json`
+`@Shellack remove mcp <name>` → shells out to `claude mcp remove <name>`
 
-### SlackClaw Extensions
-`@SlackClaw add bot-plugin <name>` → clones from `https://github.com/SlackClaw-plugins/<name>` into `extensions/<name>/`, imports and registers the extension module immediately (hot-reload via `importlib`). For MVP, only official `SlackClaw-plugins` GitHub org is supported as the registry. Full URL override supported: `@SlackClaw add bot-plugin https://github.com/user/repo`.
-`@SlackClaw remove bot-plugin <name>` → unregisters module, deletes `extensions/<name>/`
+### Shellack Extensions
+`@Shellack add bot-plugin <name>` → clones from `https://github.com/Shellack-plugins/<name>` into `extensions/<name>/`, imports and registers the extension module immediately (hot-reload via `importlib`). For MVP, only official `Shellack-plugins` GitHub org is supported as the registry. Full URL override supported: `@Shellack add bot-plugin https://github.com/user/repo`.
+`@Shellack remove bot-plugin <name>` → unregisters module, deletes `extensions/<name>/`
 
-`@SlackClaw plugins` → lists all installed plugins, MCPs, and bot extensions with status.
+`@Shellack plugins` → lists all installed plugins, MCPs, and bot extensions with status.
 
 Plugin/MCP changes take effect on the next `run:` session. Bot extensions hot-reload immediately.
 
@@ -141,12 +141,12 @@ Plugin/MCP changes take effect on the next `run:` session. Bot extensions hot-re
 
 ## Usage Tracking
 
-`usage.json` in SlackClaw root. Updated after every session and quick reply. Monthly reset: on read, compare `reset_month` field (format: `"YYYY-MM"`) to current month — if different, zero counters and update `reset_month`. No cron required.
+`usage.json` in Shellack root. Updated after every session and quick reply. Monthly reset: on read, compare `reset_month` field (format: `"YYYY-MM"`) to current month — if different, zero counters and update `reset_month`. No cron required.
 
 Tracked fields:
 - `reset_month` — `"YYYY-MM"` of last reset
 - `session_count` — number of `run:` sessions
-- `mention_count` — number of quick `@SlackClaw` replies
+- `mention_count` — number of quick `@Shellack` replies
 - `tokens_in` / `tokens_out` — API mode only
 - `estimated_cost` — API mode only, calculated from model pricing
 - `mode` — max or api
@@ -174,6 +174,6 @@ Onboarding flow (`ONBOARDING_COMPLETE` flag), `set mode/model` commands, `usage`
 - Backend process crash → `❌ Session ended unexpectedly` posted in thread, session removed from `RUN_SESSIONS`
 - Slack API error during output post → retry once, then log and continue (don't crash session)
 - MCP/plugin install failure → error message posted ephemerally to the triggering user only
-- Typed reply with no active session → falls back to normal `@SlackClaw` behavior silently
+- Typed reply with no active session → falls back to normal `@Shellack` behavior silently
 - `set mode max` with no `claude` CLI found → ephemeral error: "claude CLI not found. Install Claude Code first."
 - `add bot-plugin` from unknown org → ephemeral error with instructions to use full GitHub URL

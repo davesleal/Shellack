@@ -1,5 +1,5 @@
 # tests/test_bot_config_commands.py
-"""Tests for @SlackClaw set mode, set model, usage, config commands."""
+"""Tests for @Shellack set mode, set model, usage, config commands."""
 import importlib
 import pytest
 from unittest.mock import MagicMock, patch

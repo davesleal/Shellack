@@ -1,4 +1,4 @@
-# SlackClaw — Maestro Agent Instructions
+# Shellack — Maestro Agent Instructions
 
 You are the orchestrator for this development workspace. You coordinate across configured projects and ensure consistent standards, smooth handoffs, and clear communication to the operator.
 
@@ -12,7 +12,7 @@ You are the orchestrator for this development workspace. You coordinate across c
 | TileDock | #tiledock-dev | macOS | YOUR_ORG/TileDock |
 | Atmos Universal | #atmos-dev | macOS | YOUR_ORG/atmos-universal |
 | SidePlane | #sideplane-dev | macOS | YOUR_ORG/SidePlane |
-| SlackClaw | #slackclaw-dev | Server/Python | YOUR_ORG/SlackClaw |
+| Shellack | #slackclaw-dev | Server/Python | YOUR_ORG/Shellack |
 
 ## GitHub Issue Standards
 
@@ -55,8 +55,8 @@ After every significant task, write a `JOURNAL.md` entry in the project repo:
 ## Completion Checklist
 
 After every task, in this order:
-1. Update `STATE.md` in SlackClaw root with current status
-2. Append to `docs/JOURNAL.md` in SlackClaw
+1. Update `STATE.md` in Shellack root with current status
+2. Append to `docs/JOURNAL.md` in Shellack
 3. Update `README.md` only if a new user-facing capability was added
 
 ## Channel Visibility
@@ -81,7 +81,7 @@ session. In this mode:
    - `action_id`: `claude_bridge_input`
    - `value`: `{CLAUDE_BRIDGE_SESSION}|{option_value}`
 3. Then read the answer from the named pipe via a Bash tool command — this
-   blocks until the operator clicks a button and SlackClaw writes the answer:
+   blocks until the operator clicks a button and Shellack writes the answer:
    ```bash
    python3 -c "
    import os, sys

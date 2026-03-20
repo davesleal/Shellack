@@ -55,7 +55,7 @@ That's it! Skip to [Step 2](#step-2-get-claude-api-key).
 
 1. Go to https://api.slack.com/apps
 2. Click "Create New App" → "From scratch"
-3. Name: "SlackClaw"
+3. Name: "Shellack"
 4. Select your workspace
 
 #### 1.2 Configure OAuth & Permissions
@@ -147,7 +147,7 @@ chmod 600 ~/.appstoreconnect/AuthKey_*.p8
 ### 4.1 Install Dependencies
 
 ```bash
-cd ~/Repos/SlackClaw
+cd ~/Repos/Shellack
 pip install -r requirements.txt
 ```
 
@@ -272,10 +272,10 @@ Create `~/Library/LaunchAgents/com.your-org.claude-bot.plist`:
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/python3</string>
-        <string>~/Repos/SlackClaw/bot_enhanced.py</string>
+        <string>~/Repos/Shellack/bot_enhanced.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>~/Repos/SlackClaw</string>
+    <string>~/Repos/Shellack</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
@@ -300,7 +300,7 @@ launchctl load ~/Library/LaunchAgents/com.your-org.claude-bot.plist
 tmux new -s claude-bot
 
 # Run bot
-cd ~/Repos/SlackClaw
+cd ~/Repos/Shellack
 python bot_enhanced.py
 
 # Detach: Ctrl+B, then D
@@ -524,7 +524,7 @@ buttons on any device, instead of switching to the terminal.
 ### Install
 
 ```bash
-cd ~/Repos/SlackClaw
+cd ~/Repos/Shellack
 chmod +x claude-slack
 ln -sf "$(pwd)/claude-slack" /usr/local/bin/claude-slack
 ```
@@ -555,7 +555,7 @@ plan's Task 2 if this hasn't been done yet.
 ### Smoke test
 
 ```bash
-# From SlackClaw repo root:
+# From Shellack repo root:
 claude-slack --version
 # Expected: 🟢 session-start appears in the project channel, script exits cleanly.
 ```

@@ -1,4 +1,4 @@
-# SlackClaw 🦞
+# Shellack 🦞
 
 > A Claude-powered Slack bot for multi-project development automation
 
@@ -7,7 +7,7 @@
 [![Slack Bolt](https://img.shields.io/badge/Slack-Bolt-4A154B?logo=slack)](https://slack.dev/bolt-python/)
 [![Claude](https://img.shields.io/badge/Claude-AI-5B4CFF)](https://www.anthropic.com/)
 
-SlackClaw connects your Slack workspace to Claude AI, giving each project channel its own intelligent agent. Ask questions, start full coding sessions, manage plugins, and track usage — all from Slack.
+Shellack connects your Slack workspace to Claude AI, giving each project channel its own intelligent agent. Ask questions, start full coding sessions, manage plugins, and track usage — all from Slack.
 
 ---
 
@@ -15,8 +15,8 @@ SlackClaw connects your Slack workspace to Claude AI, giving each project channe
 
 | Capability | Description |
 |---|---|
-| 💬 **Quick chat** | `@SlackClaw <question>` — project-aware answers with thread context |
-| 🖥️ **Full sessions** | `@SlackClaw run: <task>` — interactive Claude Code session in a thread |
+| 💬 **Quick chat** | `@Shellack <question>` — project-aware answers with thread context |
+| 🖥️ **Full sessions** | `@Shellack run: <task>` — interactive Claude Code session in a thread |
 | 🎨 **Canvas output** | Code blocks route to a Slack Canvas instead of flooding the thread |
 | 🤖 **Project agents** | Each channel gets a dedicated agent loaded with `CLAUDE.md` context |
 | 🐛 **GitHub issues** | Bugs and crashes auto-open issues with correct labels |
@@ -32,8 +32,8 @@ SlackClaw connects your Slack workspace to Claude AI, giving each project channe
 ## 🚀 Quick start
 
 ```bash
-git clone https://github.com/YOUR_ORG/SlackClaw.git
-cd SlackClaw
+git clone https://github.com/YOUR_ORG/Shellack.git
+cd Shellack
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
@@ -106,28 +106,28 @@ PROJECTS = {
 
 ## 💡 Usage
 
-### Quick chat — `@SlackClaw <question>`
+### Quick chat — `@Shellack <question>`
 
 Ask anything about the project in its channel. The bot uses the project's `CLAUDE.md` as context and maintains conversation history per thread.
 
 ```
-@SlackClaw what does the NetworkClient class do?
-@SlackClaw why might login fail on iOS 17?
-@SlackClaw show me recent commits touching the auth flow
+@Shellack what does the NetworkClient class do?
+@Shellack why might login fail on iOS 17?
+@Shellack show me recent commits touching the auth flow
 ```
 
 The `:claude:` emoji appears on your message while the bot is thinking, and disappears when it replies.
 
 ---
 
-### Full session — `@SlackClaw run: <task>`
+### Full session — `@Shellack run: <task>`
 
 Starts an interactive Claude Code session in the thread. Claude can read files, write code, run tests, and commit — just like the CLI. Output is streamed back to Slack in real time; code blocks go to a session Canvas.
 
 ```
-@SlackClaw run: fix the crash in LoginView
-@SlackClaw run: add unit tests for the cart total calculation
-@SlackClaw run: refactor NetworkClient to use async/await
+@Shellack run: fix the crash in LoginView
+@Shellack run: add unit tests for the cart total calculation
+@Shellack run: refactor NetworkClient to use async/await
 ```
 
 Continue the session by replying in the thread (no `@mention` needed). Stop it with `stop` or `cancel`.
@@ -142,13 +142,13 @@ These work in any channel, any context:
 
 | Command | Effect |
 |---|---|
-| `@SlackClaw set mode max` | Switch to Claude Max subscription (zero API cost) |
-| `@SlackClaw set mode api` | Switch to Anthropic API |
-| `@SlackClaw set model opus` | Use claude-opus-4-6 |
-| `@SlackClaw set model sonnet` | Use claude-sonnet-4-6 (default) |
-| `@SlackClaw set model haiku` | Use claude-haiku-4-5 |
-| `@SlackClaw config` | Show current mode, model, and onboarding status |
-| `@SlackClaw usage` | Show this month's session and mention counts |
+| `@Shellack set mode max` | Switch to Claude Max subscription (zero API cost) |
+| `@Shellack set mode api` | Switch to Anthropic API |
+| `@Shellack set model opus` | Use claude-opus-4-6 |
+| `@Shellack set model sonnet` | Use claude-sonnet-4-6 (default) |
+| `@Shellack set model haiku` | Use claude-haiku-4-5 |
+| `@Shellack config` | Show current mode, model, and onboarding status |
+| `@Shellack usage` | Show this month's session and mention counts |
 
 Mode and model changes take effect immediately — no restart required.
 
@@ -158,13 +158,13 @@ Mode and model changes take effect immediately — no restart required.
 
 | Command | Effect |
 |---|---|
-| `@SlackClaw plugins` | List all installed Claude plugins, MCP servers, and bot extensions |
-| `@SlackClaw add plugin <name>` | Install a Claude Code plugin |
-| `@SlackClaw remove plugin <name>` | Uninstall a Claude Code plugin |
-| `@SlackClaw add mcp <name> <command>` | Register an MCP server |
-| `@SlackClaw remove mcp <name>` | Remove an MCP server |
-| `@SlackClaw add bot-plugin <git-url>` | Install and hot-reload a bot extension |
-| `@SlackClaw remove bot-plugin <name>` | Uninstall a bot extension |
+| `@Shellack plugins` | List all installed Claude plugins, MCP servers, and bot extensions |
+| `@Shellack add plugin <name>` | Install a Claude Code plugin |
+| `@Shellack remove plugin <name>` | Uninstall a Claude Code plugin |
+| `@Shellack add mcp <name> <command>` | Register an MCP server |
+| `@Shellack remove mcp <name>` | Remove an MCP server |
+| `@Shellack add bot-plugin <git-url>` | Install and hot-reload a bot extension |
+| `@Shellack remove bot-plugin <name>` | Uninstall a bot extension |
 
 ---
 
@@ -217,7 +217,7 @@ Both modes route through the same backend — switching affects quick replies an
 ## 🗂️ Project structure
 
 ```
-SlackClaw/
+Shellack/
 ├── bot_unified.py          # Main bot — entry point
 ├── orchestrator_config.py  # Project registry & channel routing
 ├── orchestrator.py         # Cross-project operations
@@ -255,8 +255,8 @@ SlackClaw/
 ## 📮 Support
 
 - 📚 [Setup guide](./SETUP_GUIDE.md)
-- 🐛 [Report issues](https://github.com/YOUR_ORG/SlackClaw/issues)
-- 💬 [Discussions](https://github.com/YOUR_ORG/SlackClaw/discussions)
+- 🐛 [Report issues](https://github.com/YOUR_ORG/Shellack/issues)
+- 💬 [Discussions](https://github.com/YOUR_ORG/Shellack/discussions)
 
 ---
 

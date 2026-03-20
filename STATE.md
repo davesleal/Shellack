@@ -1,4 +1,4 @@
-# SlackClaw Current State
+# Shellack Current State
 **Last Updated:** 2026-03-18
 **Status:** Production-ready, specialized agents active
 
@@ -6,12 +6,12 @@
 
 ## 🟢 What's Running
 
-### SlackClaw Bot
-**Location:** `~/Repos/SlackClaw`
+### Shellack Bot
+**Location:** `~/Repos/Shellack`
 **Status:** Should be running (check with `ps aux | grep bot_unified`)
 **Start Command:**
 ```bash
-cd ~/Repos/SlackClaw
+cd ~/Repos/Shellack
 source venv/bin/activate
 python bot_unified.py
 ```
@@ -29,12 +29,12 @@ python bot_unified.py
 #tiledock-dev    → TileDock project agent
 #atmos-dev       → Atmos Universal project agent
 #sideplane-dev   → SidePlane project agent
-#slackclaw-dev   → SlackClaw project agent
+#slackclaw-dev   → Shellack project agent
 #slackclaw-central → Orchestrator (cross-project ops)
 #code-review     → Peer review system
 ```
 
-**Bot Status:** Invited to channels, needs to be mentioned with `@SlackClaw`
+**Bot Status:** Invited to channels, needs to be mentioned with `@Shellack`
 
 ---
 
@@ -52,11 +52,11 @@ python bot_unified.py
 | TileDock | ~/Applications/MacDock | com.your-org.MacDock | tiledock-dev | macOS |
 | Atmos | ~/Applications/atmos-universal | None | atmos-dev | macOS |
 | SidePlane | ~/Applications/Mac2Vision | com.your-org.sideplane | sideplane-dev | macOS |
-| SlackClaw | ~/Repos/SlackClaw | N/A | slackclaw-dev | Server |
+| Shellack | ~/Repos/Shellack | N/A | slackclaw-dev | Server |
 
 ### Credentials
 **File:** `.env` (gitignored)
-**Location:** `~/Repos/SlackClaw/.env`
+**Location:** `~/Repos/Shellack/.env`
 
 **Contains:**
 - `SLACK_BOT_TOKEN` - Bot token (rotated)
@@ -81,7 +81,7 @@ python bot_unified.py
 
 **Test Command:**
 ```bash
-cd ~/Repos/SlackClaw
+cd ~/Repos/Shellack
 source venv/bin/activate
 python3 -c "
 from anthropic import Anthropic
@@ -108,7 +108,7 @@ except Exception as e:
 ### 2. Claude OAuth (NON-BLOCKING)
 **Problem:** Official Claude Slack app OAuth redirect URI error
 **Status:** Likely temporary Anthropic issue
-**Impact:** Doesn't affect SlackClaw operation
+**Impact:** Doesn't affect Shellack operation
 **Action:** Wait or contact Anthropic support
 
 ---
@@ -191,16 +191,16 @@ except Exception as e:
 
 **1. Update Slack Channel Topics**
 - Use descriptions from `docs/PROJECT_DESCRIPTIONS.md`
-- Gives context to Claude, SlackClaw, and GitHub
+- Gives context to Claude, Shellack, and GitHub
 - Format: `Project Name • Tech • Link • Bundle ID`
 
-**2. Test SlackClaw in Channels**
+**2. Test Shellack in Channels**
 ```
 In #dayist-dev:
-@SlackClaw what files are in Views/Settings?
+@Shellack what files are in Views/Settings?
 
 In #slackclaw-central:
-@SlackClaw search all: deprecated API
+@Shellack search all: deprecated API
 ```
 
 **3. Live End-to-End Test**
@@ -228,7 +228,7 @@ Slack Workspace (your organization)
 │  ├─ GitHub integration (read repos)
 │  └─ Conversation intelligence
 │
-├─ SlackClaw Bot (Python)
+├─ Shellack Bot (Python)
 │  ├─ Channel routing
 │  ├─ Project Agents (7 projects)
 │  ├─ Orchestrator (#slackclaw-central)
@@ -251,9 +251,9 @@ Slack Workspace (your organization)
 
 ## 📂 Key Files
 
-### SlackClaw Repository
+### Shellack Repository
 ```
-~/Repos/SlackClaw/
+~/Repos/Shellack/
 ├── bot_unified.py              # Main bot (run this)
 ├── orchestrator_config.py      # Project registry
 ├── orchestrator.py             # Cross-project ops
@@ -278,14 +278,14 @@ Slack Workspace (your organization)
 
 ## 🚀 How to Resume
 
-### 1. Check if SlackClaw is Running
+### 1. Check if Shellack is Running
 ```bash
 ps aux | grep bot_unified
 ```
 
 If not running:
 ```bash
-cd ~/Repos/SlackClaw
+cd ~/Repos/Shellack
 source venv/bin/activate
 python bot_unified.py
 ```
@@ -296,37 +296,37 @@ python bot_unified.py
 # Should be working by now (credits synced)
 ```
 
-### 3. Test SlackClaw
+### 3. Test Shellack
 Go to any project channel in Slack:
 ```
-@SlackClaw help
+@Shellack help
 ```
 
 Should get a response with project context.
 
 ### 4. Continue with Synergy
 - Read `docs/JOURNAL.md` for context
-- Implement Claude → SlackClaw delegation
+- Implement Claude → Shellack delegation
 - Set up journal automation
 
 ---
 
 ## 💡 Quick Reference
 
-### Restart SlackClaw
+### Restart Shellack
 ```bash
 # Find and kill if running
 pkill -f bot_unified
 
 # Start fresh
-cd ~/Repos/SlackClaw
+cd ~/Repos/Shellack
 source venv/bin/activate
 python bot_unified.py
 ```
 
 ### Check Logs
 ```bash
-# SlackClaw prints to stdout
+# Shellack prints to stdout
 # Watch for errors or API issues
 ```
 
@@ -340,7 +340,7 @@ Edit `slack-app-manifest.yml` → reapply in Slack app settings
 
 ## 🎭 The Multi-Agent Vision
 
-**Goal:** Claude (orchestrator) + SlackClaw (executor) + GitHub (version control)
+**Goal:** Claude (orchestrator) + Shellack (executor) + GitHub (version control)
 
 **Benefits:**
 - Token efficiency (Claude delegates heavy lifting)
@@ -362,11 +362,11 @@ Edit `slack-app-manifest.yml` → reapply in Slack app settings
 
 **Slack Issues:**
 - Workspace: your organization's Slack workspace
-- Bot: @SlackClaw
+- Bot: @Shellack
 - App settings: https://api.slack.com/apps
 
 **GitHub:**
-- Repository: https://github.com/YOUR_ORG/SlackClaw
+- Repository: https://github.com/YOUR_ORG/Shellack
 - Issues: Track bugs/features there
 
 ---
@@ -396,7 +396,7 @@ Edit `slack-app-manifest.yml` → reapply in Slack app settings
 - `orchestrator_config.py` — all CHANNEL_ROUTING entries now have `channel_id` (5 real IDs populated)
 - `SETUP_GUIDE.md` — Step 8 added with install and smoke-test instructions
 - 48 tests passing (was 28; +20 new bridge tests)
-- Symlink: `/usr/local/bin/claude-slack → ~/Repos/SlackClaw/claude-slack`
+- Symlink: `/usr/local/bin/claude-slack → ~/Repos/Shellack/claude-slack`
 
 **What to do next session:**
 1. Live end-to-end test: run `claude-slack` from a project repo, confirm session-start in Slack, post Block Kit prompt, click button, verify answer reaches Claude

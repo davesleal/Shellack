@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SlackClaw Orchestrator - Multi-project coordinator
+Shellack Orchestrator - Multi-project coordinator
 Handles cross-project operations and governance
 """
 

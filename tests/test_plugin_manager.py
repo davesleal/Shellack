@@ -136,7 +136,7 @@ class TestRemoveMcp:
 
 
 # ===========================================================================
-# Bot-plugin (SlackClaw extension) tests
+# Bot-plugin (Shellack extension) tests
 # ===========================================================================
 
 class TestAddBotPlugin:
@@ -150,7 +150,7 @@ class TestAddBotPlugin:
         clone_call = mock_run.call_args_list[0]
         assert clone_call[0][0] == [
             "git", "clone",
-            "https://github.com/SlackClaw-plugins/hello",
+            "https://github.com/Shellack-plugins/hello",
             str(tmp_path / "hello"),
         ]
 

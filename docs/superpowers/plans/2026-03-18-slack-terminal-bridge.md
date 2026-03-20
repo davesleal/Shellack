@@ -4,7 +4,7 @@
 
 **Goal:** Build a named-pipe bridge so Dave can respond to Claude Code prompts via Slack Block Kit buttons on any device, instead of switching to the terminal.
 
-**Architecture:** A `claude-slack` wrapper script creates a named pipe and a session file, then launches `claude` with the pipe as stdin. When Claude needs input, it posts a Block Kit message via Slack MCP; Dave clicks a button; the SlackClaw Bolt handler writes the answer to the pipe. Sessions are identified by UUID so concurrent sessions never cross-contaminate.
+**Architecture:** A `claude-slack` wrapper script creates a named pipe and a session file, then launches `claude` with the pipe as stdin. When Claude needs input, it posts a Block Kit message via Slack MCP; Dave clicks a button; the Shellack Bolt handler writes the answer to the pipe. Sessions are identified by UUID so concurrent sessions never cross-contaminate.
 
 **Tech Stack:** Python 3.9+, Slack Bolt, `requests`, `fcntl`, `os` named pipes (POSIX), pytest + unittest.mock.
 
@@ -105,9 +105,9 @@ def test_format_confirm_button_values():
 
 FAKE_PROJECTS = {
     "slackclaw": {
-        "name": "SlackClaw",
+        "name": "Shellack",
         "primary_channel": "slackclaw-dev",
-        "github_repo": "davesleal/SlackClaw",
+        "github_repo": "davesleal/Shellack",
     }
 }
 
@@ -122,12 +122,12 @@ FAKE_ROUTING_MISSING = {
 
 def test_detect_known_repo_returns_channel_id():
     from tools.slack_bridge import detect_channel_id
-    with patch("subprocess.check_output", return_value=b"git@github.com:davesleal/SlackClaw.git"), \
+    with patch("subprocess.check_output", return_value=b"git@github.com:davesleal/Shellack.git"), \
          patch("tools.slack_bridge.PROJECTS", FAKE_PROJECTS), \
          patch("tools.slack_bridge.CHANNEL_ROUTING", FAKE_ROUTING_OK):
         channel_id, project_name = detect_channel_id()
     assert channel_id == "C_SC"
-    assert project_name == "SlackClaw"
+    assert project_name == "Shellack"
 
 
 def test_detect_unknown_repo_falls_back():
@@ -142,12 +142,12 @@ def test_detect_unknown_repo_falls_back():
 
 def test_detect_missing_channel_id_falls_back_with_warning(capsys):
     from tools.slack_bridge import detect_channel_id
-    with patch("subprocess.check_output", return_value=b"git@github.com:davesleal/SlackClaw.git"), \
+    with patch("subprocess.check_output", return_value=b"git@github.com:davesleal/Shellack.git"), \
          patch("tools.slack_bridge.PROJECTS", FAKE_PROJECTS), \
          patch("tools.slack_bridge.CHANNEL_ROUTING", FAKE_ROUTING_MISSING):
         channel_id, project_name = detect_channel_id()
     assert channel_id == "C0AMEEP7EFL"
-    assert project_name == "SlackClaw"
+    assert project_name == "Shellack"
     captured = capsys.readouterr()
     assert "WARNING" in captured.err
 
@@ -173,7 +173,7 @@ def test_post_session_start_success():
     from tools.slack_bridge import post_session_start
     import os
     with patch.dict(os.environ, {"SLACK_BOT_TOKEN": "xoxb-test"}):
-        post_session_start("C_SC", "SlackClaw")  # must not raise
+        post_session_start("C_SC", "Shellack")  # must not raise
 
 
 @responses.activate
@@ -185,14 +185,14 @@ def test_post_session_start_logs_warning_on_slack_error(caplog):
     import os
     with patch.dict(os.environ, {"SLACK_BOT_TOKEN": "xoxb-test"}):
         with caplog.at_level(logging.WARNING):
-            post_session_start("CBAD", "SlackClaw")
+            post_session_start("CBAD", "Shellack")
     assert "channel_not_found" in caplog.text
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/daveleal/Repos/SlackClaw && source venv/bin/activate
+cd /Users/daveleal/Repos/Shellack && source venv/bin/activate
 pip install responses  # if not already installed
 pytest tests/test_slack_bridge.py -v 2>&1 | head -30
 ```
@@ -205,7 +205,7 @@ Create `tools/slack_bridge.py`:
 
 ```python
 """
-SlackClaw — Slack↔Terminal Bridge utilities
+Shellack — Slack↔Terminal Bridge utilities
 
 Provides Block Kit formatting for interactive Claude Code input prompts,
 project channel detection, and session-start notification.
@@ -835,7 +835,7 @@ No unit tests for the script itself — the underlying utilities (`detect_channe
 
 - [ ] **Step 1: Create `claude-slack`**
 
-Create `/Users/daveleal/Repos/SlackClaw/claude-slack`:
+Create `/Users/daveleal/Repos/Shellack/claude-slack`:
 
 ```python
 #!/usr/bin/env python3
@@ -858,8 +858,8 @@ import subprocess
 import sys
 import uuid
 
-# Add SlackClaw repo to path so orchestrator_config and tools are importable
-sys.path.insert(0, "/Users/daveleal/Repos/SlackClaw")
+# Add Shellack repo to path so orchestrator_config and tools are importable
+sys.path.insert(0, "/Users/daveleal/Repos/Shellack")
 
 from tools.slack_bridge import detect_channel_id, post_session_start
 
@@ -958,7 +958,7 @@ sys.exit(proc_handle.returncode)
 - [ ] **Step 2: Make it executable**
 
 ```bash
-chmod +x /Users/daveleal/Repos/SlackClaw/claude-slack
+chmod +x /Users/daveleal/Repos/Shellack/claude-slack
 ```
 
 - [ ] **Step 3: Symlink to `/usr/local/bin`**
@@ -986,7 +986,7 @@ git commit -m "feat: add claude-slack wrapper script for Slack terminal bridge"
 In a terminal, from a project directory with a configured `channel_id`:
 
 ```bash
-CLAUDE_BRIDGE_TEST=1 /Users/daveleal/Repos/SlackClaw/claude-slack --version 2>&1 | head -5
+CLAUDE_BRIDGE_TEST=1 /Users/daveleal/Repos/Shellack/claude-slack --version 2>&1 | head -5
 ls /tmp/claude_bridge/
 ```
 
@@ -1004,7 +1004,7 @@ Expected: `[claude-slack] WARNING` NOT printed (unknown repo falls back silently
 
 - [ ] **Step 3: Smoke test — end-to-end button click**
 
-1. From `/Users/daveleal/Repos/SlackClaw`, run `claude-slack`
+1. From `/Users/daveleal/Repos/Shellack`, run `claude-slack`
 2. In a Claude session, run: `echo $CLAUDE_BRIDGE_SESSION`
 3. Confirm non-empty UUID is printed
 4. Use Slack MCP to post a Block Kit message with `format_bridge_blocks`
@@ -1024,7 +1024,7 @@ buttons on any device, instead of switching to the terminal.
 ### Install
 
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd /Users/daveleal/Repos/Shellack
 chmod +x claude-slack
 ln -sf "$(pwd)/claude-slack" /usr/local/bin/claude-slack
 ```
@@ -1055,7 +1055,7 @@ implementation plan if this hasn't been done yet.
 ### Smoke test
 
 ```bash
-# From SlackClaw repo root:
+# From Shellack repo root:
 claude-slack --version
 # Expected: 🟢 session-start appears in #slackclaw-dev, script exits cleanly.
 ```
@@ -1082,7 +1082,7 @@ git commit -m "docs: add claude-slack bridge installation and smoke test steps t
 
 After all tasks complete, verify:
 
-- [ ] `claude-slack` in SlackClaw repo posts session-start to `#slackclaw-dev`
+- [ ] `claude-slack` in Shellack repo posts session-start to `#slackclaw-dev`
 - [ ] `claude-slack` outside any known repo falls back to `#claude-code` silently
 - [ ] Block Kit message appears with correct buttons when `format_bridge_blocks` is called
 - [ ] Clicking a button feeds the answer to Claude's stdin

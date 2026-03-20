@@ -1,11 +1,11 @@
-# Contributing to SlackClaw 🦞
+# Contributing to Shellack 🦞
 
-Thanks for your interest in contributing! This document provides guidelines for contributing to SlackClaw.
+Thanks for your interest in contributing! This document provides guidelines for contributing to Shellack.
 
 ## 🚀 Quick Start
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/SlackClaw.git`
+2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/Shellack.git`
 3. Create a branch: `git checkout -b feature/amazing-feature`
 4. Make your changes
 5. Test thoroughly
@@ -51,8 +51,8 @@ Open an issue with:
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/SlackClaw.git
-cd SlackClaw
+git clone https://github.com/YOUR_USERNAME/Shellack.git
+cd Shellack
 
 # Create virtual environment
 python3 -m venv venv
@@ -193,8 +193,8 @@ Looking for contribution ideas? Check issues tagged with:
 
 ## 💬 Community
 
-- [Discussions](https://github.com/YOUR_ORG/SlackClaw/discussions) - Questions and ideas
-- [Issues](https://github.com/YOUR_ORG/SlackClaw/issues) - Bug reports and feature requests
+- [Discussions](https://github.com/YOUR_ORG/Shellack/discussions) - Questions and ideas
+- [Issues](https://github.com/YOUR_ORG/Shellack/issues) - Bug reports and feature requests
 
 ## 📜 License
 
@@ -202,4 +202,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ## 🙏 Thank You!
 
-Every contribution helps make SlackClaw better for everyone. Thank you for being part of the community! 🎉
+Every contribution helps make Shellack better for everyone. Thank you for being part of the community! 🎉

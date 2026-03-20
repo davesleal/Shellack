@@ -123,7 +123,7 @@ def test_format_usage_message_max_mode(tmp_path, monkeypatch):
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd /Users/daveleal/Repos/Shellack
 source venv/bin/activate
 pytest tests/test_usage_tracker.py -v 2>&1 | head -15
 ```
@@ -135,9 +135,9 @@ Expected: `ModuleNotFoundError` — `usage_tracker` doesn't exist yet.
 ```python
 # tools/usage_tracker.py
 """
-UsageTracker — tracks SlackClaw session/mention counts and API token usage.
+UsageTracker — tracks Shellack session/mention counts and API token usage.
 
-Persists to usage.json in the SlackClaw root. Monthly reset: on every read,
+Persists to usage.json in the Shellack root. Monthly reset: on every read,
 compare the stored reset_month to the current month — if different, zero all
 counters and update reset_month. No cron required.
 """
@@ -230,7 +230,7 @@ class UsageTracker:
             return self._load()
 
     def format_usage_message(self) -> str:
-        """Return a formatted Slack message string for @SlackClaw usage.
+        """Return a formatted Slack message string for @Shellack usage.
 
         Mode and model are read from os.environ (live values) so the display
         always reflects current config, even right after a monthly reset.
@@ -246,7 +246,7 @@ class UsageTracker:
             month_label = month
 
         lines = [
-            f"🦞 *SlackClaw — Usage ({month_label})*",
+            f"🦞 *Shellack — Usage ({month_label})*",
             f"Mode: {'Claude Max' if mode == 'max' else 'Anthropic API'}",
         ]
         if mode == "api":
@@ -389,7 +389,7 @@ Expected: all 3 tests pass.
 
 ```python
 # tests/test_bot_config_commands.py
-"""Tests for @SlackClaw set mode, set model, usage, config commands."""
+"""Tests for @Shellack set mode, set model, usage, config commands."""
 import importlib
 import pytest
 from unittest.mock import MagicMock, patch
@@ -503,7 +503,7 @@ def _handle_config_command(clean_text: str, say, thread_ts: str) -> bool:
             set_env_var("SESSION_BACKEND", mode)
             say(text=f"✅ Mode set to `{mode}`. No restart required.", thread_ts=thread_ts)
         else:
-            say(text="Usage: `@SlackClaw set mode max|api`", thread_ts=thread_ts)
+            say(text="Usage: `@Shellack set mode max|api`", thread_ts=thread_ts)
         return True
 
     # set model opus|sonnet|haiku
@@ -519,7 +519,7 @@ def _handle_config_command(clean_text: str, say, thread_ts: str) -> bool:
             set_env_var("SESSION_MODEL", model)
             say(text=f"✅ Model set to `{model}`.", thread_ts=thread_ts)
         else:
-            say(text="Usage: `@SlackClaw set model opus|sonnet|haiku`", thread_ts=thread_ts)
+            say(text="Usage: `@Shellack set model opus|sonnet|haiku`", thread_ts=thread_ts)
         return True
 
     # usage
@@ -533,7 +533,7 @@ def _handle_config_command(clean_text: str, say, thread_ts: str) -> bool:
         model = os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
         onboarding = os.environ.get("ONBOARDING_COMPLETE", "false")
         lines = [
-            "🦞 *SlackClaw — Config*",
+            "🦞 *Shellack — Config*",
             f"Backend: `{mode}`",
             f"Model: `{model}`",
             f"Onboarding: {'complete ✓' if onboarding == 'true' else 'pending'}",
@@ -700,7 +700,7 @@ def check_and_post_onboarding() -> None:
             "text": {
                 "type": "mrkdwn",
                 "text": (
-                    "👋 *Welcome to SlackClaw!* Let's get you set up.\n\n"
+                    "👋 *Welcome to Shellack!* Let's get you set up.\n\n"
                     "How would you like to power AI sessions?"
                 ),
             },
@@ -727,7 +727,7 @@ def check_and_post_onboarding() -> None:
     try:
         app.client.chat_postMessage(
             channel=channel_id,
-            text="👋 Welcome to SlackClaw! Choose your AI backend.",
+            text="👋 Welcome to Shellack! Choose your AI backend.",
             blocks=blocks,
         )
         print("📋 Onboarding message posted to #slackclaw-dev")
@@ -748,7 +748,7 @@ def handle_onboarding_mode_select(ack, body, action, client):
         set_env_var("ONBOARDING_COMPLETE", "true")
         text = (
             "✅ *Mode set to Claude Max.* All AI calls will use your Max subscription.\n\n"
-            "Change anytime: `@SlackClaw set mode api`"
+            "Change anytime: `@Shellack set mode api`"
         )
         if channel and message_ts:
             client.chat_update(channel=channel, ts=message_ts, text=text, blocks=[
@@ -808,7 +808,7 @@ def handle_onboarding_model_select(ack, body, action, client):
     set_env_var("ONBOARDING_COMPLETE", "true")
     text = (
         f"✅ *Model set to `{model}`.* Ready to go!\n\n"
-        "Change anytime: `@SlackClaw set model opus|sonnet|haiku`"
+        "Change anytime: `@Shellack set model opus|sonnet|haiku`"
     )
     if channel and message_ts:
         client.chat_update(channel=channel, ts=message_ts, text=text, blocks=[

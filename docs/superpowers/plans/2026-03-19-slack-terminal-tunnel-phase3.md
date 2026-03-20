@@ -8,7 +8,7 @@
 
 ## Goal
 
-Add plugin management commands to SlackClaw so Dave can install, remove, and list Claude Code plugins, MCP servers, and SlackClaw bot extensions — all from Slack, without touching a terminal.
+Add plugin management commands to Shellack so Dave can install, remove, and list Claude Code plugins, MCP servers, and Shellack bot extensions — all from Slack, without touching a terminal.
 
 ---
 
@@ -18,7 +18,7 @@ Three plugin namespaces under one unified interface:
 
 1. **Claude Code Plugins** — thin wrappers around `claude plugin install/uninstall`
 2. **MCP Servers** — thin wrappers around `claude mcp add/remove`
-3. **SlackClaw Bot Extensions** — git-clone from GitHub into `extensions/<name>/`, hot-reload via `importlib`
+3. **Shellack Bot Extensions** — git-clone from GitHub into `extensions/<name>/`, hot-reload via `importlib`
 
 All shell operations use `subprocess.run([...], capture_output=True, text=True, timeout=60)` — never `shell=True`. Bot extensions are tracked in a module-level `_bot_extensions: dict` registry in `bot_unified.py`. Error messages are sent ephemerally to the triggering user only.
 
@@ -196,7 +196,7 @@ class TestRemoveMcp:
 
 
 # ===========================================================================
-# Bot-plugin (SlackClaw extension) tests
+# Bot-plugin (Shellack extension) tests
 # ===========================================================================
 
 class TestAddBotPlugin:
@@ -210,7 +210,7 @@ class TestAddBotPlugin:
         clone_call = mock_run.call_args_list[0]
         assert clone_call[0][0] == [
             "git", "clone",
-            "https://github.com/SlackClaw-plugins/hello",
+            "https://github.com/Shellack-plugins/hello",
             str(tmp_path / "hello"),
         ]
 
@@ -334,7 +334,7 @@ class TestListAll:
 ### 1.2 Run tests — expect all failures
 
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd /Users/daveleal/Repos/Shellack
 python -m pytest tests/test_plugin_manager.py -v 2>&1 | head -40
 # Expected: ImportError or collection errors — tools/plugin_manager.py does not exist yet
 ```
@@ -346,12 +346,12 @@ python -m pytest tests/test_plugin_manager.py -v 2>&1 | head -40
 ```python
 # tools/plugin_manager.py
 """
-PluginManager — manages three plugin namespaces for SlackClaw.
+PluginManager — manages three plugin namespaces for Shellack.
 
 Namespaces:
   1. Claude Code Plugins  — claude plugin install/uninstall
   2. MCP Servers          — claude mcp add/remove
-  3. SlackClaw Extensions — git clone into extensions/, importlib hot-reload
+  3. Shellack Extensions — git clone into extensions/, importlib hot-reload
 """
 from __future__ import annotations
 
@@ -369,7 +369,7 @@ _DEFAULT_EXTENSIONS_DIR = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "extensions"
 )
 _DEFAULT_CLAUDE_SETTINGS = os.path.expanduser("~/.claude/settings.json")
-_OFFICIAL_ORG = "https://github.com/SlackClaw-plugins"
+_OFFICIAL_ORG = "https://github.com/Shellack-plugins"
 
 
 class PluginManager:
@@ -431,7 +431,7 @@ class PluginManager:
         return self._run(["claude", "mcp", "remove", name])
 
     # -----------------------------------------------------------------------
-    # SlackClaw Bot Extensions
+    # Shellack Bot Extensions
     # -----------------------------------------------------------------------
 
     def add_bot_plugin(
@@ -443,7 +443,7 @@ class PluginManager:
         Clone a bot extension and hot-reload it via importlib.
 
         name_or_url:
-          - bare name  → clones from https://github.com/SlackClaw-plugins/<name>
+          - bare name  → clones from https://github.com/Shellack-plugins/<name>
           - https://…  → clones from provided URL verbatim
 
         registry: module-level _bot_extensions dict from bot_unified (pass-by-ref).
@@ -559,7 +559,7 @@ class PluginManager:
 ### 1.4 Run tests — expect all green
 
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd /Users/daveleal/Repos/Shellack
 python -m pytest tests/test_plugin_manager.py -v
 # Expected: all tests pass
 ```
@@ -567,7 +567,7 @@ python -m pytest tests/test_plugin_manager.py -v
 ### 1.5 Commit
 
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd /Users/daveleal/Repos/Shellack
 git add tools/plugin_manager.py tests/test_plugin_manager.py
 git commit -m "feat: add PluginManager for plugins, MCPs, and bot extensions (Phase 3 Task 1)"
 ```
@@ -586,13 +586,13 @@ git commit -m "feat: add PluginManager for plugins, MCPs, and bot extensions (Ph
 Integration tests for plugin commands wired into bot_unified.handle_mention.
 
 Commands under test:
-  @SlackClaw add plugin <name>
-  @SlackClaw remove plugin <name>
-  @SlackClaw add mcp <name> <command>
-  @SlackClaw remove mcp <name>
-  @SlackClaw add bot-plugin <name>
-  @SlackClaw remove bot-plugin <name>
-  @SlackClaw plugins
+  @Shellack add plugin <name>
+  @Shellack remove plugin <name>
+  @Shellack add mcp <name> <command>
+  @Shellack remove mcp <name>
+  @Shellack add bot-plugin <name>
+  @Shellack remove bot-plugin <name>
+  @Shellack plugins
 """
 import importlib
 import pytest
@@ -860,7 +860,7 @@ class TestPluginsList:
 ### 2.2 Run tests — expect all failures
 
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd /Users/daveleal/Repos/Shellack
 python -m pytest tests/test_bot_plugin_commands.py -v 2>&1 | head -50
 # Expected: AttributeError — bot_unified has no plugin_manager, _bot_extensions,
 #           or _handle_plugin_command yet
@@ -931,7 +931,7 @@ def _handle_plugin_command(
 
         # Bot Extensions
         bots = result["bot_plugins"]
-        lines.append("\n*SlackClaw Extensions*")
+        lines.append("\n*Shellack Extensions*")
         lines.append("\n".join(f"  • {b}" for b in bots) if bots else "  _none_")
 
         say(text="\n".join(lines), thread_ts=thread_ts)
@@ -944,7 +944,7 @@ def _handle_plugin_command(
         name = clean_text[11:].strip()
         if not name:
             say(
-                text="Usage: `@SlackClaw add plugin <name>`",
+                text="Usage: `@Shellack add plugin <name>`",
                 thread_ts=thread_ts,
             )
             return True
@@ -962,7 +962,7 @@ def _handle_plugin_command(
         name = clean_text[14:].strip()
         if not name:
             say(
-                text="Usage: `@SlackClaw remove plugin <name>`",
+                text="Usage: `@Shellack remove plugin <name>`",
                 thread_ts=thread_ts,
             )
             return True
@@ -981,7 +981,7 @@ def _handle_plugin_command(
         parts = remainder.split(None, 1)
         if len(parts) < 2:
             say(
-                text="Usage: `@SlackClaw add mcp <name> <command>`",
+                text="Usage: `@Shellack add mcp <name> <command>`",
                 thread_ts=thread_ts,
             )
             return True
@@ -1003,7 +1003,7 @@ def _handle_plugin_command(
         name = clean_text[11:].strip()
         if not name:
             say(
-                text="Usage: `@SlackClaw remove mcp <name>`",
+                text="Usage: `@Shellack remove mcp <name>`",
                 thread_ts=thread_ts,
             )
             return True
@@ -1021,7 +1021,7 @@ def _handle_plugin_command(
         name_or_url = clean_text[15:].strip()
         if not name_or_url:
             say(
-                text="Usage: `@SlackClaw add bot-plugin <name>` or `@SlackClaw add bot-plugin <https://github.com/user/repo>`",
+                text="Usage: `@Shellack add bot-plugin <name>` or `@Shellack add bot-plugin <https://github.com/user/repo>`",
                 thread_ts=thread_ts,
             )
             return True
@@ -1045,7 +1045,7 @@ def _handle_plugin_command(
         name = clean_text[18:].strip()
         if not name:
             say(
-                text="Usage: `@SlackClaw remove bot-plugin <name>`",
+                text="Usage: `@Shellack remove bot-plugin <name>`",
                 thread_ts=thread_ts,
             )
             return True
@@ -1082,7 +1082,7 @@ Note: `user_id` is extracted from `event.get("user", "")`. This line must appear
 ### 2.4 Run tests — expect all green
 
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd /Users/daveleal/Repos/Shellack
 python -m pytest tests/test_bot_plugin_commands.py -v
 # Expected: all tests pass
 
@@ -1094,7 +1094,7 @@ python -m pytest tests/ -v
 ### 2.5 Commit
 
 ```bash
-cd /Users/daveleal/Repos/SlackClaw
+cd /Users/daveleal/Repos/Shellack
 git add bot_unified.py tests/test_bot_plugin_commands.py
 git commit -m "feat: wire plugin commands into bot_unified (Phase 3 Task 2)"
 ```
@@ -1122,6 +1122,6 @@ Before marking Phase 3 complete:
 - [ ] `python -m pytest tests/test_plugin_manager.py -v` — all pass
 - [ ] `python -m pytest tests/test_bot_plugin_commands.py -v` — all pass
 - [ ] `python -m pytest tests/ -v` — no regressions in Phases 1 & 2 tests
-- [ ] Manual smoke test: `@SlackClaw plugins` in #slackclaw-dev posts a well-formatted list
-- [ ] Manual smoke test: `@SlackClaw add plugin bad-name` posts ephemeral error (not visible to channel)
+- [ ] Manual smoke test: `@Shellack plugins` in #slackclaw-dev posts a well-formatted list
+- [ ] Manual smoke test: `@Shellack add plugin bad-name` posts ephemeral error (not visible to channel)
 - [ ] `extensions/` directory is in `.gitignore` (bot-plugin clones are runtime state, not source)

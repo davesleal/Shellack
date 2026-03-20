@@ -7,7 +7,7 @@
 
 ## Overview
 
-Upgrade SlackClaw's per-project agents from generic Claude wrappers into fully specialized, context-aware agents with lifecycle tracking, GitHub integration, staged peer review, and per-project journaling. Each agent knows its project deeply, manages its own work lifecycle, and hands off to the review pool before posting "Done."
+Upgrade Shellack's per-project agents from generic Claude wrappers into fully specialized, context-aware agents with lifecycle tracking, GitHub integration, staged peer review, and per-project journaling. Each agent knows its project deeply, manages its own work lifecycle, and hands off to the review pool before posting "Done."
 
 ---
 
@@ -18,7 +18,7 @@ Upgrade SlackClaw's per-project agents from generic Claude wrappers into fully s
 - Bugs and crashes auto-create GitHub issues in the correct repo; issue is closed on task completion
 - After completing any task that produced a code change or GitHub issue, agents trigger staged peer review in `#code-review`
 - Each project maintains a narrative `JOURNAL.md` for blog-post-ready progress tracking
-- On completion: `STATE.md`, `docs/JOURNAL.md` (SlackClaw), and README (if new capability added) are updated
+- On completion: `STATE.md`, `docs/JOURNAL.md` (Shellack), and README (if new capability added) are updated
 
 ---
 
@@ -87,11 +87,11 @@ General/question tasks (no keyword match) → main agent, no GitHub issue, no jo
 
 **Stage 2 (async, immediately after Stage 1):**
 - Maestro identifies agents with tech overlap (same `platform` or `language` from `orchestrator_config.py`)
-- Posts a message to `#code-review` @mentioning the SlackClaw bot with a routing prefix indicating which project agent should respond (e.g., `[dayist-review] @SlackClaw please review...`). The existing channel-based dispatch in `bot_unified.py` picks this up and routes to the correct project agent.
+- Posts a message to `#code-review` @mentioning the Shellack bot with a routing prefix indicating which project agent should respond (e.g., `[dayist-review] @Shellack please review...`). The existing channel-based dispatch in `bot_unified.py` picks this up and routes to the correct project agent.
 - Tags up to 2 relevant project agents this way
 - No timeout — Stage 2 is best-effort
 
-**Note on "tagging an agent":** Project agents are not separate Slack users — they are all the same SlackClaw bot. Stage 2 works by posting a prefixed message in `#code-review` that the bot's dispatcher recognises and routes to the correct `ProjectAgent` instance.
+**Note on "tagging an agent":** Project agents are not separate Slack users — they are all the same Shellack bot. Stage 2 works by posting a prefixed message in `#code-review` that the bot's dispatcher recognises and routes to the correct `ProjectAgent` instance.
 
 **Escalation:**
 - Stage 1 blocking finding → `🙋 @Dave` in `#code-review` thread
@@ -229,7 +229,7 @@ Add `github_repo` to each project entry:
 "tiledock":     {"github_repo": "davesleal/TileDock", ...},
 "atmosuniversal": {"github_repo": "davesleal/atmos-universal", ...},
 "sideplane":    {"github_repo": "davesleal/SidePlane", ...},
-"slackclaw":    {"github_repo": "davesleal/SlackClaw", ...},
+"slackclaw":    {"github_repo": "davesleal/Shellack", ...},
 ```
 
 #### `agents/project_agent.py`
@@ -252,10 +252,10 @@ Pass `app`, `channel_id`, `thread_ts` when calling `agent_factory.get_agent()`.
 
 ### New Config
 
-#### `SlackClaw/CLAUDE.md` (Maestro instructions)
+#### `Shellack/CLAUDE.md` (Maestro instructions)
 
 Contents to be written covering:
-- **Role:** Orchestrator across all Leal Labs projects — Dayist, NOVA, Nudge, TileDock, Atmos, SidePlane, SlackClaw
+- **Role:** Orchestrator across all Leal Labs projects — Dayist, NOVA, Nudge, TileDock, Atmos, SidePlane, Shellack
 - **Channel routing:** which channel maps to which project and agent
 - **GitHub standards:** issue title format `[Type] Brief description`, label taxonomy, severity (crash = P0, bug = P1, feature = P2)
 - **Escalation rules:** when to tag @Dave (blocking peer review finding, ambiguous scope, security issue, task failure)
@@ -330,4 +330,4 @@ None (general)         → no issue created              # triggers peer review 
 - [ ] `@Dave` tagged in project thread when blocked; in `#code-review` when review is blocking
 - [ ] Project `JOURNAL.md` gets a narrative entry after significant work (code change or issue created)
 - [ ] `STATE.md` and `docs/JOURNAL.md` updated on every task completion
-- [ ] `SlackClaw/CLAUDE.md` written with full maestro coordination protocol
+- [ ] `Shellack/CLAUDE.md` written with full maestro coordination protocol
