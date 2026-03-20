@@ -36,7 +36,14 @@ def test_project_message_records_mention():
     import bot_unified
     importlib.reload(bot_unified)
 
+    mock_app = MagicMock()
+    mock_app.client.reactions_add = MagicMock()
+    mock_app.client.chat_postMessage = MagicMock(return_value={"ts": "101.0"})
+    mock_app.client.chat_delete = MagicMock()
+    mock_app.client.reactions_remove = MagicMock()
+
     with patch("bot_unified.agent_factory") as mock_factory, \
+         patch("bot_unified.app", mock_app), \
          patch.object(bot_unified.usage_tracker, "record_mention") as mock_record, \
          patch.dict("os.environ", {"SESSION_BACKEND": "api", "SESSION_MODEL": "claude-sonnet-4-6"}):
         mock_factory.get_agent.return_value.handle.return_value = ("done", "DayistAgent")
