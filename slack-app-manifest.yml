@@ -1,7 +1,6 @@
 display_information:
   name: Shellack
   description: Bridge Slack with Claude AI for autonomous development workflows
-  background_color: "#5B4CFF"
   long_description: "Shellack integrates Claude AI with your Slack workspace to provide natural conversations about your codebase, autonomous bug investigations, and automated App Store Connect monitoring. Features: thread-based sessions, autonomous agents, App Store Connect integration, and zero-cost monitoring mode."
 
 features:
