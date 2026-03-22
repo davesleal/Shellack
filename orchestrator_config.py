@@ -48,7 +48,7 @@ PROJECTS = {
     "slackclaw": {
         "name": "Shellack",
         "path": os.environ.get(
-            "SLACKCLAW_PROJECT_PATH", os.path.expanduser("~/Repos/Shellack")
+            "SLACKCLAW_PROJECT_PATH", os.path.expanduser("~/Repos/SlackClaw")
         ),
         "bundle_id": None,
         "primary_channel": "slackclaw-dev",
@@ -70,7 +70,7 @@ PROJECTS = {
     "atmosuniversal": {
         "name": "Atmos Universal",
         "path": os.environ.get(
-            "ATMOS_PROJECT_PATH", os.path.expanduser("~/Repos/atmos-universal")
+            "ATMOS_PROJECT_PATH", os.path.expanduser("~/Repos/Atmos")
         ),
         "bundle_id": os.environ.get("ATMOS_BUNDLE_ID", None),
         "primary_channel": "atmos-dev",
