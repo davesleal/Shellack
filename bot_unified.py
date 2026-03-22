@@ -158,7 +158,7 @@ def handle_project_message(event, say, channel_name: str):
 
     # 1. React :claude: on the user's message — visible immediately
     try:
-        app.client.reactions_add(channel=channel_id, name="claude", timestamp=msg_ts)
+        app.client.reactions_add(channel=channel_id, name="eyes", timestamp=msg_ts)
     except Exception:
         pass
 
@@ -193,7 +193,7 @@ def handle_project_message(event, say, channel_name: str):
             RUN_SESSIONS.pop(thread_ts, None)
             usage_tracker.record_session(_mode, _model)
             try:
-                app.client.reactions_remove(channel=_channel, name="claude", timestamp=_msg_ts)
+                app.client.reactions_remove(channel=_channel, name="eyes", timestamp=_msg_ts)
             except Exception:
                 pass
 
@@ -231,7 +231,7 @@ def handle_project_message(event, say, channel_name: str):
         )
         try:
             app.client.reactions_remove(
-                channel=channel_id, name="claude", timestamp=msg_ts
+                channel=channel_id, name="eyes", timestamp=msg_ts
             )
         except Exception:
             pass
@@ -249,7 +249,7 @@ def handle_project_message(event, say, channel_name: str):
 
     # 10. Remove :claude: reaction — we're done
     try:
-        app.client.reactions_remove(channel=channel_id, name="claude", timestamp=msg_ts)
+        app.client.reactions_remove(channel=channel_id, name="eyes", timestamp=msg_ts)
     except Exception:
         pass
 
@@ -629,7 +629,7 @@ def handle_mention(event, say):
         system_prompt = (system_prompt or "") + _SLACK_CONVERSATIONAL_PROMPT
 
         try:
-            app.client.reactions_add(channel=channel_id, name="claude", timestamp=ts)
+            app.client.reactions_add(channel=channel_id, name="eyes", timestamp=ts)
         except Exception:
             pass
 
@@ -644,7 +644,7 @@ def handle_mention(event, say):
             RUN_SESSIONS.pop(_ts, None)
             try:
                 app.client.reactions_remove(
-                    channel=_channel, name="claude", timestamp=_msg_ts
+                    channel=_channel, name="eyes", timestamp=_msg_ts
                 )
             except Exception:
                 pass

@@ -68,7 +68,7 @@ PROJECTS = {
         "github_repo": f"{_GITHUB_ORG}/TileDock",
     },
     "atmosuniversal": {
-        "name": "Atmos Universal",
+        "name": "Atmos",
         "path": os.environ.get(
             "ATMOS_PROJECT_PATH", os.path.expanduser("~/Repos/Atmos")
         ),
