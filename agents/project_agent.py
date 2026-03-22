@@ -13,6 +13,7 @@ from tools.github_client import GitHubClient
 from tools.lifecycle import LifecycleNotifier
 from tools.journal_writer import JournalWriter
 from tools.session_backend import quick_reply
+from tools.self_improver import reflect_and_update
 from .sub_agents import (
     detect_sub_agent,
     CrashInvestigatorAgent,
@@ -345,6 +346,17 @@ class ProjectAgent:
 
         # Strip tool call XML before any further processing or posting
         response = _clean_response(response)
+
+        # Reflect on any block and update CLAUDE.md autonomously
+        rule = reflect_and_update(
+            prompt=prompt,
+            response=response,
+            project_path=self.project.get("path", "."),
+        )
+        if rule:
+            self._lifecycle._post_thread(
+                f"📝 Learned something — updated CLAUDE.md:\n_{rule}_"
+            )
 
         # Determine if this is a significant task
         code_changed = self._is_code_changing(sub_agent_class, response)
