@@ -38,6 +38,7 @@ from tools.slack_session import SlackSession
 from tools.usage_tracker import UsageTracker
 from tools.config_writer import set_env_var
 from tools.plugin_manager import PluginManager
+from tools.thinking_indicator import ThinkingIndicator
 
 # Load environment
 load_dotenv()
@@ -162,24 +163,22 @@ def handle_project_message(event, say, channel_name: str):
     except Exception:
         pass
 
-    # 2. Post acknowledgment in thread so the user sees we got their message
-    try:
-        ack = app.client.chat_postMessage(
-            channel=channel_id,
-            thread_ts=thread_ts,
-            text="_On it..._",
-        )
-        ack_ts = ack["ts"]
-    except Exception:
-        ack_ts = None
+    # 2. Estimate input token count for the indicator (prompt + prior context)
+    ctx_chars = sum(len(m.get("content", "")) for m in context)
+    estimated_tokens = (len(prompt) + ctx_chars) // 3
 
-    # 3. Run the agent
+    # 3. Start animated thinking indicator (posts clay-colored message, cycles verbs)
+    indicator = ThinkingIndicator(app.client, channel_id, thread_ts)
+    indicator.start(input_tokens=estimated_tokens)
+
+    # 4. Run the agent
     try:
         agent = agent_factory.get_agent(
             project_key, project, app, channel_id, thread_ts
         )
         response, agent_label = agent.handle(prompt, context)
     except Exception as exc:
+        indicator.done()
         app.client.chat_postMessage(
             channel=channel_id, thread_ts=thread_ts, text=f"❌ Error: {exc}"
         )
@@ -193,34 +192,13 @@ def handle_project_message(event, say, channel_name: str):
 
     active_sessions[thread_ts].append({"role": "assistant", "content": response})
 
-    # 4. Split reasoning from answer
-    thinking = None
-    answer = response
-    if response.startswith("Thinking: "):
-        parts = response.split("\n\n", 1)
-        thinking = parts[0][len("Thinking: ") :].strip()
-        answer = parts[1].strip() if len(parts) > 1 else ""
-
-    header = f"🤖 *{agent_label}*\n" if agent_label != project["name"] else ""
-
-    # 5. Update the ack message with reasoning log (if any), else delete it
-    if ack_ts:
-        try:
-            if thinking:
-                app.client.chat_update(
-                    channel=channel_id,
-                    ts=ack_ts,
-                    text=f"_🤔 {thinking}_",
-                )
-            else:
-                # Remove the placeholder ack — answer comes next
-                app.client.chat_delete(channel=channel_id, ts=ack_ts)
-        except Exception:
-            pass
+    # 5. Stop indicator — replaces clay message with gray "✻ Churned for Xm Ys"
+    indicator.done()
 
     # 6. Post the actual answer (with canvas routing for large/code content)
-    if answer:
-        _post_smart(channel_id, thread_ts, f"{header}{answer}")
+    header = f"🤖 *{agent_label}*\n" if agent_label != project["name"] else ""
+    if response:
+        _post_smart(channel_id, thread_ts, f"{header}{response}")
 
     # 7. Remove :claude: reaction — we're done
     try:

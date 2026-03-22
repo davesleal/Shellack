@@ -44,8 +44,10 @@ def test_project_message_records_mention():
 
     with patch("bot_unified.agent_factory") as mock_factory, \
          patch("bot_unified.app", mock_app), \
+         patch("bot_unified.ThinkingIndicator") as mock_indicator_cls, \
          patch.object(bot_unified.usage_tracker, "record_mention") as mock_record, \
          patch.dict("os.environ", {"SESSION_BACKEND": "api", "SESSION_MODEL": "claude-sonnet-4-6"}):
+        mock_indicator_cls.return_value = MagicMock()
         mock_factory.get_agent.return_value.handle.return_value = ("done", "DayistAgent")
         event = {"text": "hello", "channel": "C123", "ts": "100.0"}
         bot_unified.handle_project_message(event, say=MagicMock(), channel_name="dayist-dev")
