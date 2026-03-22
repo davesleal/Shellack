@@ -88,3 +88,15 @@ def test_handle_does_not_trigger_review_for_read_only_response(tmp_path):
         ):
             agent.handle("show me a code example", [])
     mock_review.assert_not_called()
+
+
+def test_handle_passes_model_to_quick_reply(tmp_path):
+    """handle() with model kwarg forwards it to quick_reply."""
+    agent, app, client = make_agent(tmp_path)
+
+    with patch(QUICK_REPLY_PATH, return_value="Here is the answer") as mock_quick_reply:
+        agent.handle("explain the architecture", [], model="claude-haiku-4-5-20251001")
+
+    mock_quick_reply.assert_called_once()
+    _, kwargs = mock_quick_reply.call_args
+    assert kwargs.get("model") == "claude-haiku-4-5-20251001"

@@ -195,7 +195,12 @@ class MaxBackend(SessionBackend):
         self._session_id = None
 
 
-def quick_reply(prompt: str, system_prompt: str = "", cwd: str = ".") -> str:
+def quick_reply(
+    prompt: str,
+    system_prompt: str = "",
+    cwd: str = ".",
+    model: str | None = None,  # overrides SESSION_MODEL env var; ignored in max mode
+) -> str:
     """Single-turn AI call routed through the configured backend.
 
     Reads SESSION_BACKEND and SESSION_MODEL from os.environ so the caller
@@ -209,8 +214,8 @@ def quick_reply(prompt: str, system_prompt: str = "", cwd: str = ".") -> str:
     if backend_mode == "max" and MaxBackend.available():
         backend: SessionBackend = MaxBackend()
     else:
-        model = os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
-        backend = APIBackend(model=model)
+        resolved_model = model or os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
+        backend = APIBackend(model=resolved_model)
 
     try:
         chunks = list(backend.first_turn(prompt, system_prompt=system_prompt, cwd=cwd))

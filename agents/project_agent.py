@@ -286,7 +286,12 @@ class ProjectAgent:
         }
         return mapping.get(sub_agent_class, None)
 
-    def handle(self, prompt: str, thread_context: list = None) -> tuple[str, str]:
+    def handle(
+        self,
+        prompt: str,
+        thread_context: list = None,
+        model: str | None = None,  # triage-selected model; None = use SESSION_MODEL
+    ) -> tuple[str, str]:
         self._opened_issue_number = None  # reset per-call state
         sub_agent_class = detect_sub_agent(prompt)
         task_type = (
@@ -332,6 +337,7 @@ class ProjectAgent:
                     full_prompt,
                     system_prompt=self._system_prompt,
                     cwd=self.project.get("path", "."),
+                    model=model,
                 )
         except Exception as e:
             self._lifecycle.failed(str(e))

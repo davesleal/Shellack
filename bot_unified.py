@@ -38,6 +38,7 @@ from tools.slack_session import SlackSession
 from tools.usage_tracker import UsageTracker
 from tools.config_writer import set_env_var
 from tools.plugin_manager import PluginManager
+from tools.triage import classify, TriageResult
 
 # Load environment
 load_dotenv()
@@ -149,12 +150,10 @@ def handle_project_message(event, say, channel_name: str):
     # Remove bot mention
     prompt = text.split(">", 1)[1].strip() if ">" in text else text
 
-    # Initialise session context
+    # Initialise session context (do NOT append yet — complex path skips this)
     if thread_ts not in active_sessions:
         active_sessions[thread_ts] = []
-
     context = list(active_sessions[thread_ts])
-    active_sessions[thread_ts].append({"role": "user", "content": prompt})
 
     # 1. React :claude: on the user's message — visible immediately
     try:
@@ -173,12 +172,69 @@ def handle_project_message(event, say, channel_name: str):
     except Exception:
         ack_ts = None
 
-    # 3. Run the agent
+    # 3. Triage — runs only in api mode and when not explicitly disabled
+    backend_mode = os.environ.get("SESSION_BACKEND", "api")
+    triage_enabled = os.environ.get("TRIAGE_ENABLED", "true").lower() != "false"
+
+    if backend_mode == "api" and triage_enabled:
+        triage_result = classify(prompt, project_key)
+    else:
+        triage_result = None  # max mode or disabled: no triage
+
+    # 4. Complex path — start a SlackSession (streaming, multi-turn)
+    if triage_result is not None and triage_result.tier == "complex":
+        # Delete ack before streaming begins (failure is acceptable — streaming output follows)
+        if ack_ts:
+            try:
+                app.client.chat_delete(channel=channel_id, ts=ack_ts)
+            except Exception:
+                pass
+
+        # SlackSession manages its own history — remove any stale active_sessions entry
+        active_sessions.pop(thread_ts, None)
+
+        # Derive system_prompt and cwd from project config
+        cwd = project.get("path", ".")
+        system_prompt = f"You are a senior developer working on {project['name']}."
+
+        triaged_model = triage_result.model
+
+        def _triage_on_close(
+            _mode=backend_mode,
+            _model=triaged_model,
+            _channel=channel_id,
+            _msg_ts=msg_ts,
+        ):
+            RUN_SESSIONS.pop(thread_ts, None)
+            usage_tracker.record_session(_mode, _model)
+            try:
+                app.client.reactions_remove(channel=_channel, name="claude", timestamp=_msg_ts)
+            except Exception:
+                pass
+
+        session = SlackSession(
+            thread_ts=thread_ts,
+            channel_id=channel_id,
+            client=app.client,
+            backend=APIBackend(model=triaged_model),
+            on_close=_triage_on_close,
+        )
+        RUN_SESSIONS[thread_ts] = session
+        session.start(prompt, system_prompt, cwd)
+        return
+
+    # 5. Single-turn path — append user turn now
+    active_sessions[thread_ts].append({"role": "user", "content": prompt})
+
+    # triaged_model is None in max mode or when triage is disabled
+    triaged_model = triage_result.model if triage_result is not None else None
+
+    # 6. Run the agent
     try:
         agent = agent_factory.get_agent(
             project_key, project, app, channel_id, thread_ts
         )
-        response, agent_label = agent.handle(prompt, context)
+        response, agent_label = agent.handle(prompt, context, model=triaged_model)
     except Exception as exc:
         app.client.chat_postMessage(
             channel=channel_id, thread_ts=thread_ts, text=f"❌ Error: {exc}"
@@ -193,7 +249,7 @@ def handle_project_message(event, say, channel_name: str):
 
     active_sessions[thread_ts].append({"role": "assistant", "content": response})
 
-    # 4. Split reasoning from answer
+    # 7. Split reasoning from answer
     thinking = None
     answer = response
     if response.startswith("Thinking: "):
@@ -203,7 +259,7 @@ def handle_project_message(event, say, channel_name: str):
 
     header = f"🤖 *{agent_label}*\n" if agent_label != project["name"] else ""
 
-    # 5. Update the ack message with reasoning log (if any), else delete it
+    # 8. Update the ack message with reasoning log (if any), else delete it
     if ack_ts:
         try:
             if thinking:
@@ -218,20 +274,18 @@ def handle_project_message(event, say, channel_name: str):
         except Exception:
             pass
 
-    # 6. Post the actual answer (with canvas routing for large/code content)
+    # 9. Post the actual answer (with canvas routing for large/code content)
     if answer:
         _post_smart(channel_id, thread_ts, f"{header}{answer}")
 
-    # 7. Remove :claude: reaction — we're done
+    # 10. Remove :claude: reaction — we're done
     try:
         app.client.reactions_remove(channel=channel_id, name="claude", timestamp=msg_ts)
     except Exception:
         pass
 
-    usage_tracker.record_mention(
-        os.environ.get("SESSION_BACKEND", "api"),
-        os.environ.get("SESSION_MODEL", "claude-sonnet-4-6"),
-    )
+    actual_model = triaged_model or os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
+    usage_tracker.record_mention(backend_mode, actual_model)
 
 
 # ============================================================================
@@ -512,15 +566,30 @@ def _handle_config_command(clean_text: str, say, thread_ts: str) -> bool:
         say(text=usage_tracker.format_usage_message(), thread_ts=thread_ts)
         return True
 
+    # set triage on|off
+    if lower.startswith("set triage "):
+        state = lower[11:].strip()
+        if state == "on":
+            set_env_var("TRIAGE_ENABLED", "true")
+            say(text="✅ Triage enabled. Requests will be auto-routed to haiku/sonnet.", thread_ts=thread_ts)
+        elif state == "off":
+            set_env_var("TRIAGE_ENABLED", "false")
+            say(text="✅ Triage disabled. All requests use SESSION_MODEL.", thread_ts=thread_ts)
+        else:
+            say(text="Usage: `@Shellack set triage on|off`", thread_ts=thread_ts)
+        return True
+
     # config
     if lower == "config":
         mode = os.environ.get("SESSION_BACKEND", "api")
         model = os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
         onboarding = os.environ.get("ONBOARDING_COMPLETE", "false")
+        triage_enabled = os.environ.get("TRIAGE_ENABLED", "true").lower() != "false"
         lines = [
             "🦞 *Shellack — Config*",
             f"Backend: `{mode}`",
             f"Model: `{model}`",
+            f"Triage: {'on ✓' if triage_enabled else 'off'} (api mode only)",
             f"Onboarding: {'complete ✓' if onboarding == 'true' else 'pending'}",
         ]
         say(text="\n".join(lines), thread_ts=thread_ts)
