@@ -1,5 +1,6 @@
 # Environment and secrets
 .env
+projects.yaml
 *.p8
 *.pem
 

@@ -1,0 +1,143 @@
+# Shellack Project Configuration
+# Copy this file to projects.yaml and fill in your details:
+#   cp projects.example.yaml projects.yaml
+#
+# projects.yaml is gitignored — your project names, paths, and channel IDs
+# never leave your machine.
+
+# Your GitHub org or username — used for issue creation and repo links
+github_org: "your-org"
+
+# ─── Projects ───────────────────────────────────────────────────────────
+# Each key is a short slug used internally (e.g., "webapp", "mobile").
+# All fields except 'name' and 'primary_channel' are optional.
+projects:
+  webapp:
+    name: "Web App"                         # display name in Slack messages
+    path: "~/Repos/WebApp"                  # local checkout (overridable via WEBAPP_PROJECT_PATH env var)
+    bundle_id: ""                           # optional — App Store Connect bundle ID for review monitoring
+    language: python                        # used for coding conventions in agent prompt
+    platform: web                           # ios | macos | web | server | visionos
+    github_repo: "your-org/WebApp"          # owner/repo for issue creation
+    primary_channel: "webapp-dev"           # Slack channel name (without #)
+    context:                                # optional — enriches the agent's system prompt
+      description: "Next.js analytics dashboard"
+      purpose: "Internal tool for visualizing product metrics"
+      tech: "Next.js 15, PostgreSQL, Tailwind CSS"
+      patterns:
+        - "Server components for data fetching"
+        - "Drizzle ORM for database queries"
+      watch_out:
+        - "Don't expose raw SQL in API routes"
+        - "Always validate user input at API boundaries"
+
+  mobile:
+    name: "Mobile App"
+    path: "~/Repos/MobileApp"
+    bundle_id: "com.example.mobile"
+    language: swift
+    platform: ios
+    github_repo: "your-org/MobileApp"
+    primary_channel: "mobile-dev"
+    context:
+      description: "iOS companion app for the web dashboard"
+      purpose: "View metrics and receive push notifications on the go"
+      tech: "SwiftUI, SwiftData, CloudKit"
+      patterns:
+        - "MVVM with @Observable"
+        - "SwiftData for local persistence"
+      watch_out:
+        - "Never force-unwrap optionals from network responses"
+        - "HealthKit queries must be async — don't block main thread"
+
+# ─── Channel Routing ────────────────────────────────────────────────────
+# Maps Slack channel names to projects or special modes.
+# channel_id: find this in Slack → channel settings → copy channel ID
+channels:
+  webapp-dev:
+    project: webapp                         # must match a key in 'projects' above
+    mode: dedicated
+    channel_id: ""                          # paste your Slack channel ID here
+  mobile-dev:
+    project: mobile
+    mode: dedicated
+    channel_id: ""
+  # Orchestrator — cross-project commands (update all CLAUDE.md, sync standards, etc.)
+  central:
+    mode: orchestrator
+    access: all_projects
+    channel_id: ""
+  # Peer review — autonomous code review with specialized agents
+  code-review:
+    mode: peer_review
+    access: all_projects
+    channel_id: ""
+    review_agents: ["code-quality", "security", "performance"]
+    approval_required: true
+    auto_merge: false
+
+# ─── Global Standards ───────────────────────────────────────────────────
+# Coding conventions applied to all projects using that language.
+standards:
+  swift:
+    style_guide: "Swift API Design Guidelines"
+    conventions:
+      - "Use descriptive variable names"
+      - "Prefer composition over inheritance"
+      - "Use guard statements for early returns"
+      - "Avoid force unwrapping unless guaranteed safe"
+    required_tests: true
+    min_coverage: 80
+  python:
+    style_guide: "PEP 8"
+    conventions:
+      - "Use type hints"
+      - "Docstrings for all public functions"
+      - "Maximum line length: 100"
+      - "Use black for formatting"
+    required_tests: true
+    min_coverage: 80
+  javascript:
+    style_guide: "Airbnb JavaScript Style Guide"
+    conventions:
+      - "Use const by default, let when needed"
+      - "Prefer arrow functions for callbacks"
+      - "Use async/await over .then() chains"
+    required_tests: true
+    min_coverage: 70
+
+# ─── Orchestrator Commands ──────────────────────────────────────────────
+# Available in the orchestrator channel. Examples auto-adapt to your project names.
+orchestrator_commands:
+  update_all_claude_md:
+    description: "Update CLAUDE.md in all projects"
+    syntax: "@Shellack update all CLAUDE.md: <rule>"
+    example: "@Shellack update all CLAUDE.md: prefer async/await over callbacks"
+  sync_standards:
+    description: "Sync coding standards between projects"
+    syntax: "@Shellack sync standards from <source> to <target>"
+    example: "@Shellack sync standards from webapp to mobile"
+  global_search:
+    description: "Search across all projects"
+    syntax: "@Shellack search all: <query>"
+    example: "@Shellack search all: deprecated API usage"
+  coordinate_change:
+    description: "Make coordinated change across projects"
+    syntax: "@Shellack coordinate: <change>"
+    example: "@Shellack coordinate: update linting rules"
+
+# ─── Peer Review ────────────────────────────────────────────────────────
+peer_review:
+  reviewers:
+    code-quality:
+      focus: ["readability", "maintainability", "best_practices"]
+      blocking: true
+    security:
+      focus: ["vulnerabilities", "data_exposure", "authentication"]
+      blocking: true
+    performance:
+      focus: ["memory_leaks", "inefficient_algorithms", "n_plus_one"]
+      blocking: false    # advisory only
+  approval_threshold: 2
+  auto_merge_on_approval: false
+  required_checks: ["tests_passing", "no_merge_conflicts"]
