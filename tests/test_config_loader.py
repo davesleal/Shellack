@@ -313,3 +313,35 @@ class TestModuleLevelExports:
     def test_github_org_is_string(self):
         assert isinstance(GITHUB_ORG, str)
         assert len(GITHUB_ORG) > 0
+
+
+# ---------------------------------------------------------------------------
+# Robustness warnings
+# ---------------------------------------------------------------------------
+
+
+class TestRobustnessWarnings:
+    def test_warns_on_empty_projects_section(self, tmp_path, caplog):
+        """Config with no 'projects' key logs a warning."""
+        import logging
+        cfg_path = tmp_path / "empty.yaml"
+        cfg_path.write_text(yaml.dump({"channels": {}}))
+        with caplog.at_level(logging.WARNING, logger="orchestrator_config"):
+            result = load_config(str(cfg_path))
+        assert any("no 'projects' section" in r.message for r in caplog.records)
+        assert result["PROJECTS"] == {}
+
+    def test_warns_on_unknown_top_level_keys(self, tmp_path, caplog):
+        """Typos in top-level keys produce a warning."""
+        import logging
+        cfg_path = tmp_path / "typo.yaml"
+        cfg_path.write_text(yaml.dump({
+            "proejcts": {"alpha": {"name": "Alpha"}},
+            "channels": {},
+        }))
+        with caplog.at_level(logging.WARNING, logger="orchestrator_config"):
+            result = load_config(str(cfg_path))
+        assert any("unrecognized top-level keys" in r.message for r in caplog.records)
+        assert any("proejcts" in r.message for r in caplog.records)
+        # The typo'd key was ignored, so PROJECTS is empty
+        assert result["PROJECTS"] == {}

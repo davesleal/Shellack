@@ -14,11 +14,19 @@ Plus helper functions:
     is_orchestrator_channel, is_peer_review_channel, validate_config
 """
 
+import logging
 import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
 import yaml
+
+logger = logging.getLogger(__name__)
+
+_KNOWN_TOP_LEVEL_KEYS = {
+    "github_org", "projects", "channels", "standards",
+    "orchestrator_commands", "peer_review",
+}
 
 # ---------------------------------------------------------------------------
 # Internal loader
@@ -92,6 +100,21 @@ def load_config(path: Optional[str] = None) -> dict:
     by calling this at import time.
     """
     raw = _load_yaml(path)
+
+    # Warn on empty config
+    if not raw.get("projects"):
+        logger.warning(
+            "projects.yaml has no 'projects' section — bot will have no project agents"
+        )
+
+    # Warn on unrecognized top-level keys (likely typos)
+    unknown = set(raw.keys()) - _KNOWN_TOP_LEVEL_KEYS
+    if unknown:
+        logger.warning(
+            f"projects.yaml has unrecognized top-level keys: {unknown} — "
+            "these will be ignored (check for typos)"
+        )
+
     github_org = os.environ.get("GITHUB_ORG", raw.get("github_org", "YOUR_ORG"))
     projects = _build_projects(raw, github_org)
     channel_routing = _build_channel_routing(raw)
