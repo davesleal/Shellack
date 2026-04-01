@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Pre-commit hook: block commits containing secrets or credentials.
+# Setup: git config core.hooksPath hooks
+set -euo pipefail
+
+PATTERNS=(
+    'xoxb-[a-zA-Z0-9]'             # Slack bot token
+    'xoxp-[a-zA-Z0-9]'             # Slack user token
+    'xoxs-[a-zA-Z0-9]'             # Slack session token
+    'xoxa-[a-zA-Z0-9]'             # Slack app token
+    'sk-ant-[a-zA-Z0-9]'           # Anthropic API key
+    'sk-live[a-zA-Z0-9]'           # Stripe live key
+    'AKIA[0-9A-Z]{16}'             # AWS access key ID
+    '-----BEGIN.*PRIVATE KEY'       # Private keys
+    'AIza[0-9A-Za-z_-]{35}'        # Google API key
+    'ghp_[0-9a-zA-Z]{36}'          # GitHub personal access token
+    'ghs_[0-9a-zA-Z]{36}'          # GitHub server token
+)
+
+# Build combined regex
+COMBINED=""
+for p in "${PATTERNS[@]}"; do
+    if [ -n "$COMBINED" ]; then
+        COMBINED="$COMBINED|$p"
+    else
+        COMBINED="$p"
+    fi
+done
+
+# Get staged files (skip binary, skip excluded paths)
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
+if [ -z "$STAGED" ]; then
+    exit 0
+fi
+
+FAILED=0
+while IFS= read -r file; do
+    # Skip exclusions
+    case "$file" in
+        *.example*|hooks/pre-commit) continue ;;
+        docs/superpowers/specs/*|docs/superpowers/plans/*) continue ;;
+    esac
+
+    # Skip binary files
+    if file --brief --mime "$file" 2>/dev/null | grep -q "charset=binary"; then
+        continue
+    fi
+
+    # Scan for secrets in added/changed lines only
+    MATCHES=$(git diff --cached -U0 -- "$file" | grep -nE "^\+" | grep -E "$COMBINED" || true)
+    if [ -n "$MATCHES" ]; then
+        echo "🚨 Potential secret in: $file"
+        echo "$MATCHES"
+        echo ""
+        FAILED=1
+    fi
+done <<< "$STAGED"
+
+if [ "$FAILED" -eq 1 ]; then
+    echo "❌ Commit blocked — secrets detected in staged files."
+    echo "   If this is a false positive (e.g., documentation), use:"
+    echo "   git commit --no-verify"
+    exit 1
+fi
+
+exit 0
