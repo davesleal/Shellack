@@ -68,4 +68,19 @@ if [ "$FAILED" -eq 1 ]; then
     exit 1
 fi
 
+# Black formatting check on staged Python files
+STAGED_PY=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.py$' || true)
+if [ -n "$STAGED_PY" ]; then
+    if command -v black &>/dev/null; then
+        # shellcheck disable=SC2086
+        if ! black --check $STAGED_PY 2>&1; then
+            echo ""
+            echo "❌ Commit blocked — black formatting required."
+            echo "   Run: black $STAGED_PY"
+            echo "   Then re-stage and commit."
+            exit 1
+        fi
+    fi
+fi
+
 exit 0
