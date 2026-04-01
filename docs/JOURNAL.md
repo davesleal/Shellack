@@ -1,5 +1,17 @@
 # Shellack Project Journal
 
+## 2026-04-01 — Fixed XML leak in streaming sessions
+
+**Context:** When Shellack ran `run:` sessions via MaxBackend (Claude CLI subprocess), the streamed output sometimes contained raw `<function_calls>` XML — tool invocation markup that Claude CLI narrates in its text output. This XML leaked straight into Slack messages, breaking the user experience.
+
+**Approach:** The single-turn path already had `_clean_response()` in `project_agent.py` stripping tool XML via regex. The streaming path (`SlackSession._post_chunk`) had no such filter. Moved the `_TOOL_XML_RE` regex into `slack_session.py` as `_strip_tool_xml()`, applied it in `_post_chunk()` before `_md_to_mrkdwn()` conversion, and updated `project_agent.py` to import from the shared location instead of duplicating the pattern. Pure-XML chunks (no prose left after stripping) are silently dropped.
+
+**Outcome:** Both output paths now strip tool XML. 8 new tests covering function_calls, invoke, function_results, multiple blocks, pure-XML, normal angle brackets, tool tags, and case insensitivity. 263 tests total, zero failures.
+
+**Insights:** The fix was straightforward once you see the two paths diverge — single-turn had the filter, streaming didn't. The regex approach works because Claude CLI's tool XML uses a small set of well-known tag names (`function_calls`, `invoke`, `bash`, `read_file`, etc.) that don't collide with natural prose. The non-greedy `[\s\S]*?` match is safe here because each tag pair is self-contained and the set of tag names is closed.
+
+---
+
 ## 2026-04-01 — Genericized for Open Source
 
 **Context:** Shellack was built as a personal dev automation bot, but the architecture is general-purpose — any team could use it. The problem: project names, channel IDs, bundle IDs, and personal paths were hardcoded across 40+ files. Anyone forking would inherit someone else's project config baked into the code.

@@ -7,7 +7,6 @@ dispatches to sub-agents based on task type.
 
 import logging
 import os
-import re
 from pathlib import Path
 from tools.github_client import GitHubClient
 from tools.lifecycle import LifecycleNotifier
@@ -24,18 +23,12 @@ from .sub_agents import (
 
 logger = logging.getLogger(__name__)
 
-# Strip all XML tool call / result blocks the claude CLI may narrate in text output
-_TOOL_XML_RE = re.compile(
-    r"<(function_calls|function_results|invoke|tool_call|tool_response"
-    r"|write_file|read_file|bash|str_replace_editor|create_file|delete_file)"
-    r"[^>]*>[\s\S]*?</\1>",
-    re.IGNORECASE,
-)
+from tools.slack_session import _strip_tool_xml
 
 
 def _clean_response(text: str) -> str:
     """Strip tool call XML from claude CLI output before posting to Slack."""
-    return _TOOL_XML_RE.sub("", text).strip()
+    return _strip_tool_xml(text)
 
 
 CODE_CHANGING_AGENTS = (CrashInvestigatorAgent, TestingAgent)

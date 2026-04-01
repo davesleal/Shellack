@@ -30,6 +30,19 @@ _CODE_FENCE_RE = re.compile(r"```[\s\S]+?```")
 # Matches code blocks (multi-line) and inline code — skip these during mrkdwn conversion
 _CODE_SEGMENT_RE = re.compile(r"(```[\s\S]*?```|`[^`\n]+`)")
 
+# XML tool call / result blocks the claude CLI may narrate in text output
+_TOOL_XML_RE = re.compile(
+    r"<(function_calls|function_results|invoke|tool_call|tool_response"
+    r"|write_file|read_file|bash|str_replace_editor|create_file|delete_file)"
+    r"[^>]*>[\s\S]*?</\1>",
+    re.IGNORECASE,
+)
+
+
+def _strip_tool_xml(text: str) -> str:
+    """Remove tool call XML blocks from streaming output before posting to Slack."""
+    return _TOOL_XML_RE.sub("", text).strip()
+
 
 def _md_to_mrkdwn(text: str) -> str:
     """Convert Claude markdown to Slack mrkdwn, leaving code blocks untouched."""
@@ -201,6 +214,10 @@ class SlackSession:
     # ------------------------------------------------------------------
 
     def _post_chunk(self, text: str) -> None:
+        if not text:
+            return
+
+        text = _strip_tool_xml(text)
         if not text:
             return
 

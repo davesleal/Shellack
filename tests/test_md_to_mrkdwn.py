@@ -55,3 +55,62 @@ def test_closed_fence_not_double_closed():
     text = "```swift\nlet x = 1\n```"
     result = _md_to_mrkdwn(text)
     assert result.count("```") == 2  # exactly open + close
+
+
+# ---------------------------------------------------------------------------
+# _strip_tool_xml tests
+# ---------------------------------------------------------------------------
+
+from tools.slack_session import _strip_tool_xml
+
+
+def test_strip_function_calls_block():
+    text = 'before\n<function_calls>\n<invoke name="foo">\n</invoke>\n</function_calls>\nafter'
+    assert _strip_tool_xml(text) == "before\n\nafter"
+
+
+def test_strip_invoke_block():
+    text = 'hello\n<invoke name="bash">\n<parameter name="cmd">ls</parameter>\n</invoke>\nworld'
+    assert _strip_tool_xml(text) == "hello\n\nworld"
+
+
+def test_strip_tool_result_blocks():
+    text = "start\n<function_results>\noutput here\n</function_results>\nend"
+    assert _strip_tool_xml(text) == "start\n\nend"
+
+
+def test_strip_multiple_xml_blocks():
+    text = (
+        "intro\n"
+        "<function_calls>\n<invoke name=\"a\">\n</invoke>\n</function_calls>\n"
+        "middle\n"
+        "<function_results>\nresult\n</function_results>\n"
+        "outro"
+    )
+    result = _strip_tool_xml(text)
+    assert "intro" in result
+    assert "middle" in result
+    assert "outro" in result
+    assert "<function_calls>" not in result
+    assert "<function_results>" not in result
+
+
+def test_strip_returns_empty_for_pure_xml():
+    text = '<function_calls>\n<invoke name="bash">\n</invoke>\n</function_calls>'
+    assert _strip_tool_xml(text) == ""
+
+
+def test_strip_preserves_normal_angle_brackets():
+    text = "x < 5 and y > 3"
+    assert _strip_tool_xml(text) == "x < 5 and y > 3"
+
+
+def test_strip_handles_tool_tags():
+    """Tags like <bash>, <read_file>, etc. should also be stripped."""
+    text = "note\n<bash>ls -la</bash>\nmore text"
+    assert _strip_tool_xml(text) == "note\n\nmore text"
+
+
+def test_strip_case_insensitive():
+    text = "<Function_Calls>\nstuff\n</Function_Calls>"
+    assert _strip_tool_xml(text) == ""

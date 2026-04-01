@@ -1,6 +1,6 @@
 # Shellack Current State
 **Last Updated:** 2026-04-01
-**Status:** Production-ready, genericized for open-source — 218 tests green
+**Status:** Production-ready, genericized for open-source — 263 tests green
 
 ---
 
@@ -54,7 +54,7 @@ Loaded from `projects.yaml` at startup. Validated with `validate_config()`.
 
 ### GitHub issues closed
 - #5 (multi-language support) — done via `projects.yaml`
-- #8 (test suite) — 218 tests
+- #8 (test suite) — 263 tests
 - #11 (reverse chat) — core bot architecture
 - #12 (Slack↔terminal bridge) — implemented
 
@@ -64,13 +64,13 @@ Loaded from `projects.yaml` at startup. Validated with `validate_config()`.
 
 - [ ] `conftest.py` for fresh-clone test support (davesleal/Shellack#13)
 - [ ] `CONTRIBUTING.md` with fork setup instructions
-- [ ] `<function_calls>` XML can still leak in max-mode streaming
+- [x] `<function_calls>` XML stripped from max-mode streaming (`_strip_tool_xml` in `slack_session.py`)
 
 ---
 
 ## What's Next
 
-- [ ] Strip tool XML from SlackSession streaming chunks
+- [x] Strip tool XML from SlackSession streaming chunks
 - [ ] Dedicated agent memory: rolling cross-thread context + Haiku auto-compaction
 - [ ] Follow-ups from genericization (davesleal/Shellack#13)
 
