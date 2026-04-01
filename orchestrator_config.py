@@ -1,210 +1,141 @@
 #!/usr/bin/env python3
 """
-Shellack Orchestrator Configuration
-Multi-project coordination and peer review system
+Shellack Orchestrator Configuration — YAML Loader
+
+Loads all project configuration from projects.yaml (or the path in
+SHELLACK_CONFIG env var).  Exports the same module-level names that the
+rest of the codebase expects:
+
+    PROJECTS, CHANNEL_ROUTING, GLOBAL_STANDARDS,
+    ORCHESTRATOR_COMMANDS, PEER_REVIEW_CONFIG, GITHUB_ORG
+
+Plus helper functions:
+    get_project_for_channel, get_all_projects,
+    is_orchestrator_channel, is_peer_review_channel, validate_config
 """
 
 import os
+from pathlib import Path
 from typing import Dict, List, Optional
 
-# GitHub org/user — override with GITHUB_ORG env var
-_GITHUB_ORG = os.environ.get("GITHUB_ORG", "YOUR_ORG")
+import yaml
 
-# Project Registry
-# All projects that Shellack can access.
-# Override paths via env vars; see .env.example for all supported variables.
-PROJECTS = {
-    "dayist": {
-        "name": "Dayist",
-        "path": os.environ.get(
-            "DAYIST_PROJECT_PATH", os.path.expanduser("~/Repos/Dayist")
-        ),
-        "bundle_id": os.environ.get("DAYIST_BUNDLE_ID", ""),
-        "primary_channel": "dayist-dev",
-        "language": "swift",
-        "platform": "ios",
-        "github_repo": f"{_GITHUB_ORG}/Dayist",
-    },
-    "slackclaw": {
-        "name": "Shellack",
-        "path": os.environ.get(
-            "SLACKCLAW_PROJECT_PATH", os.path.expanduser("~/Repos/SlackClaw")
-        ),
-        "bundle_id": None,
-        "primary_channel": "slackclaw-dev",
-        "language": "python",
-        "platform": "server",
-        "github_repo": f"{_GITHUB_ORG}/Shellack",
-    },
-    "tiledock": {
-        "name": "TileDock",
-        "path": os.environ.get(
-            "TILEDOCK_PROJECT_PATH", os.path.expanduser("~/Repos/TileDock")
-        ),
-        "bundle_id": os.environ.get("TILEDOCK_BUNDLE_ID", ""),
-        "primary_channel": "tiledock-dev",
-        "language": "swift",
-        "platform": "macos",
-        "github_repo": f"{_GITHUB_ORG}/TileDock",
-    },
-    "atmosuniversal": {
-        "name": "Atmos",
-        "path": os.environ.get(
-            "ATMOS_PROJECT_PATH", os.path.expanduser("~/Repos/Atmos")
-        ),
-        "bundle_id": os.environ.get("ATMOS_BUNDLE_ID", None),
-        "primary_channel": "atmos-dev",
-        "language": "swift",
-        "platform": "macos",
-        "github_repo": f"{_GITHUB_ORG}/atmos-universal",
-    },
-    "sideplane": {
-        "name": "SidePlane",
-        "path": os.environ.get(
-            "SIDEPLANE_PROJECT_PATH", os.path.expanduser("~/Repos/SidePlane")
-        ),
-        "bundle_id": os.environ.get("SIDEPLANE_BUNDLE_ID", ""),
-        "primary_channel": "sideplane-dev",
-        "language": "swift",
-        "platform": "macos",
-        "github_repo": f"{_GITHUB_ORG}/SidePlane",
-    },
-}
+# ---------------------------------------------------------------------------
+# Internal loader
+# ---------------------------------------------------------------------------
 
-# Channel Routing
-CHANNEL_ROUTING = {
-    # iOS Project Channels
-    "dayist-dev": {
-        "project": "dayist",
-        "mode": "dedicated",
-        "channel_id": "C0AM872QM8E",
-    },
-    # macOS Project Channels
-    "tiledock-dev": {
-        "project": "tiledock",
-        "mode": "dedicated",
-        "channel_id": "C0AHTQU2CQ2",
-    },
-    "atmos-dev": {
-        "project": "atmosuniversal",
-        "mode": "dedicated",
-        "channel_id": "C0AMDU1939A",
-    },
-    "sideplane-dev": {
-        "project": "sideplane",
-        "mode": "dedicated",
-        "channel_id": "C0AM3UT7XL3",
-    },
-    # Meta
-    "slackclaw-dev": {
-        "project": "slackclaw",
-        "mode": "dedicated",
-        "channel_id": "C0AN4JQACKS",
-    },
-    # Special channels
-    "slackclaw-central": {
-        "mode": "orchestrator",
-        "access": "all_projects",
-        "channel_id": "",  # channel not yet created
-        "capabilities": [
-            "update_claude_md",
-            "set_global_rules",
-            "cross_project_search",
-            "coordinate_changes",
-            "sync_standards",
-        ],
-    },
-    "code-review": {
-        "mode": "peer_review",
-        "access": "all_projects",
-        "channel_id": "",  # channel not yet created
-        "review_agents": ["code-quality", "security", "performance"],
-        "approval_required": True,
-        "auto_merge": False,
-    },
-}
+_DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "projects.yaml")
 
-# Global Standards
-# These apply across all projects
-GLOBAL_STANDARDS = {
-    "swift": {
-        "style_guide": "Swift API Design Guidelines",
-        "conventions": [
-            "Use descriptive variable names",
-            "Prefer composition over inheritance",
-            "Use guard statements for early returns",
-            "Avoid force unwrapping unless guaranteed safe",
-        ],
-        "required_tests": True,
-        "min_coverage": 80,
-    },
-    "python": {
-        "style_guide": "PEP 8",
-        "conventions": [
-            "Use type hints",
-            "Docstrings for all public functions",
-            "Maximum line length: 100",
-            "Use black for formatting",
-        ],
-        "required_tests": True,
-        "min_coverage": 80,
-    },
-}
 
-# Orchestrator Commands
-ORCHESTRATOR_COMMANDS = {
-    "update_all_claude_md": {
-        "description": "Update CLAUDE.md in all projects",
-        "syntax": "@Shellack update all CLAUDE.md: <rule>",
-        "example": "@Shellack update all CLAUDE.md: prefer async/await over callbacks",
-    },
-    "sync_standards": {
-        "description": "Sync coding standards between projects",
-        "syntax": "@Shellack sync standards from <source> to <target>",
-        "example": "@Shellack sync standards from dayist to tiledock",
-    },
-    "global_search": {
-        "description": "Search across all projects",
-        "syntax": "@Shellack search all: <query>",
-        "example": "@Shellack search all: deprecated API usage",
-    },
-    "coordinate_change": {
-        "description": "Make coordinated change across projects",
-        "syntax": "@Shellack coordinate: <change>",
-        "example": "@Shellack coordinate: update to Swift 6 concurrency",
-    },
-}
+def _load_yaml(path: Optional[str] = None) -> dict:
+    """Load and return raw YAML config dict."""
+    config_path = path or os.environ.get("SHELLACK_CONFIG", _DEFAULT_CONFIG_PATH)
+    config_path = os.path.expanduser(str(config_path))
 
-# Peer Review Configuration
-PEER_REVIEW_CONFIG = {
-    "reviewers": {
-        "code-quality": {
-            "focus": ["readability", "maintainability", "best_practices"],
-            "blocking": True,
-        },
-        "security": {
-            "focus": ["vulnerabilities", "data_exposure", "authentication"],
-            "blocking": True,
-        },
-        "performance": {
-            "focus": ["memory_leaks", "inefficient_algorithms", "n_plus_one"],
-            "blocking": False,  # Advisory only
-        },
-    },
-    "approval_threshold": 2,  # Need 2 approvals minimum
-    "auto_merge_on_approval": False,  # Always require human confirmation
-    "required_checks": ["tests_passing", "no_merge_conflicts", "ci_passing"],
-}
+    if not os.path.isfile(config_path):
+        raise FileNotFoundError(
+            f"Shellack config not found at {config_path}. "
+            "Copy projects.example.yaml to projects.yaml and fill in your details:\n"
+            "  cp projects.example.yaml projects.yaml"
+        )
+
+    with open(config_path, "r") as f:
+        return yaml.safe_load(f) or {}
+
+
+def _build_projects(raw: dict, github_org: str) -> Dict[str, dict]:
+    """Build the PROJECTS dict from raw YAML, applying env var overrides."""
+    projects: Dict[str, dict] = {}
+    for key, proj in (raw.get("projects") or {}).items():
+        env_key = key.upper()
+
+        path = os.environ.get(
+            f"{env_key}_PROJECT_PATH",
+            proj.get("path", ""),
+        )
+        path = os.path.expanduser(path)
+
+        bundle_id_default = proj.get("bundle_id")
+        bundle_id = os.environ.get(f"{env_key}_BUNDLE_ID", bundle_id_default)
+
+        github_repo = proj.get("github_repo", f"{github_org}/{key}")
+
+        projects[key] = {
+            "name": proj.get("name", key),
+            "path": path,
+            "bundle_id": bundle_id,
+            "primary_channel": proj.get("primary_channel", ""),
+            "language": proj.get("language", ""),
+            "platform": proj.get("platform", ""),
+            "github_repo": github_repo,
+        }
+        # Carry through optional context block for agent prompts
+        if "context" in proj:
+            projects[key]["context"] = proj["context"]
+
+    return projects
+
+
+def _build_channel_routing(raw: dict) -> Dict[str, dict]:
+    """Build CHANNEL_ROUTING from raw YAML channels section."""
+    routing: Dict[str, dict] = {}
+    for name, ch in (raw.get("channels") or {}).items():
+        entry: dict = dict(ch)  # shallow copy
+        routing[name] = entry
+    return routing
+
+
+def load_config(path: Optional[str] = None) -> dict:
+    """Load config from YAML and return a dict of all top-level exports.
+
+    This is the main entry point; the module-level globals are populated
+    by calling this at import time.
+    """
+    raw = _load_yaml(path)
+    github_org = os.environ.get("GITHUB_ORG", raw.get("github_org", "YOUR_ORG"))
+    projects = _build_projects(raw, github_org)
+    channel_routing = _build_channel_routing(raw)
+    global_standards = raw.get("standards") or {}
+    orchestrator_commands = raw.get("orchestrator_commands") or {}
+    peer_review_config = raw.get("peer_review") or {}
+
+    return {
+        "GITHUB_ORG": github_org,
+        "PROJECTS": projects,
+        "CHANNEL_ROUTING": channel_routing,
+        "GLOBAL_STANDARDS": global_standards,
+        "ORCHESTRATOR_COMMANDS": orchestrator_commands,
+        "PEER_REVIEW_CONFIG": peer_review_config,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Module-level exports — populated at import time
+# ---------------------------------------------------------------------------
+
+_config = load_config()
+
+GITHUB_ORG: str = _config["GITHUB_ORG"]
+PROJECTS: Dict[str, dict] = _config["PROJECTS"]
+CHANNEL_ROUTING: Dict[str, dict] = _config["CHANNEL_ROUTING"]
+GLOBAL_STANDARDS: Dict[str, dict] = _config["GLOBAL_STANDARDS"]
+ORCHESTRATOR_COMMANDS: Dict[str, dict] = _config["ORCHESTRATOR_COMMANDS"]
+PEER_REVIEW_CONFIG: Dict[str, dict] = _config["PEER_REVIEW_CONFIG"]
+
+
+# ---------------------------------------------------------------------------
+# Helper functions — same signatures as the original hardcoded version
+# ---------------------------------------------------------------------------
 
 
 def get_project_for_channel(channel_name: str) -> Optional[Dict]:
-    """Get project configuration for a channel"""
+    """Get project configuration for a channel."""
     routing = CHANNEL_ROUTING.get(channel_name)
     if not routing:
         return None
 
-    if routing["mode"] == "dedicated":
-        project_key = routing["project"]
+    if routing.get("mode") == "dedicated":
+        project_key = routing.get("project")
         return PROJECTS.get(project_key)
 
     # Orchestrator and peer-review channels have access to all
@@ -212,17 +143,49 @@ def get_project_for_channel(channel_name: str) -> Optional[Dict]:
 
 
 def get_all_projects() -> List[Dict]:
-    """Get all registered projects"""
+    """Get all registered projects."""
     return list(PROJECTS.values())
 
 
 def is_orchestrator_channel(channel_name: str) -> bool:
-    """Check if channel is the orchestrator"""
+    """Check if channel is the orchestrator."""
     routing = CHANNEL_ROUTING.get(channel_name)
-    return routing and routing.get("mode") == "orchestrator"
+    return bool(routing and routing.get("mode") == "orchestrator")
 
 
 def is_peer_review_channel(channel_name: str) -> bool:
-    """Check if channel is for peer review"""
+    """Check if channel is for peer review."""
     routing = CHANNEL_ROUTING.get(channel_name)
-    return routing and routing.get("mode") == "peer_review"
+    return bool(routing and routing.get("mode") == "peer_review")
+
+
+# ---------------------------------------------------------------------------
+# Validation
+# ---------------------------------------------------------------------------
+
+
+def validate_config() -> List[str]:
+    """Return a list of warning strings about the current config.
+
+    Checks:
+    - Channel routing references a project key that doesn't exist in PROJECTS
+    - Dedicated channels with empty channel_id
+    """
+    warnings: List[str] = []
+
+    for ch_name, ch in CHANNEL_ROUTING.items():
+        # Check project references
+        if ch.get("mode") == "dedicated":
+            proj_key = ch.get("project", "")
+            if proj_key and proj_key not in PROJECTS:
+                warnings.append(
+                    f"Channel '{ch_name}' references unknown project '{proj_key}'"
+                )
+
+        # Check empty channel_ids on dedicated channels
+        if ch.get("mode") == "dedicated" and not ch.get("channel_id"):
+            warnings.append(
+                f"Channel '{ch_name}' has no channel_id set"
+            )
+
+    return warnings
