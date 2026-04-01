@@ -5,7 +5,7 @@ import pytest
 import httpx
 from unittest.mock import MagicMock, patch
 
-from tools.triage import classify, TriageResult, _DEFAULT, _HAIKU, _configured_model
+from tools.triage import classify, TriageResult, _HAIKU, _configured_model
 
 
 def _make_mock_response(tier: str, reason: str = "test reason") -> MagicMock:
@@ -58,19 +58,19 @@ def test_complex_tier():
 
 
 def test_api_exception_returns_default():
-    """Any API exception => _DEFAULT returned, no raise."""
+    """Any API exception => moderate fallback returned, no raise."""
     mock_client = MagicMock()
     mock_client.messages.create.side_effect = Exception("API error")
 
     with patch("tools.triage.Anthropic", return_value=mock_client):
         result = classify("some prompt")
 
-    assert result.tier == _DEFAULT.tier
-    assert result.reason == _DEFAULT.reason
+    assert result.tier == "moderate"
+    assert result.reason == "triage unavailable"
 
 
 def test_malformed_json_returns_default():
-    """Non-JSON response => _DEFAULT returned, no raise."""
+    """Non-JSON response => moderate fallback returned, no raise."""
     content_block = MagicMock()
     content_block.text = "not json"
     msg = MagicMock()
@@ -82,26 +82,38 @@ def test_malformed_json_returns_default():
     with patch("tools.triage.Anthropic", return_value=mock_client):
         result = classify("some prompt")
 
-    assert result.tier == _DEFAULT.tier
+    assert result.tier == "moderate"
 
 
 def test_unknown_tier_returns_default():
-    """Unknown tier in JSON => _DEFAULT returned, no raise."""
+    """Unknown tier in JSON => moderate fallback returned, no raise."""
     mock_client = MagicMock()
     mock_client.messages.create.return_value = _make_mock_response("unknown", "weird tier")
 
     with patch("tools.triage.Anthropic", return_value=mock_client):
         result = classify("some prompt")
 
-    assert result.tier == _DEFAULT.tier
+    assert result.tier == "moderate"
 
 
 def test_timeout_returns_default():
-    """httpx.TimeoutException => _DEFAULT returned, no raise."""
+    """httpx.TimeoutException => moderate fallback returned, no raise."""
     mock_client = MagicMock()
     mock_client.messages.create.side_effect = httpx.TimeoutException("timed out")
 
     with patch("tools.triage.Anthropic", return_value=mock_client):
         result = classify("some prompt")
 
-    assert result.tier == _DEFAULT.tier
+    assert result.tier == "moderate"
+
+
+def test_default_fallback_uses_current_session_model():
+    """Fallback must reflect SESSION_MODEL at call time, not import time."""
+    mock_client = MagicMock()
+    mock_client.messages.create.side_effect = RuntimeError("boom")
+
+    with patch("tools.triage.Anthropic", return_value=mock_client), \
+         patch.dict("os.environ", {"SESSION_MODEL": "claude-opus-4-6"}):
+        result = classify("anything")
+
+    assert result.model == "claude-opus-4-6"

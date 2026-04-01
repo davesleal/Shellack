@@ -23,8 +23,7 @@ def _configured_model() -> str:
     return os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
 
 
-# Safe default — returned on any triage failure
-_DEFAULT = TriageResult(tier="moderate", model=_configured_model(), reason="triage unavailable")
+
 
 _PROMPT = """Classify this developer request. Reply with JSON only, no prose.
 {"tier": "simple|moderate|complex", "reason": "one sentence"}
@@ -64,4 +63,8 @@ def classify(prompt: str, project_key: str = "") -> TriageResult:
         return result
     except Exception as exc:
         logger.warning(f"Triage failed: {exc} -- using default (moderate/sonnet)")
-        return _DEFAULT
+        return TriageResult(
+            tier="moderate",
+            model=_configured_model(),
+            reason="triage unavailable",
+        )
