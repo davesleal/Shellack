@@ -4,96 +4,26 @@ Use these as Slack channel topics to give Claude, Shellack, and GitHub context.
 
 ---
 
-## Dayist
-**Channel:** `#dayist-dev`
+## Template
+
+**Channel:** `#<project>-dev`
 **Topic:**
 ```
-Dayist - iOS Personal Command Center • SwiftUI + SwiftData + CloudKit • Tasks, Calendar, Health, Subscriptions • https://github.com/YOUR_ORG/Dayist • App Store: com.your-org.dayist
+<Project Name> - <Platform> <Short Description> • <Tech Stack> • https://github.com/your-org/<repo> • App Store: com.example.yourapp
 ```
 
 **Full Description:**
-iOS 26+ personal productivity and wellness app. Unifies tasks, calendar, health insights, and subscription tracking with on-device Apple Intelligence. SwiftUI, SwiftData (local), CloudKit (sync), HealthKit, EventKit, Google OAuth.
+Brief description of the project's purpose, features, and tech stack.
 
-**Status:** In active development
-**Platform:** iOS 26.0+
-**Tech:** SwiftUI, SwiftData, CloudKit, HealthKit, EventKit, Apple Foundation Models
-
----
-
-## TileDock
-**Channel:** `#tiledock-dev`
-**Topic:**
-```
-TileDock - macOS Grid Control Surface • SwiftUI • One tap. Many actions. • https://github.com/YOUR_ORG/TileDock • gridboard.app • App Store: com.your-org.MacDock
-```
-
-**Full Description:**
-macOS control surface app with grid-based layout. One tap triggers multiple actions across apps and services. Formerly GridBoard. Modern SwiftUI interface for macOS automation and productivity.
-
-**Status:** Active development
-**Platform:** macOS
-**Tech:** SwiftUI, AppKit
-**Domain:** gridboard.app
-
----
-
-## Atmos Universal
-**Channel:** `#atmos-dev`
-**Topic:**
-```
-Atmos Universal - macOS Weather App • SwiftUI • https://github.com/YOUR_ORG/atmos-universal • Not on App Store
-```
-
-**Full Description:**
-macOS weather application. Universal design for macOS platform. (Update with specific features and capabilities)
-
-**Status:** In development
-**Platform:** macOS
-**Tech:** SwiftUI
-
----
-
-## SidePlane
-**Channel:** `#sideplane-dev`
-**Topic:**
-```
-SidePlane - macOS Vision Companion • SwiftUI • Mac2Vision bridge • https://github.com/YOUR_ORG/SidePlane • App Store: com.your-org.sideplane
-```
-
-**Full Description:**
-macOS application for bridging Mac functionality with Vision Pro. Formerly Mac2Vision. Enables seamless workflows between macOS and visionOS platforms.
-
-**Status:** Active development
-**Platform:** macOS
-**Tech:** SwiftUI, Spatial Computing APIs
-**Related:** Vision Pro integration
-
----
-
-## Shellack
-**Channel:** `#slackclaw-dev`
-**Topic:**
-```
-Shellack - Slack AI Bot • Python + Claude API • Multi-project dev automation • https://github.com/YOUR_ORG/Shellack • Orchestrator + Peer Review
-```
-
-**Full Description:**
-Slack bot integrated with Claude AI for development workflows across multiple projects. Features:
-- **Project Agents:** Dedicated channels per project with codebase access
-- **Orchestrator:** Cross-project coordination via #slackclaw-central
-- **Peer Review:** Autonomous code review with specialized agents
-- **App Store Connect:** Automated monitoring of reviews and TestFlight feedback
-
-**Status:** Production-ready
-**Platform:** Server (Python)
-**Tech:** Python, Slack Bolt, Anthropic API, App Store Connect API
-**Architecture:** Modular unified bot with channel-based routing
+**Status:** In development / Active / Production
+**Platform:** iOS / macOS / Server
+**Tech:** SwiftUI, SwiftData, etc.
 
 ---
 
 ## Special Channels
 
-### #slackclaw-central
+### #shellack-central
 **Topic:**
 ```
 Orchestrator Channel • Cross-project coordination • Update CLAUDE.md globally • Sync standards • Search all projects
@@ -115,11 +45,7 @@ Peer Review Channel • Autonomous code review • 3 agents: Quality, Security, 
 
 | Project | Platform | Status | App Store | Repo |
 |---------|----------|--------|-----------|------|
-| Dayist | iOS 26+ | Active | ✅ com.your-org.dayist | [Dayist](https://github.com/YOUR_ORG/Dayist) |
-| TileDock | macOS | Active | ✅ com.your-org.MacDock | [TileDock](https://github.com/YOUR_ORG/TileDock) |
-| Atmos | macOS | Dev | ❌ | [atmos-universal](https://github.com/YOUR_ORG/atmos-universal) |
-| SidePlane | macOS | Active | ✅ com.your-org.sideplane | [SidePlane](https://github.com/YOUR_ORG/SidePlane) |
-| Shellack | Server | Prod | N/A | [Shellack](https://github.com/YOUR_ORG/Shellack) |
+| _MyApp_ | _iOS_ | _Active_ | _com.example.yourapp_ | _[MyApp](https://github.com/your-org/MyApp)_ |
 
 ---
 
@@ -128,7 +54,7 @@ Peer Review Channel • Autonomous code review • 3 agents: Quality, Security, 
 1. **Copy the "Topic" text** for each channel
 2. **Update Slack channel topics:**
    - Open Slack
-   - Go to channel (e.g., #dayist-dev)
+   - Go to channel (e.g., #project-a-dev)
    - Click channel name → Edit → Topic
    - Paste the topic text
    - Save
@@ -143,7 +69,6 @@ Peer Review Channel • Autonomous code review • 3 agents: Quality, Security, 
 
 ## Notes
 
-- **Update Atmos** with specific weather features and capabilities
 - **GitHub links** enable GitHub app to correlate repos to channels
 - **Bundle IDs** enable App Store Connect monitoring
 - **Tech stack** helps Claude understand project context for better responses

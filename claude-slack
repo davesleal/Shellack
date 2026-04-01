@@ -1,4 +1,4 @@
-#!/Users/daveleal/Repos/SlackClaw/venv/bin/python3
+#!/usr/bin/env python3
 """
 claude-slack — Slack↔Terminal bridge wrapper for Claude Code.
 
@@ -19,11 +19,12 @@ import subprocess
 import sys
 import uuid
 
-# Add SlackClaw repo to path so orchestrator_config and tools are importable
-sys.path.insert(0, "/Users/daveleal/Repos/SlackClaw")
+# Add Shellack repo to path so orchestrator_config and tools are importable
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, SCRIPT_DIR)
 
 from dotenv import load_dotenv
-load_dotenv("/Users/daveleal/Repos/SlackClaw/.env")
+load_dotenv(os.path.join(SCRIPT_DIR, ".env"))
 
 from tools.slack_bridge import detect_channel_id, post_session_start
 

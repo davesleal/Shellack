@@ -2,11 +2,6 @@
 """
 Shellack Unified Bot
 Modular architecture with channel-based routing
-
-Channels:
-- Project channels (#dayist-dev, etc) → Project agents
-- #slackclaw-central → Orchestrator
-- #code-review → Peer review system
 """
 
 import json

@@ -21,7 +21,7 @@ active_sessions: Dict[str, list] = {}
 
 # Channel to project directory mapping
 CHANNEL_PROJECTS = {
-    "dayist-dev": "/path/to/your/project"  # Update with your project path,
+    # "my-project-dev": "/path/to/your/project",
     # Add more channels/projects here
 }
 
@@ -161,7 +161,7 @@ def handle_bug_report(ack, command, say):
     """
     Handle bug reports from App Store Connect
 
-    Usage: /bug-report {"app": "Dayist", "crash_log": "...", "user_feedback": "..."}
+    Usage: /bug-report {"app": "MyApp", "crash_log": "...", "user_feedback": "..."}
     """
     ack()
 

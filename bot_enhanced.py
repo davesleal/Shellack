@@ -25,11 +25,11 @@ active_sessions: Dict[str, list] = {}
 
 # Channel to project mapping
 CHANNEL_PROJECTS = {
-    "dayist-dev": {
-        "path": os.environ.get("DAYIST_PROJECT_PATH"),
-        "bundle_id": "com.daveleal.Dayist",
-        "auto_investigate": True,  # Auto-dispatch agents for bugs
-    }
+    # "my-project-dev": {
+    #     "path": os.environ.get("MY_PROJECT_PROJECT_PATH"),
+    #     "bundle_id": "com.example.yourapp",
+    #     "auto_investigate": True,
+    # }
 }
 
 
@@ -61,7 +61,7 @@ You have access to:
 - Run tests
 - Analyze crash logs
 
-The project is a SwiftUI iOS app called Dayist. Target iOS 26+.
+The project is a SwiftUI iOS app. Target iOS 26+.
 
 When responding:
 1. Be concise but thorough

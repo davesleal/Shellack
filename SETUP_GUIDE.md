@@ -147,7 +147,7 @@ chmod 600 ~/.appstoreconnect/AuthKey_*.p8
 ### 4.1 Install Dependencies
 
 ```bash
-cd ~/Repos/Shellack
+cd /path/to/Shellack
 pip install -r requirements.txt
 ```
 
@@ -182,28 +182,25 @@ APP_STORE_CONNECT_KEY_ID=YOUR_KEY_ID
 APP_STORE_CONNECT_ISSUER_ID=YOUR_ISSUER_ID
 APP_STORE_CONNECT_PRIVATE_KEY_PATH=~/.appstoreconnect/AuthKey_XXXXX.p8
 
-# Projects
-DAYIST_PROJECT_PATH=/path/to/your/project
+# Projects — one per configured project (see projects.example.yaml)
+# <PROJECT>_PROJECT_PATH=/path/to/your/project
 ```
 
 ### 4.3 Configure Channels
 
-Edit `bot_enhanced.py` to map your channels:
+Edit `projects.yaml` to map your channels (see `projects.example.yaml` for the format):
 
-```python
-CHANNEL_PROJECTS = {
-    "dayist-dev": {
-        "path": "/path/to/your/project",
-        "bundle_id": "com.example.Dayist",
-        "auto_investigate": True
-    },
-    # Add more projects:
-    # "another-app": {
-    #     "path": "/path/to/another/app",
-    #     "bundle_id": "com.example.app",
-    #     "auto_investigate": False
-    # }
-}
+```yaml
+my-project:
+  name: MyProject
+  path_env: MY_PROJECT_PROJECT_PATH
+  default_path: ~/Repos/MyProject
+  bundle_id: com.example.yourapp
+  primary_channel: my-project-dev
+  language: swift
+  platform: ios
+  github_repo: your-org/MyProject
+```
 ```
 
 ## Step 5: Create Slack Channels
@@ -211,9 +208,9 @@ CHANNEL_PROJECTS = {
 Create these channels in your workspace:
 
 ```
-#dayist-dev       - Development discussions
-#dayist-bugs      - Auto-posted bugs from App Store Connect
-#dayist-releases  - Release notifications
+#<project>-dev       - Development discussions
+#<project>-bugs      - Auto-posted bugs from App Store Connect
+#<project>-releases  - Release notifications
 ```
 
 Invite the bot to each channel:
@@ -232,14 +229,14 @@ python bot_enhanced.py
 You should see:
 ```
 🚀 Starting Slack Claude Code Bot...
-🔍 Monitoring App Store Connect for com.example.Dayist
+🔍 Monitoring App Store Connect for com.example.yourapp
 ✅ Bot is running!
-📱 Monitoring channels: dayist-dev
+📱 Monitoring channels: <project>-dev
 ```
 
 ### 6.2 Test in Slack
 
-In `#dayist-dev` channel:
+In your `#<project>-dev` channel:
 
 **Basic request:**
 ```
@@ -260,7 +257,7 @@ In `#dayist-dev` channel:
 
 ### Option A: Run as Service (macOS)
 
-Create `~/Library/LaunchAgents/com.your-org.claude-bot.plist`:
+Create `~/Library/LaunchAgents/com.example.shellack.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -268,14 +265,14 @@ Create `~/Library/LaunchAgents/com.your-org.claude-bot.plist`:
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.your-org.claude-bot</string>
+    <string>com.example.shellack</string>
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/python3</string>
-        <string>~/Repos/Shellack/bot_enhanced.py</string>
+        <string>/path/to/Shellack/bot_enhanced.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>~/Repos/Shellack</string>
+    <string>/path/to/Shellack</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
@@ -290,7 +287,7 @@ Create `~/Library/LaunchAgents/com.your-org.claude-bot.plist`:
 
 Load the service:
 ```bash
-launchctl load ~/Library/LaunchAgents/com.your-org.claude-bot.plist
+launchctl load ~/Library/LaunchAgents/com.example.shellack.plist
 ```
 
 ### Option B: Run in tmux/screen
@@ -300,7 +297,7 @@ launchctl load ~/Library/LaunchAgents/com.your-org.claude-bot.plist
 tmux new -s claude-bot
 
 # Run bot
-cd ~/Repos/Shellack
+cd /path/to/Shellack
 python bot_enhanced.py
 
 # Detach: Ctrl+B, then D
@@ -524,7 +521,7 @@ buttons on any device, instead of switching to the terminal.
 ### Install
 
 ```bash
-cd ~/Repos/Shellack
+cd /path/to/Shellack
 chmod +x claude-slack
 ln -sf "$(pwd)/claude-slack" /usr/local/bin/claude-slack
 ```

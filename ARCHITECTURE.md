@@ -8,10 +8,10 @@ Modular unified bot with channel-based routing.
 Shellack Unified Bot (single process)
 │
 ├─ Project Agents
-│  ├─ #dayist-dev    → Dayist project
+│  ├─ #project-a-dev → Project A
 │
 ├─ Orchestrator
-│  └─ #slackclaw-central
+│  └─ #shellack-central
 │     ├─ Update all CLAUDE.md files
 │     ├─ Sync standards between projects
 │     ├─ Cross-project search
@@ -29,7 +29,7 @@ Shellack Unified Bot (single process)
 The bot automatically routes to the right module based on channel name:
 
 ```python
-if channel == "slackclaw-central":
+if channel == "shellack-central":
     → orchestrator.handle()
 elif channel == "code-review":
     → peer_review.handle()
@@ -52,7 +52,7 @@ Handle project-specific work:
 
 **Example:**
 ```
-#dayist-dev
+#project-a-dev
 @Shellack what files are in Views/Settings?
 @Shellack fix the login bug
 @Shellack run tests
@@ -66,13 +66,13 @@ Cross-project coordination:
 - Global search
 - Coordinate multi-project changes
 
-**Channel:** `#slackclaw-central`
+**Channel:** `#shellack-central`
 
 **Example:**
 ```
-#slackclaw-central
+#shellack-central
 @Shellack update all CLAUDE.md: prefer composition over inheritance
-@Shellack sync standards from dayist to tiledock
+@Shellack sync standards from project-a to project-b
 @Shellack search all: deprecated UserDefaults
 ```
 

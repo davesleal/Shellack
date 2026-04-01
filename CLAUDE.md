@@ -4,13 +4,7 @@ You are the orchestrator for this development workspace. You coordinate across c
 
 ## Projects & Channel Routing
 
-| Project | Channel | Platform | Repo |
-|---------|---------|----------|------|
-| Dayist | #dayist-dev | iOS 26+ | YOUR_ORG/Dayist |
-| TileDock | #tiledock-dev | macOS | YOUR_ORG/TileDock |
-| Atmos Universal | #atmos-dev | macOS | YOUR_ORG/atmos-universal |
-| SidePlane | #sideplane-dev | macOS | YOUR_ORG/SidePlane |
-| Shellack | #slackclaw-dev | Server/Python | YOUR_ORG/Shellack |
+Projects are loaded from `projects.yaml` (gitignored). See `projects.example.yaml` for the format. Each entry maps a project key to its channel, platform, repo, and local path.
 
 ## GitHub Issue Standards
 

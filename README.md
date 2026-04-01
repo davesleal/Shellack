@@ -32,7 +32,7 @@ Shellack connects your Slack workspace to Claude AI, giving each project channel
 ## 🚀 Quick start
 
 ```bash
-git clone https://github.com/YOUR_ORG/Shellack.git
+git clone https://github.com/your-org/Shellack.git
 cd Shellack
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
@@ -61,7 +61,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 # GitHub integration — enables issue auto-creation
 GITHUB_TOKEN=ghp_...
-GITHUB_ORG=YOUR_ORG            # Your GitHub username or org
+GITHUB_ORG=your-org            # Your GitHub username or org
 
 # Slack user ID for operator escalations (Profile → ··· → Copy member ID)
 OWNER_SLACK_USER_ID=U0XXXXXXX
@@ -74,8 +74,7 @@ SESSION_BACKEND=api
 SESSION_MODEL=claude-sonnet-4-6
 
 # Project paths (defaults to ~/Repos/<Name>)
-DAYIST_PROJECT_PATH=~/Repos/Dayist
-TILEDOCK_PROJECT_PATH=~/Repos/TileDock
+# MY_PROJECT_PROJECT_PATH=~/Repos/MyProject
 # ... see .env.example for all variables
 
 # App Store Connect (optional)
@@ -255,8 +254,8 @@ Shellack/
 ## 📮 Support
 
 - 📚 [Setup guide](./SETUP_GUIDE.md)
-- 🐛 [Report issues](https://github.com/YOUR_ORG/Shellack/issues)
-- 💬 [Discussions](https://github.com/YOUR_ORG/Shellack/discussions)
+- 🐛 [Report issues](https://github.com/your-org/Shellack/issues)
+- 💬 [Discussions](https://github.com/your-org/Shellack/discussions)
 
 ---
 

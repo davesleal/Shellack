@@ -39,14 +39,11 @@
 - `peer_review.py` - Autonomous code review system
 
 #### 2. Multi-Project Support
-**Projects Configured:**
-- **iOS:** Dayist
-- **macOS:** TileDock, Atmos Universal, SidePlane
-- **Meta:** Shellack itself
+**Projects Configured:** Multiple projects across iOS and macOS platforms, plus Shellack itself.
 
 **Channel Routing:**
-- Dedicated channels: `#dayist-dev`, `#tiledock-dev`, `#atmos-dev`, `#sideplane-dev`
-- Orchestrator: `#slackclaw-central` (cross-project coordination)
+- Dedicated channels: one `#<project>-dev` channel per project
+- Orchestrator: `#shellack-central` (cross-project coordination)
 - Peer Review: `#code-review` (autonomous review agents)
 
 #### 3. App Store Connect Integration
@@ -55,7 +52,7 @@
 - `app_store_connect.py` - API client with JWT authentication
 - 10-minute polling interval for new feedback
 - Auto-posts to appropriate project channels
-- Configured for: Dayist (iOS), TileDock (macOS), SidePlane (macOS)
+- Configured for: all projects with bundle IDs in `projects.yaml`
 
 **Challenge:** Bundle ID case sensitivity
 **Solution:** Updated config to use lowercase bundle ID matching App Store Connect
@@ -158,7 +155,7 @@ Shellack/
 6. **Multi-agent thinking** - Combining official Claude + Shellack + GitHub creates more than sum of parts
 
 ### Resources
-- Repository: https://github.com/YOUR_ORG/Shellack
+- Repository: https://github.com/your-org/Shellack
 
 ---
 

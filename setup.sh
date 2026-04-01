@@ -100,7 +100,7 @@ fi
 echo "✅ Setup complete!"
 echo ""
 echo "Next steps:"
-echo "1. Create Slack channels (e.g., #dayist-dev)"
+echo "1. Create Slack channels (e.g., #project-dev)"
 echo "2. Invite the bot: /invite @Claude Code Bot"
 echo "3. Start the bot: python bot_enhanced.py"
 echo "4. Test with: @Claude Code Bot hello"

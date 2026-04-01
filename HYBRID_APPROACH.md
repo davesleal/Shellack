@@ -44,7 +44,7 @@ def start_monitoring():
         message = format_feedback_for_slack(feedback)
 
         app.client.chat_postMessage(
-            channel="dayist-dev",
+            channel="project-dev",
             text=message,
             blocks=[
                 {
@@ -67,7 +67,7 @@ def start_monitoring():
 
     # Monitor for new feedback
     client.poll_for_new_feedback(
-        "com.example.Dayist",
+        "com.example.yourapp",
         post_to_slack,
         poll_interval=600  # Every 10 minutes
     )
@@ -126,14 +126,14 @@ You can automate these without Claude API:
 ```python
 # Weekly digest of all reviews
 weekly_summary = collect_reviews()
-post_to_slack("#dayist-weekly", weekly_summary)
+post_to_slack("#project-weekly", weekly_summary)
 ```
 
 ### 2. Priority Flagging
 ```python
 # Flag urgent issues (no AI needed)
 if rating <= 2 or "crash" in review:
-    post_to_slack("#dayist-urgent", review)
+    post_to_slack("#project-urgent", review)
     notify_on_call_dev()
 ```
 
@@ -141,14 +141,14 @@ if rating <= 2 or "crash" in review:
 ```python
 # Auto-post beta feedback
 for feedback in get_beta_feedback():
-    post_to_slack("#dayist-beta", feedback)
+    post_to_slack("#project-beta", feedback)
 ```
 
 ### 4. Release Reminders
 ```python
 # Check if new version is due
 if days_since_release > 14:
-    post_to_slack("#dayist-dev", "⏰ Time to ship 1.3.0?")
+    post_to_slack("#project-dev", "⏰ Time to ship 1.3.0?")
 ```
 
 All of these are simple scripts - no AI needed!
