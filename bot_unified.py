@@ -384,8 +384,19 @@ def _handle_plugin_command(
         _post_success("\n".join(lines))
         return True
 
+    # --- Owner-only gate for mutating commands ---
+    def _require_owner() -> bool:
+        """Return True if user is the owner, False otherwise (posts error)."""
+        owner = os.environ.get("OWNER_SLACK_USER_ID", "")
+        if owner and user_id != owner:
+            _post_error("Plugin management is restricted to the workspace owner.")
+            return False
+        return True
+
     # add plugin <name>
     if lower.startswith("add plugin "):
+        if not _require_owner():
+            return True
         name = clean_text[11:].strip()
         result = plugin_manager.install_plugin(name)
         _handle_result(
@@ -396,6 +407,8 @@ def _handle_plugin_command(
 
     # remove plugin <name>
     if lower.startswith("remove plugin "):
+        if not _require_owner():
+            return True
         name = clean_text[14:].strip()
         result = plugin_manager.uninstall_plugin(name)
         _handle_result(result, f"✅ Plugin `{name}` removed.")
@@ -403,6 +416,8 @@ def _handle_plugin_command(
 
     # add mcp <name> <command>
     if lower.startswith("add mcp "):
+        if not _require_owner():
+            return True
         rest = clean_text[8:].strip()
         parts = rest.split(None, 1)
         if len(parts) < 2:
@@ -415,6 +430,8 @@ def _handle_plugin_command(
 
     # remove mcp <name>
     if lower.startswith("remove mcp "):
+        if not _require_owner():
+            return True
         name = clean_text[11:].strip()
         result = plugin_manager.remove_mcp(name)
         _handle_result(result, f"✅ MCP server `{name}` removed.")
@@ -422,6 +439,8 @@ def _handle_plugin_command(
 
     # add bot-plugin <name_or_url>
     if lower.startswith("add bot-plugin "):
+        if not _require_owner():
+            return True
         name_or_url = clean_text[15:].strip()
         result = plugin_manager.add_bot_plugin(name_or_url, registry=_bot_extensions)
         installed_name = result.get("name", name_or_url)
@@ -432,6 +451,8 @@ def _handle_plugin_command(
 
     # remove bot-plugin <name>
     if lower.startswith("remove bot-plugin "):
+        if not _require_owner():
+            return True
         name = clean_text[18:].strip()
         result = plugin_manager.remove_bot_plugin(name, registry=_bot_extensions)
         _handle_result(result, f"✅ Bot extension `{name}` removed.")
