@@ -62,17 +62,18 @@ Loaded from `projects.yaml` at startup. Validated with `validate_config()`.
 
 ## Open Items
 
-- [ ] `conftest.py` for fresh-clone test support (davesleal/Shellack#13)
-- [ ] `CONTRIBUTING.md` with fork setup instructions
+- [x] `conftest.py` for fresh-clone test support (davesleal/Shellack#13)
+- [x] `CONTRIBUTING.md` with fork setup instructions
 - [x] `<function_calls>` XML stripped from max-mode streaming (`_strip_tool_xml` in `slack_session.py`)
+- [x] Personal refs stripped from `docs/superpowers/` (davesleal/Shellack#13 — closed)
 
 ---
 
 ## What's Next
 
 - [x] Strip tool XML from SlackSession streaming chunks
+- [x] Follow-ups from genericization (davesleal/Shellack#13 — closed)
 - [ ] Dedicated agent memory: rolling cross-thread context + Haiku auto-compaction
-- [ ] Follow-ups from genericization (davesleal/Shellack#13)
 
 ---
 
