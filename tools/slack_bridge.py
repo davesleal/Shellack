@@ -107,7 +107,7 @@ def detect_channel_id() -> tuple[str, str]:
                 print(
                     f"[claude-slack] WARNING: project '{cfg['name']}' matched but "
                     f"CHANNEL_ROUTING['{primary}'] has no 'channel_id'. "
-                    "Add channel_id to orchestrator_config.py. "
+                    "Add channel_id to projects.yaml. "
                     "Falling back to #claude-code.",
                     file=sys.stderr,
                 )

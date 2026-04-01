@@ -727,18 +727,32 @@ def start_app_store_connect_monitoring():
 
 
 def check_and_post_onboarding() -> None:
-    """Post onboarding message to #slackclaw-dev if not already complete."""
+    """Post onboarding message to the bot's own dev channel if not already complete."""
     if os.environ.get("ONBOARDING_COMPLETE") == "true":
         return
 
-    # Find the slackclaw-dev channel ID
+    # Find the bot's own channel from config (first project with platform=server,
+    # or fall back to ONBOARDING_CHANNEL env var)
+    onboarding_channel = os.environ.get("ONBOARDING_CHANNEL", "")
+    if not onboarding_channel:
+        for _ch_name, routing in CHANNEL_ROUTING.items():
+            if routing.get("mode") == "dedicated" and routing.get("project") == "shellack":
+                onboarding_channel = _ch_name
+                break
+        if not onboarding_channel:
+            # Fall back to first dedicated channel
+            for _ch_name, routing in CHANNEL_ROUTING.items():
+                if routing.get("mode") == "dedicated":
+                    onboarding_channel = _ch_name
+                    break
+
     channel_id = None
     try:
         result = app.client.conversations_list(
             types="public_channel,private_channel", limit=200
         )
         for ch in result.get("channels", []):
-            if ch["name"] == "slackclaw-dev":
+            if ch["name"] == onboarding_channel:
                 channel_id = ch["id"]
                 break
     except Exception as e:
@@ -746,7 +760,7 @@ def check_and_post_onboarding() -> None:
         return
 
     if not channel_id:
-        print("⚠️  Could not find #slackclaw-dev for onboarding. Skipping.")
+        print(f"⚠️  Could not find #{onboarding_channel} for onboarding. Skipping.")
         return
 
     blocks = [
@@ -788,7 +802,7 @@ def check_and_post_onboarding() -> None:
             text="👋 Welcome to Shellack! Choose your AI backend.",
             blocks=blocks,
         )
-        print("📋 Onboarding message posted to #slackclaw-dev")
+        print(f"📋 Onboarding message posted to #{onboarding_channel}")
     except Exception as e:
         print(f"⚠️  Could not post onboarding: {e}")
 

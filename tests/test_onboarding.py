@@ -20,11 +20,11 @@ def test_onboarding_posts_buttons_when_not_complete():
     import bot_unified
     importlib.reload(bot_unified)
     mock_channel_list = {
-        "channels": [{"id": "C999", "name": "slackclaw-dev"}]
+        "channels": [{"id": "C999", "name": "alpha-dev"}]
     }
     # Use patch.dict to ensure ONBOARDING_COMPLETE is absent from the environment
     env_without_flag = {k: v for k, v in __import__("os").environ.items() if k != "ONBOARDING_COMPLETE"}
-    with patch.dict("os.environ", env_without_flag, clear=True), \
+    with patch.dict("os.environ", {**env_without_flag, "ONBOARDING_CHANNEL": "alpha-dev"}, clear=True), \
          patch.object(bot_unified.app.client, "conversations_list", return_value=mock_channel_list), \
          patch.object(bot_unified.app.client, "chat_postMessage") as mock_post:
         bot_unified.check_and_post_onboarding()

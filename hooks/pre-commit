@@ -7,7 +7,8 @@ PATTERNS=(
     'xoxb-[a-zA-Z0-9]'             # Slack bot token
     'xoxp-[a-zA-Z0-9]'             # Slack user token
     'xoxs-[a-zA-Z0-9]'             # Slack session token
-    'xoxa-[a-zA-Z0-9]'             # Slack app token
+    'xoxa-[a-zA-Z0-9]'             # Slack legacy app token
+    'xapp-[a-zA-Z0-9]'             # Slack app-level token
     'sk-ant-[a-zA-Z0-9]'           # Anthropic API key
     'sk-live[a-zA-Z0-9]'           # Stripe live key
     'AKIA[0-9A-Z]{16}'             # AWS access key ID
