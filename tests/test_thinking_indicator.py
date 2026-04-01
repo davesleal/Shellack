@@ -63,3 +63,42 @@ def test_done_without_ts_is_noop(client):
     # Never called start(), so _ts is None
     ind.done(response="something")
     client.chat_update.assert_not_called()
+
+
+def test_done_fallback_posts_response_separately_on_update_failure(client):
+    """If chat_update fails with response text, fallback posts response as separate message."""
+    import time
+    ind = _make_indicator(client)
+    ind._ts = "1.0"
+    ind._start = time.monotonic() - 5
+    ind._stop = threading.Event()
+    ind._stop.set()
+    ind._bg = None
+
+    # First chat_update (the done call) raises, fallback header update succeeds
+    client.chat_update.side_effect = [Exception("update failed"), None]
+
+    ind.done(response="The answer is 42")
+
+    # Should have tried to post response separately
+    post_calls = [c for c in client.chat_postMessage.call_args_list
+                  if c.kwargs.get("text") == "The answer is 42"]
+    assert len(post_calls) == 1
+
+
+def test_done_total_failure_does_not_crash(client):
+    """If everything fails, done() must not raise."""
+    import time
+    ind = _make_indicator(client)
+    ind._ts = "1.0"
+    ind._start = time.monotonic() - 5
+    ind._stop = threading.Event()
+    ind._stop.set()
+    ind._bg = None
+
+    client.chat_update.side_effect = Exception("total failure")
+    # Reset postMessage to also fail (after the initial fixture setup)
+    client.chat_postMessage.side_effect = Exception("post also fails")
+
+    # Must not raise
+    ind.done(response="some text")
