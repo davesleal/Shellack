@@ -7,8 +7,6 @@ You are the orchestrator for this development workspace. You coordinate across c
 | Project | Channel | Platform | Repo |
 |---------|---------|----------|------|
 | Dayist | #dayist-dev | iOS 26+ | YOUR_ORG/Dayist |
-| NOVA | #nova-dev | iOS | YOUR_ORG/NOVA |
-| Nudge | #nudge-dev | iOS | YOUR_ORG/Nudge |
 | TileDock | #tiledock-dev | macOS | YOUR_ORG/TileDock |
 | Atmos Universal | #atmos-dev | macOS | YOUR_ORG/atmos-universal |
 | SidePlane | #sideplane-dev | macOS | YOUR_ORG/SidePlane |
@@ -65,9 +63,8 @@ High-signal events post top-level to the project channel (not just in thread):
 - 🐛 Issue created
 - 👀 Peer review triggered
 - 🙋 Operator escalation
-- ✅ Task done
 
-This lets Claude app scan project channels for a workspace-wide status update.
+All other responses — including task completion — must remain in the thread only. Never post a top-level channel message to signal that a task is done.
 
 ## Claude-Slack Bridge
 

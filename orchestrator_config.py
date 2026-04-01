@@ -25,26 +25,6 @@ PROJECTS = {
         "platform": "ios",
         "github_repo": f"{_GITHUB_ORG}/Dayist",
     },
-    "nova": {
-        "name": "NOVA",
-        "path": os.environ.get("NOVA_PROJECT_PATH", os.path.expanduser("~/Repos/NOVA")),
-        "bundle_id": os.environ.get("NOVA_BUNDLE_ID", None),
-        "primary_channel": "nova-dev",
-        "language": "swift",
-        "platform": "ios",
-        "github_repo": f"{_GITHUB_ORG}/NOVA",
-    },
-    "nudge": {
-        "name": "Nudge",
-        "path": os.environ.get(
-            "NUDGE_PROJECT_PATH", os.path.expanduser("~/Repos/Nudge")
-        ),
-        "bundle_id": os.environ.get("NUDGE_BUNDLE_ID", None),
-        "primary_channel": "nudge-dev",
-        "language": "swift",
-        "platform": "ios",
-        "github_repo": f"{_GITHUB_ORG}/Nudge",
-    },
     "slackclaw": {
         "name": "Shellack",
         "path": os.environ.get(
@@ -99,16 +79,6 @@ CHANNEL_ROUTING = {
         "mode": "dedicated",
         "channel_id": "C0AM872QM8E",
     },
-    "nova-dev": {
-        "project": "nova",
-        "mode": "dedicated",
-        "channel_id": "",
-    },  # channel not yet created
-    "nudge-dev": {
-        "project": "nudge",
-        "mode": "dedicated",
-        "channel_id": "",
-    },  # channel not yet created
     # macOS Project Channels
     "tiledock-dev": {
         "project": "tiledock",
@@ -191,7 +161,7 @@ ORCHESTRATOR_COMMANDS = {
     "sync_standards": {
         "description": "Sync coding standards between projects",
         "syntax": "@Shellack sync standards from <source> to <target>",
-        "example": "@Shellack sync standards from dayist to nova",
+        "example": "@Shellack sync standards from dayist to tiledock",
     },
     "global_search": {
         "description": "Search across all projects",

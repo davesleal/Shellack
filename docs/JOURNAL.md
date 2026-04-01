@@ -40,12 +40,12 @@
 
 #### 2. Multi-Project Support
 **Projects Configured:**
-- **iOS:** Dayist, NOVA, Nudge
+- **iOS:** Dayist
 - **macOS:** TileDock, Atmos Universal, SidePlane
 - **Meta:** Shellack itself
 
 **Channel Routing:**
-- Dedicated channels: `#dayist-dev`, `#nova-dev`, `#nudge-dev`, `#tiledock-dev`, `#atmos-dev`, `#sideplane-dev`
+- Dedicated channels: `#dayist-dev`, `#tiledock-dev`, `#atmos-dev`, `#sideplane-dev`
 - Orchestrator: `#slackclaw-central` (cross-project coordination)
 - Peer Review: `#code-review` (autonomous review agents)
 
@@ -184,3 +184,16 @@ Shellack/
 **Insights:** The "thread-scoped agent" pattern (keying AgentFactory by thread_ts rather than project_key) was a key architectural decision — it means each conversation carries its own lifecycle context, preventing state from bleeding across parallel conversations. The dual-post pattern (thread for detail, channel for signal) lets Claude app scan any project channel and immediately understand what's happening, without needing a central "status channel" — the project channels become their own status boards.
 
 ---
+
+---
+
+## 2026-03-26 — Bot polish: triage killed, deduplication fixed, agents pre-warmed
+
+**Context:** Several UX issues had crept in during the previous session's rapid iteration: duplicate messages (plain text showing above the colored attachment), a noisy "Created agent" log on first message, triage failures polluting logs, and leaked `<function_calls>` XML in responses.
+
+**Approach:** Tackled each root cause rather than papering over symptoms. The duplicate message was `text` and `attachments[].text` both rendering — Slack does this when both are non-empty. Fix: `text=""` everywhere in ThinkingIndicator; the attachment `fallback` field handles notification previews. Agent pre-warming required shifting the AgentFactory cache key from `thread_ts` to `channel_id`, adding `warmup_all()` called at startup, and updating `thread_ts`/`channel_id` on the agent before each `handle()` call. Triage was removed entirely — it had been routing all tiers to the same `SESSION_MODEL` anyway, so the extra Haiku round-trip was pure overhead with failure modes. Code block formatting instructions were added to the system prompt so agents use proper fenced blocks with language tags and close them before resuming prose. `_md_to_mrkdwn` got an auto-close guard for dangling fences. Three new test files cover the new contracts: 182 tests total.
+
+**Outcome:** ThinkingIndicator shows only the clay/gray bar — no duplicate text. Agents are alive at startup, no creation lag. Test suite expanded from 161 to 182 with coverage for AgentFactory caching/warmup, ThinkingIndicator text="" contract, and _md_to_mrkdwn edge cases.
+
+**Insights:** Slack's message structure is a gotcha: `text` is always rendered as plain text above attachments, even when attachments carry the same content. Setting `text=""` and relying on `fallback` (used only for notifications) is the correct pattern for attachment-only messages. It's easy to miss because local testing often doesn't trigger notification previews. The agent pre-warming change is also a good example of a cache key that looks right (thread is unique, no collisions) but is wrong for the use case (we want agent identity to survive across threads on the same channel, not reset per conversation).
+

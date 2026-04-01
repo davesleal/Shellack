@@ -20,38 +20,6 @@ iOS 26+ personal productivity and wellness app. Unifies tasks, calendar, health 
 
 ---
 
-## NOVA
-**Channel:** `#nova-dev`
-**Topic:**
-```
-NOVA - iOS App • Swift • https://github.com/YOUR_ORG/NOVA • In Development
-```
-
-**Full Description:**
-iOS application (details TBD - update this description with project specifics)
-
-**Status:** In development
-**Platform:** iOS
-**Tech:** Swift
-
----
-
-## Nudge
-**Channel:** `#nudge-dev`
-**Topic:**
-```
-Nudge - iOS App • Swift • https://github.com/YOUR_ORG/Nudge • In Development
-```
-
-**Full Description:**
-iOS application (details TBD - update this description with project specifics)
-
-**Status:** In development
-**Platform:** iOS
-**Tech:** Swift
-
----
-
 ## TileDock
 **Channel:** `#tiledock-dev`
 **Topic:**
@@ -148,8 +116,6 @@ Peer Review Channel • Autonomous code review • 3 agents: Quality, Security, 
 | Project | Platform | Status | App Store | Repo |
 |---------|----------|--------|-----------|------|
 | Dayist | iOS 26+ | Active | ✅ com.your-org.dayist | [Dayist](https://github.com/YOUR_ORG/Dayist) |
-| NOVA | iOS | Dev | ❌ | [NOVA](https://github.com/YOUR_ORG/NOVA) |
-| Nudge | iOS | Dev | ❌ | [Nudge](https://github.com/YOUR_ORG/Nudge) |
 | TileDock | macOS | Active | ✅ com.your-org.MacDock | [TileDock](https://github.com/YOUR_ORG/TileDock) |
 | Atmos | macOS | Dev | ❌ | [atmos-universal](https://github.com/YOUR_ORG/atmos-universal) |
 | SidePlane | macOS | Active | ✅ com.your-org.sideplane | [SidePlane](https://github.com/YOUR_ORG/SidePlane) |
@@ -177,7 +143,6 @@ Peer Review Channel • Autonomous code review • 3 agents: Quality, Security, 
 
 ## Notes
 
-- **Update NOVA and Nudge** descriptions when project details are defined
 - **Update Atmos** with specific weather features and capabilities
 - **GitHub links** enable GitHub app to correlate repos to channels
 - **Bundle IDs** enable App Store Connect monitoring

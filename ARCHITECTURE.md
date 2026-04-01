@@ -9,8 +9,6 @@ Shellack Unified Bot (single process)
 │
 ├─ Project Agents
 │  ├─ #dayist-dev    → Dayist project
-│  ├─ #nova-dev      → NOVA project
-│  └─ #nudge-dev     → Nudge project
 │
 ├─ Orchestrator
 │  └─ #slackclaw-central
@@ -74,7 +72,7 @@ Cross-project coordination:
 ```
 #slackclaw-central
 @Shellack update all CLAUDE.md: prefer composition over inheritance
-@Shellack sync standards from dayist to nova
+@Shellack sync standards from dayist to tiledock
 @Shellack search all: deprecated UserDefaults
 ```
 

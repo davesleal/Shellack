@@ -56,7 +56,7 @@ def test_stage2_posts_cross_project_review_request():
     app = make_app()
     projects = {
         "dayist": {"platform": "ios", "language": "swift", "name": "Dayist"},
-        "nova": {"platform": "ios", "language": "swift", "name": "NOVA"},
+        "tiledock": {"platform": "macos", "language": "swift", "name": "TileDock"},
     }
     spr = StagedPeerReview(app=app, code_review_channel_id="C_REVIEW",
                            owner_user_id="U999", projects=projects)
@@ -65,7 +65,7 @@ def test_stage2_posts_cross_project_review_request():
         spr.trigger("Summary", ["file.swift"], "dayist", "111.222", "C_DAYIST")
 
     texts = [c.kwargs.get("text", "") for c in app.client.chat_postMessage.call_args_list]
-    assert any("[nova-review]" in t for t in texts)
+    assert any("[tiledock-review]" in t for t in texts)
 
 
 def test_peer_review_agent_parses_structured_json():
