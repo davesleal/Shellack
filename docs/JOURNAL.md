@@ -1,5 +1,17 @@
 # Shellack Project Journal
 
+## 2026-04-01 — Genericized for Open Source
+
+**Context:** Shellack was built as a personal dev automation bot, but the architecture is general-purpose — any team could use it. The problem: project names, channel IDs, bundle IDs, and personal paths were hardcoded across 40+ files. Anyone forking would inherit someone else's project config baked into the code.
+
+**Approach:** Extracted all project-specific config into a single `projects.yaml` file (gitignored), with a fully commented `projects.example.yaml` as the template. Rewrote `orchestrator_config.py` from a 200-line hardcoded dict into a 140-line YAML loader with env var overrides, tilde expansion, and startup validation. Removed the `PROJECT_KNOWLEDGE` dict from `project_agent.py` — agents now read their context from the `context` block in the YAML. Genericized every test fixture (alpha/beta instead of real names), stripped personal references from all docs and scripts, and added a pre-commit hook that scans for 12 secret patterns in staged files.
+
+**Outcome:** 14 commits, 218 tests passing, zero personal identifiers in tracked files. A fresh fork gets: copy the example yaml, fill in your projects, run the bot. The pre-commit hook catches accidental secret commits before they happen. Closed 4 GitHub issues that were already implemented (#5 multi-language, #8 test suite, #11 reverse chat, #12 bridge). Created follow-up issue #13 for remaining polish (conftest fixture for fresh clones, CONTRIBUTING.md).
+
+**Insights:** The hardest part wasn't the config extraction — it was finding every reference. Personal identifiers were woven through comments, docstrings, test fixtures, wrapper scripts, setup guides, and architecture docs. The systematic grep-audit-fix-verify cycle was essential. The YAML loader ended up simpler than the original hardcoded config because it eliminated 5 project entries × 8 fields each of repetitive Python dict literals. The pre-commit hook is the kind of thing you wish you'd added on day one — a 66-line bash script that removes an entire class of "oh no" moments.
+
+---
+
 ## 2026-03-18 — Slack↔Terminal Bridge
 
 **Context:** The operator wanted to respond to Claude Code prompts from any device (phone, tablet, another machine) without switching to the terminal to type `1`, `2`, `3`. The idea: Claude Code posts Block Kit button messages to the project's Slack channel; clicking a button feeds the answer back to Claude's stdin through a named pipe.
