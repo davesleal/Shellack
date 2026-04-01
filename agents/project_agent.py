@@ -41,89 +41,6 @@ def _clean_response(text: str) -> str:
 CODE_CHANGING_AGENTS = (CrashInvestigatorAgent, TestingAgent)
 
 
-# Rich project knowledge baked into each agent's system prompt
-PROJECT_KNOWLEDGE = {
-    "dayist": {
-        "description": "iOS 26+ personal productivity and wellness app",
-        "purpose": "Unify tasks, calendar, health insights, and subscription tracking with on-device Apple Intelligence",
-        "tech": "SwiftUI, SwiftData (local), CloudKit (sync), HealthKit, EventKit, Apple Foundation Models, Google OAuth",
-        "patterns": [
-            "MVVM architecture with @Observable",
-            "SwiftData for local persistence, CloudKit for sync",
-            "HealthKit queries are async — always handle authorization",
-            "Apple Foundation Models run on-device — no network calls",
-            "EventKit requires explicit calendar authorization",
-        ],
-        "watch_out": [
-            "Force unwrapping optional CloudKit records",
-            "Blocking the main thread with HealthKit queries",
-            "Leaking sensitive health data in logs",
-        ],
-    },
-    "tiledock": {
-        "description": "macOS grid control surface — one tap triggers multiple actions",
-        "purpose": "Productivity automation for macOS: configure a grid of tiles that execute multi-step actions across apps",
-        "tech": "SwiftUI, AppKit",
-        "patterns": [
-            "Grid layout managed via AppKit NSView backing for pixel precision",
-            "Action execution is async — always show progress",
-            "Tiles are user-configurable — validate config on load",
-            "Menu bar app — minimal memory footprint required",
-        ],
-        "watch_out": [
-            "Main thread violations (AppKit is not thread-safe)",
-            "Memory growth from long-running action queues",
-            "Accessibility — control surfaces must support VoiceOver",
-        ],
-    },
-    "atmosuniversal": {
-        "description": "macOS weather application",
-        "purpose": "Universal macOS weather app with modern SwiftUI interface",
-        "tech": "SwiftUI, macOS",
-        "patterns": [
-            "WeatherKit or OpenMeteo for weather data",
-            "CoreLocation for user location",
-            "Async/await for all network requests",
-        ],
-        "watch_out": [
-            "Location permission must be requested gracefully",
-            "Network failures must show cached data with staleness indicator",
-        ],
-    },
-    "sideplane": {
-        "description": "macOS ↔ Vision Pro bridge app (formerly Mac2Vision)",
-        "purpose": "Seamless workflows between macOS and visionOS — stream Mac content into Vision Pro spatial environment",
-        "tech": "SwiftUI, Spatial Computing APIs, Network framework",
-        "patterns": [
-            "Bonjour/Network framework for Mac ↔ Vision Pro discovery",
-            "RealityKit for spatial rendering on visionOS side",
-            "SharePlay or custom streaming for screen content",
-            "Companion app pattern: macOS host + visionOS client",
-        ],
-        "watch_out": [
-            "Latency is critical — minimize serialization overhead",
-            "Privacy: screen capture requires explicit user permission on macOS",
-            "visionOS has no traditional keyboard — design for spatial input",
-        ],
-    },
-    "slackclaw": {
-        "description": "Slack bot integrated with Claude AI for multi-project dev automation",
-        "purpose": "Development automation hub: project agents, orchestrator, peer review, App Store Connect monitoring",
-        "tech": "Python, Slack Bolt, Anthropic API, App Store Connect API",
-        "patterns": [
-            "Channel-based routing: each channel → dedicated agent or special handler",
-            "Thread TS as session key for conversation context",
-            "orchestrator_config.py is the single source of truth for project registry",
-            "All secrets in .env — never hardcode tokens",
-        ],
-        "watch_out": [
-            "Slack rate limits: don't burst messages in loops",
-            "Thread context grows unbounded — consider pruning for long sessions",
-            "App Store Connect JWT tokens expire — refresh before polling",
-        ],
-    },
-}
-
 LANGUAGE_CONVENTIONS = {
     "swift": """
 Coding conventions (Swift API Design Guidelines):
@@ -206,7 +123,7 @@ class ProjectAgent:
         # Build base prompt from PROJECT_KNOWLEDGE + LANGUAGE_CONVENTIONS
         # (existing logic preserved)
         p = self.project
-        knowledge = PROJECT_KNOWLEDGE.get(self.project_key, {})
+        knowledge = self.project.get("context", {})
         lang = p.get("language", "unknown")
         conventions = LANGUAGE_CONVENTIONS.get(lang, "")
         patterns = "\n".join(f"- {pat}" for pat in knowledge.get("patterns", []))

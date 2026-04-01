@@ -3,11 +3,18 @@ from unittest.mock import MagicMock, patch
 from agents.project_agent import ProjectAgent
 
 PROJECT_CONFIG = {
-    "name": "Dayist",
-    "path": "/tmp/dayist",
+    "name": "Alpha",
+    "path": "/tmp/alpha",
     "platform": "ios",
     "language": "swift",
-    "github_repo": "YOUR_ORG/Dayist",
+    "github_repo": "test-org/Alpha",
+    "context": {
+        "description": "Test project for unit tests",
+        "purpose": "Validate ProjectAgent behavior",
+        "tech": "SwiftUI",
+        "patterns": ["MVVM architecture"],
+        "watch_out": ["Force unwraps"],
+    },
 }
 
 
@@ -23,7 +30,7 @@ def make_agent(tmp_path):
         "peer_review.StagedPeerReview"
     ), patch("orchestrator_config.PROJECTS", {}):
         agent = ProjectAgent(
-            project_key="dayist",
+            project_key="alpha",
             project_config=config,
             client=client,
             app=app,
