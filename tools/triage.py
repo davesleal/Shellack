@@ -25,14 +25,12 @@ def _configured_model() -> str:
 
 
 
-_PROMPT = """Classify this developer request. Reply with JSON only, no prose.
+_SYSTEM_PROMPT = """Classify this developer request. Reply with JSON only, no prose.
 {"tier": "simple|moderate|complex", "reason": "one sentence"}
 
 simple   = question, explanation, lookup, read-only, status check
 moderate = code review, analysis, single-file change, debugging help
-complex  = multi-file edits, refactor, long debugging, architecture work
-
-Request: """
+complex  = multi-file edits, refactor, long debugging, architecture work"""
 
 
 def classify(prompt: str, project_key: str = "") -> TriageResult:
@@ -45,7 +43,8 @@ def classify(prompt: str, project_key: str = "") -> TriageResult:
         msg = client.messages.create(
             model=_HAIKU,
             max_tokens=64,
-            messages=[{"role": "user", "content": _PROMPT + prompt}],
+            system=_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": prompt}],
         )
         raw = msg.content[0].text.strip()
         if not raw:

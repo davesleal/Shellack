@@ -142,8 +142,8 @@ class Orchestrator:
                 continue
 
             try:
-                # Use ripgrep or grep
-                cmd = ["rg", "-l", query, str(project_path)]
+                # Use ripgrep with --fixed-strings to treat query as literal
+                cmd = ["rg", "-l", "-F", query, str(project_path)]
                 result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
 
                 if result.returncode == 0:

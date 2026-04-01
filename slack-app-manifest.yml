@@ -15,24 +15,38 @@ features:
 oauth_config:
   scopes:
     bot:
-      - app_mentions:read
-      - canvases:read
-      - canvases:write
-      - channels:history
-      - channels:join
-      - channels:read
-      - chat:write
-      - files:read
-      - files:write
-      - groups:history
-      - groups:read
-      - im:history
-      - im:read
-      - mpim:history
-      - mpim:read
-      - reactions:read
-      - reactions:write
-      - users:read
+      # --- Channel access (public & private) ---
+      - app_mentions:read    # Receive @Shellack mentions in channels
+      - channels:history     # Read messages in public channels the bot is in
+      - channels:join        # Auto-join public channels when mentioned
+      - channels:read        # List and get info about public channels
+      - groups:history       # Read messages in private channels the bot is in
+      - groups:read          # List and get info about private channels
+
+      # --- Direct messages ---
+      # NOTE: im:* and mpim:* can be removed if the bot does not need DM support.
+      - im:history           # Read single-party DM messages
+      - im:read              # List DMs the bot has been added to
+      - mpim:history         # Read multi-party DM messages
+      - mpim:read            # List multi-party DMs the bot has been added to
+
+      # --- Messaging ---
+      - chat:write           # Post messages and replies in threads
+
+      # --- Canvas (project state mirrors) ---
+      - canvases:read        # Read canvas content (STATE.md mirrors)
+      - canvases:write       # Update canvas content (STATE.md mirrors)
+
+      # --- Files ---
+      - files:read           # Access shared files (logs, screenshots)
+      - files:write          # Upload files (reports, artifacts)
+
+      # --- Reactions ---
+      - reactions:read       # Read emoji reactions (trigger detection)
+      - reactions:write      # Add reactions (status indicators like :eyes:, :claude:)
+
+      # --- Users ---
+      - users:read           # Resolve user display names for messages
 
 settings:
   event_subscriptions:
