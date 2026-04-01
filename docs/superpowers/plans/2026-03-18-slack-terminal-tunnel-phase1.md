@@ -114,7 +114,7 @@ def test_api_backend_close_clears_history():
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/daveleal/Repos/Shellack
+cd /path/to/shellack
 source venv/bin/activate
 pytest tests/test_session_backend.py -v 2>&1 | head -20
 ```
@@ -891,7 +891,7 @@ def test_run_prefix_creates_slack_session():
 
     with patch("bot_unified.SlackSession", return_value=mock_session), \
          patch("bot_unified.APIBackend"), \
-         patch("bot_unified.get_channel_name", return_value="dayist-dev"), \
+         patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
          patch.dict("os.environ", {"SESSION_BACKEND": "api", "SESSION_MODEL": "claude-sonnet-4-6"}):
 
         event = _make_event("<@BOT> run: investigate the crash")
@@ -928,7 +928,7 @@ def test_thread_run_prefix_does_not_create_session():
     importlib.reload(bot_unified)
 
     with patch("bot_unified.handle_project_message") as mock_proj, \
-         patch("bot_unified.get_channel_name", return_value="dayist-dev"), \
+         patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
          patch("bot_unified.is_orchestrator_channel", return_value=False), \
          patch("bot_unified.is_peer_review_channel", return_value=False):
 
@@ -973,7 +973,7 @@ def test_non_run_mention_does_not_create_session():
     importlib.reload(bot_unified)
 
     with patch("bot_unified.handle_project_message") as mock_proj, \
-         patch("bot_unified.get_channel_name", return_value="dayist-dev"), \
+         patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
          patch("bot_unified.is_orchestrator_channel", return_value=False), \
          patch("bot_unified.is_peer_review_channel", return_value=False):
 
@@ -1127,7 +1127,7 @@ Expected: all tests pass, no regressions.
 
 Start the bot:
 ```bash
-cd /Users/daveleal/Repos/Shellack
+cd /path/to/shellack
 source venv/bin/activate
 SESSION_BACKEND=api python bot_unified.py
 ```

@@ -544,7 +544,7 @@ FAKE_PROJECT = {
 }
 ```
 
-Update the `project_key` from `"dayist"` to `"alpha"` in all test calls.
+Update the `project_key` from `"alpha"` to `"alpha"` in all test calls.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -881,23 +881,23 @@ Apply these substitutions in every test file:
 
 | Old | New |
 |-----|-----|
-| `"dayist"` | `"alpha"` |
-| `"Dayist"` | `"Alpha"` |
-| `"DayistAgent"` | `"AlphaAgent"` |
-| `"dayist-dev"` | `"alpha-dev"` |
+| `"alpha"` | `"alpha"` |
+| `"Alpha"` | `"Alpha"` |
+| `"AlphaAgent"` | `"AlphaAgent"` |
+| `"alpha-dev"` | `"alpha-dev"` |
 | `"C0AM872QM8E"` | `"C_ALPHA"` |
-| `"tiledock"` | `"beta"` |
-| `"TileDock"` | `"Beta"` |
-| `"tiledock-dev"` | `"beta-dev"` |
+| `"beta"` | `"beta"` |
+| `"Beta"` | `"Beta"` |
+| `"beta-dev"` | `"beta-dev"` |
 | `"C0AHTQU2CQ2"` | `"C_BETA"` |
 | `"slackclaw-dev"` | `"alpha-dev"` (or `"shellack-dev"` where it refers to the bot's own channel) |
 | `"slackclaw"` | `"shellack"` (as project key) |
-| `"YOUR_ORG/Dayist"` | `"test-org/Alpha"` |
+| `"YOUR_ORG/Alpha"` | `"test-org/Alpha"` |
 | `"YOUR_ORG/Shellack"` | `"test-org/Shellack"` |
-| `project_name="Dayist"` | `project_name="Alpha"` |
-| `project_key="dayist"` | `project_key="alpha"` |
-| `"C_DAYIST"` | `"C_ALPHA"` |
-| `[tiledock-review]` | `[beta-review]` |
+| `project_name="Alpha"` | `project_name="Alpha"` |
+| `project_key="alpha"` | `project_key="alpha"` |
+| `"C_ALPHA"` | `"C_ALPHA"` |
+| `[beta-review]` | `[beta-review]` |
 
 - [ ] **Step 2: Run full test suite**
 
@@ -937,7 +937,7 @@ Remove the project table entirely. Keep only the generic Shellack bot operating 
 - [ ] **Step 2: Clean `ARCHITECTURE.md`**
 
 Replace project-specific channel names with generic ones:
-- `#dayist-dev → Dayist project` → `#<project>-dev → Project agent`
+- `#alpha-dev → Alpha project` → `#<project>-dev → Project agent`
 - `#slackclaw-central` → `#central`
 - Example commands: use `projectA`, `projectB`
 
@@ -969,15 +969,15 @@ venv/bin/pytest -q
 
 - [ ] **Step 4: Clean `README.md`**
 
-Replace `DAYIST_PROJECT_PATH` and `TILEDOCK_PROJECT_PATH` with generic `PROJECT_NAME_PROJECT_PATH`. Ensure the clone URL uses generic org.
+Replace `ALPHA_PROJECT_PATH` and `BETA_PROJECT_PATH` with generic `PROJECT_NAME_PROJECT_PATH`. Ensure the clone URL uses generic org.
 
 - [ ] **Step 5: Clean `SETUP_GUIDE.md`**
 
-Replace all `dayist` references with `<your-project>`, `DAYIST_PROJECT_PATH` with `<PROJECT>_PROJECT_PATH`, bundle IDs with `com.example.yourapp`, channel names with `#<project>-dev`.
+Replace all `alpha` references with `<your-project>`, `ALPHA_PROJECT_PATH` with `<PROJECT>_PROJECT_PATH`, bundle IDs with `com.example.yourapp`, channel names with `#<project>-dev`.
 
 - [ ] **Step 6: Clean `HYBRID_APPROACH.md`**
 
-Replace `dayist-dev` with `project-dev`, `com.example.Dayist` with `com.example.yourapp`, channel variants with generic names.
+Replace `alpha-dev` with `project-dev`, `com.example.Alpha` with `com.example.yourapp`, channel variants with generic names.
 
 - [ ] **Step 7: Clean `docs/PROJECT_DESCRIPTIONS.md`**
 
@@ -999,12 +999,12 @@ Modular architecture with channel-based routing
 
 - [ ] **Step 10: Clean legacy files**
 
-- `bot.py`: Replace `"dayist-dev"` with a config lookup or generic placeholder
-- `bot_enhanced.py`: Replace Dayist channel config, `com.daveleal.Dayist` bundle ID
-- `monitor_only.py`: Replace `CHANNEL = "dayist-dev"` and `BUNDLE_ID = "com.daveleal.Dayist"` with env var reads
-- `claude-slack`: Replace hardcoded `/Users/daveleal/Repos/SlackClaw` with `$(dirname "$0")` or `SCRIPT_DIR`
-- `setup.sh`: Replace `#dayist-dev` reference with generic example
-- `.env.example`: Replace `DAYIST_PROJECT_PATH` with generic `# PROJECT_NAME_PROJECT_PATH=/path/to/project`
+- `bot.py`: Replace `"alpha-dev"` with a config lookup or generic placeholder
+- `bot_enhanced.py`: Replace Alpha channel config, `com.example.Alpha` bundle ID
+- `monitor_only.py`: Replace `CHANNEL = "alpha-dev"` and `BUNDLE_ID = "com.example.Alpha"` with env var reads
+- `claude-slack`: Replace hardcoded `/path/to/shellack` with `$(dirname "$0")` or `SCRIPT_DIR`
+- `setup.sh`: Replace `#alpha-dev` reference with generic example
+- `.env.example`: Replace `ALPHA_PROJECT_PATH` with generic `# PROJECT_NAME_PROJECT_PATH=/path/to/project`
 
 - [ ] **Step 11: Run full test suite**
 
@@ -1036,14 +1036,14 @@ Run each of these — all should return zero results (excluding `docs/superpower
 
 ```bash
 grep -rI --include="*.py" --include="*.md" --include="*.sh" --include="*.yaml" --include="*.json" \
-  -E "Dayist|TileDock|MacDock|GridBoard|gridboard|SidePlane|Mac2Vision|SlackClaw" \
+  -E "Alpha|Beta|Beta|GridBoard|gridboard|Foxtrot|Foxtrot|SlackClaw" \
   --exclude-dir=docs/superpowers/specs --exclude-dir=docs/superpowers/plans \
   --exclude="projects.yaml" .
 ```
 
 ```bash
 grep -rI --include="*.py" --include="*.md" --include="*.sh" \
-  -E "davesleal|com\.daveleal|Leal Labs" \
+  -E "your-org|com\.daveleal|your workspace" \
   --exclude-dir=docs/superpowers/specs --exclude-dir=docs/superpowers/plans .
 ```
 

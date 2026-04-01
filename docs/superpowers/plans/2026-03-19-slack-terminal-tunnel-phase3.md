@@ -8,7 +8,7 @@
 
 ## Goal
 
-Add plugin management commands to Shellack so Dave can install, remove, and list Claude Code plugins, MCP servers, and Shellack bot extensions — all from Slack, without touching a terminal.
+Add plugin management commands to Shellack so the operator can install, remove, and list Claude Code plugins, MCP servers, and Shellack bot extensions — all from Slack, without touching a terminal.
 
 ---
 
@@ -334,7 +334,7 @@ class TestListAll:
 ### 1.2 Run tests — expect all failures
 
 ```bash
-cd /Users/daveleal/Repos/Shellack
+cd /path/to/shellack
 python -m pytest tests/test_plugin_manager.py -v 2>&1 | head -40
 # Expected: ImportError or collection errors — tools/plugin_manager.py does not exist yet
 ```
@@ -559,7 +559,7 @@ class PluginManager:
 ### 1.4 Run tests — expect all green
 
 ```bash
-cd /Users/daveleal/Repos/Shellack
+cd /path/to/shellack
 python -m pytest tests/test_plugin_manager.py -v
 # Expected: all tests pass
 ```
@@ -567,7 +567,7 @@ python -m pytest tests/test_plugin_manager.py -v
 ### 1.5 Commit
 
 ```bash
-cd /Users/daveleal/Repos/Shellack
+cd /path/to/shellack
 git add tools/plugin_manager.py tests/test_plugin_manager.py
 git commit -m "feat: add PluginManager for plugins, MCPs, and bot extensions (Phase 3 Task 1)"
 ```
@@ -860,7 +860,7 @@ class TestPluginsList:
 ### 2.2 Run tests — expect all failures
 
 ```bash
-cd /Users/daveleal/Repos/Shellack
+cd /path/to/shellack
 python -m pytest tests/test_bot_plugin_commands.py -v 2>&1 | head -50
 # Expected: AttributeError — bot_unified has no plugin_manager, _bot_extensions,
 #           or _handle_plugin_command yet
@@ -1082,7 +1082,7 @@ Note: `user_id` is extracted from `event.get("user", "")`. This line must appear
 ### 2.4 Run tests — expect all green
 
 ```bash
-cd /Users/daveleal/Repos/Shellack
+cd /path/to/shellack
 python -m pytest tests/test_bot_plugin_commands.py -v
 # Expected: all tests pass
 
@@ -1094,7 +1094,7 @@ python -m pytest tests/ -v
 ### 2.5 Commit
 
 ```bash
-cd /Users/daveleal/Repos/Shellack
+cd /path/to/shellack
 git add bot_unified.py tests/test_bot_plugin_commands.py
 git commit -m "feat: wire plugin commands into bot_unified (Phase 3 Task 2)"
 ```

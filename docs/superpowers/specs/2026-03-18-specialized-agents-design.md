@@ -1,7 +1,7 @@
 # Specialized Product Agents — Design Spec
 **Date:** 2026-03-18
 **Status:** Approved
-**Author:** Dave Leal + Claude Code
+**Author:** the operator + Claude Code
 
 ---
 
@@ -50,7 +50,7 @@ ProjectAgent.handle(prompt, thread_context)
 
 **"Code changed" detection:** Inferred from task type — `CrashInvestigatorAgent` and `TestingAgent` responses are always treated as potential code changes. `DocsAgent` and general agent responses are treated as code changes only if the Claude response contains at least one fenced code block (triple backtick). `CodeReviewAgent` does not trigger peer review (it IS a review).
 
-**Review timing:** Stage 1 is fire-and-forget — the agent posts `pending_review`, fires the review, then immediately posts `done`. It does not block waiting for review results. If Stage 1 flags a blocking issue, `#code-review` posts `🙋 @Dave` in that thread independently.
+**Review timing:** Stage 1 is fire-and-forget — the agent posts `pending_review`, fires the review, then immediately posts `done`. It does not block waiting for review results. If Stage 1 flags a blocking issue, `#code-review` posts `🙋 @operator` in that thread independently.
 
 **Failure state:** If any step throws an uncaught exception, `LifecycleNotifier.failed(error)` posts `❌ Failed: {error}` to the thread. GitHub issues created before failure remain open.
 
@@ -83,19 +83,19 @@ General/question tasks (no keyword match) → main agent, no GitHub issue, no jo
 - `StagedPeerReview` (new class in `peer_review.py`) wraps `PeerReviewCoordinator`
 - Calls `PeerReviewCoordinator.review_pr(pr_data)` — extended to enforce structured JSON output via system prompt so blocking detection is reliable (not brittle regex)
 - Posts results as replies in a new `#code-review` thread
-- If any reviewer marks a finding as blocking → posts `🙋 @Dave` in the `#code-review` thread
+- If any reviewer marks a finding as blocking → posts `🙋 @operator` in the `#code-review` thread
 
 **Stage 2 (async, immediately after Stage 1):**
 - Maestro identifies agents with tech overlap (same `platform` or `language` from `orchestrator_config.py`)
-- Posts a message to `#code-review` @mentioning the Shellack bot with a routing prefix indicating which project agent should respond (e.g., `[dayist-review] @Shellack please review...`). The existing channel-based dispatch in `bot_unified.py` picks this up and routes to the correct project agent.
+- Posts a message to `#code-review` @mentioning the Shellack bot with a routing prefix indicating which project agent should respond (e.g., `[alpha-review] @Shellack please review...`). The existing channel-based dispatch in `bot_unified.py` picks this up and routes to the correct project agent.
 - Tags up to 2 relevant project agents this way
 - No timeout — Stage 2 is best-effort
 
 **Note on "tagging an agent":** Project agents are not separate Slack users — they are all the same Shellack bot. Stage 2 works by posting a prefixed message in `#code-review` that the bot's dispatcher recognises and routes to the correct `ProjectAgent` instance.
 
 **Escalation:**
-- Stage 1 blocking finding → `🙋 @Dave` in `#code-review` thread
-- Agent stuck mid-task → `🙋 @Dave` in the original project thread
+- Stage 1 blocking finding → `🙋 @operator` in `#code-review` thread
+- Agent stuck mid-task → `🙋 @operator` in the original project thread
 
 ---
 
@@ -107,10 +107,10 @@ For each significant event, the agent posts a **top-level message to the project
 
 | Event | Top-level post format |
 |-------|----------------------|
-| Issue created | `🐛 [Dayist] Issue #42 opened: "Login crash on iPhone 15" → <thread link> <github link>` |
-| Peer review triggered | `👀 [Dayist] Peer review requested → <thread link> \| #code-review` |
-| Escalation | `🙋 [Dayist] @Dave — input needed → <thread link>` |
-| Task done | `✅ [Dayist] Done: login crash fixed, issue #42 closed → <thread link>` |
+| Issue created | `🐛 [Alpha] Issue #42 opened: "Login crash on iPhone 15" → <thread link> <github link>` |
+| Peer review triggered | `👀 [Alpha] Peer review requested → <thread link> \| #code-review` |
+| Escalation | `🙋 [Alpha] @operator — input needed → <thread link>` |
+| Task done | `✅ [Alpha] Done: login crash fixed, issue #42 closed → <thread link>` |
 
 **What does NOT get a channel post:** `started`, `in_progress` — these stay in-thread only.
 
@@ -190,7 +190,7 @@ Platform labels: `ios`, `macos`, `server`
 ```python
 class LifecycleNotifier:
     def __init__(self, app: App, channel_id: str, thread_ts: str,
-                 project_name: str, dave_user_id: str)
+                 project_name: str, owner_user_id: str)
     # Thread-only (no channel post):
     def started(self, summary: str)        # 🔵 Started: {summary}
     def in_progress(self, detail: str)     # 🔨 {detail}
@@ -199,11 +199,11 @@ class LifecycleNotifier:
     def issue_created(self, url: str, number: int)   # 🐛 thread + channel
     def pending_review(self, thread_link: str)        # 👀 thread + channel
     def done(self, summary: str, issue_number: int = None)  # ✅ thread + channel
-    def needs_human(self, reason: str)     # 🙋 thread + channel (@Dave)
+    def needs_human(self, reason: str)     # 🙋 thread + channel (@operator)
 ```
 
-`project_name` used in channel-level post prefix (e.g. `[Dayist]`).
-`dave_user_id` sourced from `DAVE_SLACK_USER_ID` env var, used in `needs_human()`.
+`project_name` used in channel-level post prefix (e.g. `[Alpha]`).
+`owner_user_id` sourced from `OWNER_SLACK_USER_ID` env var, used in `needs_human()`.
 Channel-level posts use `channel_id` with `thread_ts=None` (top-level).
 
 #### `tools/journal_writer.py`
@@ -223,13 +223,13 @@ class JournalWriter:
 #### `orchestrator_config.py`
 Add `github_repo` to each project entry:
 ```python
-"dayist":       {"github_repo": "davesleal/Dayist", ...},
-"nova":         {"github_repo": "davesleal/NOVA", ...},
-"nudge":        {"github_repo": "davesleal/Nudge", ...},
-"tiledock":     {"github_repo": "davesleal/TileDock", ...},
-"atmosuniversal": {"github_repo": "davesleal/atmos-universal", ...},
-"sideplane":    {"github_repo": "davesleal/SidePlane", ...},
-"slackclaw":    {"github_repo": "davesleal/Shellack", ...},
+"alpha":       {"github_repo": "your-org/Alpha", ...},
+"gamma":         {"github_repo": "your-org/Gamma", ...},
+"delta":        {"github_repo": "your-org/Delta", ...},
+"beta":     {"github_repo": "your-org/Beta", ...},
+"echo": {"github_repo": "your-org/echo", ...},
+"foxtrot":    {"github_repo": "your-org/Foxtrot", ...},
+"slackclaw":    {"github_repo": "your-org/Shellack", ...},
 ```
 
 #### `agents/project_agent.py`
@@ -239,7 +239,7 @@ def __init__(self, project_key: str, project_config: dict, client: Anthropic,
              app: App, channel_id: str, thread_ts: str)
 ```
 - Loads `CLAUDE.md` and prepends to system prompt
-- Constructs `LifecycleNotifier(app, channel_id, thread_ts, dave_user_id)`
+- Constructs `LifecycleNotifier(app, channel_id, thread_ts, owner_user_id)`
 - Constructs `GitHubClient(github_token)`
 - Constructs `JournalWriter(project_config["path"])`
 - `handle()` orchestrates full lifecycle per spec above
@@ -255,10 +255,10 @@ Pass `app`, `channel_id`, `thread_ts` when calling `agent_factory.get_agent()`.
 #### `Shellack/CLAUDE.md` (Maestro instructions)
 
 Contents to be written covering:
-- **Role:** Orchestrator across all Leal Labs projects — Dayist, NOVA, Nudge, TileDock, Atmos, SidePlane, Shellack
+- **Role:** Orchestrator across all your workspace projects — Alpha, Gamma, Delta, Beta, Echo, Foxtrot, Shellack
 - **Channel routing:** which channel maps to which project and agent
 - **GitHub standards:** issue title format `[Type] Brief description`, label taxonomy, severity (crash = P0, bug = P1, feature = P2)
-- **Escalation rules:** when to tag @Dave (blocking peer review finding, ambiguous scope, security issue, task failure)
+- **Escalation rules:** when to tag @operator (blocking peer review finding, ambiguous scope, security issue, task failure)
 - **Peer review protocol:** always trigger after code changes; Stage 1 auto, Stage 2 tag agents with same platform
 - **Journal standards:** narrative tone, entry must include insights suitable for a blog post
 - **Completion checklist:** STATE.md → docs/JOURNAL.md → README (if new capability)
@@ -270,7 +270,7 @@ Contents to be written covering:
 `.env` / `.env.example`:
 ```
 GITHUB_TOKEN=ghp_your_token_here      # Needs 'repo' scope for issue creation
-DAVE_SLACK_USER_ID=<your-slack-user-id>  # Used in @mention escalations; find via Slack profile
+OWNER_SLACK_USER_ID=<your-slack-user-id>  # Used in @mention escalations; find via Slack profile
 ```
 
 ---
@@ -279,7 +279,7 @@ DAVE_SLACK_USER_ID=<your-slack-user-id>  # Used in @mention escalations; find vi
 
 | Class | Constructed by | Receives at init |
 |-------|---------------|------------------|
-| `LifecycleNotifier` | `ProjectAgent.__init__` | `app`, `channel_id`, `thread_ts`, `dave_user_id` |
+| `LifecycleNotifier` | `ProjectAgent.__init__` | `app`, `channel_id`, `thread_ts`, `owner_user_id` |
 | `GitHubClient` | `ProjectAgent.__init__` | `GITHUB_TOKEN` from env |
 | `JournalWriter` | `ProjectAgent.__init__` | `project_path` |
 | `StagedPeerReview` | `ProjectAgent.__init__` | `app`, `code_review_channel_id` (from env or hardcoded `"code-review"`) |
@@ -327,7 +327,7 @@ None (general)         → no issue created              # triggers peer review 
 - [ ] High-signal events (`🐛 👀 ✅ 🙋`) also post top-level to project channel for Claude app visibility
 - [ ] Tasks producing code changes or issues trigger Stage 1 peer review in `#code-review`
 - [ ] Maestro tags ≤2 relevant project agents for Stage 2 review based on platform/language overlap
-- [ ] `@Dave` tagged in project thread when blocked; in `#code-review` when review is blocking
+- [ ] `@operator` tagged in project thread when blocked; in `#code-review` when review is blocking
 - [ ] Project `JOURNAL.md` gets a narrative entry after significant work (code change or issue created)
 - [ ] `STATE.md` and `docs/JOURNAL.md` updated on every task completion
 - [ ] `Shellack/CLAUDE.md` written with full maestro coordination protocol

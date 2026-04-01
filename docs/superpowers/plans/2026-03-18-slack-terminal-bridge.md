@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a named-pipe bridge so Dave can respond to Claude Code prompts via Slack Block Kit buttons on any device, instead of switching to the terminal.
+**Goal:** Build a named-pipe bridge so the operator can respond to Claude Code prompts via Slack Block Kit buttons on any device, instead of switching to the terminal.
 
-**Architecture:** A `claude-slack` wrapper script creates a named pipe and a session file, then launches `claude` with the pipe as stdin. When Claude needs input, it posts a Block Kit message via Slack MCP; Dave clicks a button; the Shellack Bolt handler writes the answer to the pipe. Sessions are identified by UUID so concurrent sessions never cross-contaminate.
+**Architecture:** A `claude-slack` wrapper script creates a named pipe and a session file, then launches `claude` with the pipe as stdin. When Claude needs input, it posts a Block Kit message via Slack MCP; the operator clicks a button; the Shellack Bolt handler writes the answer to the pipe. Sessions are identified by UUID so concurrent sessions never cross-contaminate.
 
 **Tech Stack:** Python 3.9+, Slack Bolt, `requests`, `fcntl`, `os` named pipes (POSIX), pytest + unittest.mock.
 
@@ -107,7 +107,7 @@ FAKE_PROJECTS = {
     "slackclaw": {
         "name": "Shellack",
         "primary_channel": "slackclaw-dev",
-        "github_repo": "davesleal/Shellack",
+        "github_repo": "your-org/Shellack",
     }
 }
 
@@ -122,7 +122,7 @@ FAKE_ROUTING_MISSING = {
 
 def test_detect_known_repo_returns_channel_id():
     from tools.slack_bridge import detect_channel_id
-    with patch("subprocess.check_output", return_value=b"git@github.com:davesleal/Shellack.git"), \
+    with patch("subprocess.check_output", return_value=b"git@github.com:your-org/Shellack.git"), \
          patch("tools.slack_bridge.PROJECTS", FAKE_PROJECTS), \
          patch("tools.slack_bridge.CHANNEL_ROUTING", FAKE_ROUTING_OK):
         channel_id, project_name = detect_channel_id()
@@ -142,7 +142,7 @@ def test_detect_unknown_repo_falls_back():
 
 def test_detect_missing_channel_id_falls_back_with_warning(capsys):
     from tools.slack_bridge import detect_channel_id
-    with patch("subprocess.check_output", return_value=b"git@github.com:davesleal/Shellack.git"), \
+    with patch("subprocess.check_output", return_value=b"git@github.com:your-org/Shellack.git"), \
          patch("tools.slack_bridge.PROJECTS", FAKE_PROJECTS), \
          patch("tools.slack_bridge.CHANNEL_ROUTING", FAKE_ROUTING_MISSING):
         channel_id, project_name = detect_channel_id()
@@ -192,7 +192,7 @@ def test_post_session_start_logs_warning_on_slack_error(caplog):
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/daveleal/Repos/Shellack && source venv/bin/activate
+cd /path/to/shellack && source venv/bin/activate
 pip install responses  # if not already installed
 pytest tests/test_slack_bridge.py -v 2>&1 | head -30
 ```
@@ -374,8 +374,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 client = WebClient(token=os.environ["SLACK_BOT_TOKEN"])
-for name in ["dayist-dev", "nova-dev", "nudge-dev", "tiledock-dev",
-             "atmos-dev", "sideplane-dev", "slackclaw-dev", "code-review"]:
+for name in ["alpha-dev", "gamma-dev", "delta-dev", "beta-dev",
+             "echo-dev", "foxtrot-dev", "slackclaw-dev", "code-review"]:
     result = client.conversations_list(types="public_channel,private_channel", limit=200)
     channel = next((c for c in result["channels"] if c["name"] == name), None)
     if channel:
@@ -391,14 +391,14 @@ In `orchestrator_config.py`, update `CHANNEL_ROUTING` to add `"channel_id"` to e
 ```python
 CHANNEL_ROUTING = {
     # iOS Project Channels
-    "dayist-dev":   {"project": "dayist",     "mode": "dedicated",   "channel_id": "C_PLACEHOLDER"},
-    "nova-dev":     {"project": "nova",        "mode": "dedicated",   "channel_id": "C_PLACEHOLDER"},
-    "nudge-dev":    {"project": "nudge",       "mode": "dedicated",   "channel_id": "C_PLACEHOLDER"},
+    "alpha-dev":   {"project": "alpha",     "mode": "dedicated",   "channel_id": "C_PLACEHOLDER"},
+    "gamma-dev":     {"project": "gamma",        "mode": "dedicated",   "channel_id": "C_PLACEHOLDER"},
+    "delta-dev":    {"project": "delta",       "mode": "dedicated",   "channel_id": "C_PLACEHOLDER"},
 
     # macOS Project Channels
-    "tiledock-dev": {"project": "tiledock",    "mode": "dedicated",   "channel_id": "C_PLACEHOLDER"},
-    "atmos-dev":    {"project": "atmosuniversal","mode": "dedicated",  "channel_id": "C_PLACEHOLDER"},
-    "sideplane-dev":{"project": "sideplane",   "mode": "dedicated",   "channel_id": "C_PLACEHOLDER"},
+    "beta-dev": {"project": "beta",    "mode": "dedicated",   "channel_id": "C_PLACEHOLDER"},
+    "echo-dev":    {"project": "echo","mode": "dedicated",  "channel_id": "C_PLACEHOLDER"},
+    "foxtrot-dev":{"project": "foxtrot",   "mode": "dedicated",   "channel_id": "C_PLACEHOLDER"},
 
     # Meta
     "slackclaw-dev":{"project": "slackclaw",   "mode": "dedicated",   "channel_id": "C_PLACEHOLDER"},
@@ -743,7 +743,7 @@ def handle_bridge_input(ack, body, action, client):
                 f"({e.strerror})"
             ),
         )
-        return  # leave buttons active so Dave can retry
+        return  # leave buttons active so the operator can retry
 
     # Update message: replace buttons with confirmation
     if not message_ts:
@@ -796,12 +796,12 @@ When the environment variable `CLAUDE_BRIDGE_SESSION` is set (check with
 Bash: `echo $CLAUDE_BRIDGE_SESSION`), you are running inside a Slack bridge
 session. In this mode:
 
-1. When you need input from Dave, use the Slack MCP (`slack_send_message`) to
+1. When you need input from the operator, use the Slack MCP (`slack_send_message`) to
    post to the channel ID in `$CLAUDE_BRIDGE_CHANNEL_ID`
 2. Format the message using Block Kit with interactive buttons:
    - `action_id`: `claude_bridge_input`
    - `value`: `{CLAUDE_BRIDGE_SESSION}|{option_value}`
-3. Then wait — Dave will click a button and the answer will arrive via stdin
+3. Then wait — the operator will click a button and the answer will arrive via stdin
    automatically
 4. Do NOT ask for input via terminal (it will not be seen)
 
@@ -835,7 +835,7 @@ No unit tests for the script itself — the underlying utilities (`detect_channe
 
 - [ ] **Step 1: Create `claude-slack`**
 
-Create `/Users/daveleal/Repos/Shellack/claude-slack`:
+Create `/path/to/shellack/claude-slack`:
 
 ```python
 #!/usr/bin/env python3
@@ -859,7 +859,7 @@ import sys
 import uuid
 
 # Add Shellack repo to path so orchestrator_config and tools are importable
-sys.path.insert(0, "/Users/daveleal/Repos/Shellack")
+sys.path.insert(0, "/path/to/shellack")
 
 from tools.slack_bridge import detect_channel_id, post_session_start
 
@@ -958,7 +958,7 @@ sys.exit(proc_handle.returncode)
 - [ ] **Step 2: Make it executable**
 
 ```bash
-chmod +x /Users/daveleal/Repos/Shellack/claude-slack
+chmod +x /path/to/shellack/claude-slack
 ```
 
 - [ ] **Step 3: Symlink to `/usr/local/bin`**
@@ -986,7 +986,7 @@ git commit -m "feat: add claude-slack wrapper script for Slack terminal bridge"
 In a terminal, from a project directory with a configured `channel_id`:
 
 ```bash
-CLAUDE_BRIDGE_TEST=1 /Users/daveleal/Repos/Shellack/claude-slack --version 2>&1 | head -5
+CLAUDE_BRIDGE_TEST=1 /path/to/shellack/claude-slack --version 2>&1 | head -5
 ls /tmp/claude_bridge/
 ```
 
@@ -1004,7 +1004,7 @@ Expected: `[claude-slack] WARNING` NOT printed (unknown repo falls back silently
 
 - [ ] **Step 3: Smoke test — end-to-end button click**
 
-1. From `/Users/daveleal/Repos/Shellack`, run `claude-slack`
+1. From `/path/to/shellack`, run `claude-slack`
 2. In a Claude session, run: `echo $CLAUDE_BRIDGE_SESSION`
 3. Confirm non-empty UUID is printed
 4. Use Slack MCP to post a Block Kit message with `format_bridge_blocks`
@@ -1024,7 +1024,7 @@ buttons on any device, instead of switching to the terminal.
 ### Install
 
 ```bash
-cd /Users/daveleal/Repos/Shellack
+cd /path/to/shellack
 chmod +x claude-slack
 ln -sf "$(pwd)/claude-slack" /usr/local/bin/claude-slack
 ```
@@ -1044,7 +1044,7 @@ claude-slack -p "do X"    # non-interactive prompt
 2. A 🟢 session-start message is posted to that channel.
 3. When Claude Code needs input, post a Block Kit message using
    `tools/slack_bridge.py::format_bridge_blocks` via the Slack MCP.
-4. Dave clicks a button on any device → the answer feeds back to Claude's stdin.
+4. the operator clicks a button on any device → the answer feeds back to Claude's stdin.
 
 ### Prerequisite
 
@@ -1088,7 +1088,7 @@ After all tasks complete, verify:
 - [ ] Clicking a button feeds the answer to Claude's stdin
 - [ ] Clicked message updates to show selection; buttons replaced with confirmation text
 - [ ] Two concurrent `claude-slack` sessions route independently with no cross-contamination
-- [ ] Stale button click (session ended) shows ephemeral error to Dave only, no crash
+- [ ] Stale button click (session ended) shows ephemeral error to the operator only, no crash
 - [ ] ENXIO (no reader on pipe) shows ephemeral error, buttons stay active
 - [ ] `claude-slack --continue` and other claude args pass through correctly
 - [ ] All tests pass (`pytest tests/ -v`)

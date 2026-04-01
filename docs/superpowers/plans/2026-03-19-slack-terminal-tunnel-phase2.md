@@ -123,7 +123,7 @@ def test_format_usage_message_max_mode(tmp_path, monkeypatch):
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/daveleal/Repos/Shellack
+cd /path/to/shellack
 source venv/bin/activate
 pytest tests/test_usage_tracker.py -v 2>&1 | head -15
 ```
@@ -879,7 +879,7 @@ def test_run_session_close_records_session():
 
     with patch("bot_unified.SlackSession", return_value=mock_session), \
          patch("bot_unified.APIBackend"), \
-         patch("bot_unified.get_channel_name", return_value="dayist-dev"), \
+         patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
          patch.object(bot_unified.usage_tracker, "record_session") as mock_record, \
          patch.dict("os.environ", {"SESSION_BACKEND": "api", "SESSION_MODEL": "claude-sonnet-4-6"}):
 
@@ -905,7 +905,7 @@ def test_project_message_records_mention():
          patch.dict("os.environ", {"SESSION_BACKEND": "api", "SESSION_MODEL": "claude-sonnet-4-6"}):
         mock_factory.get_agent.return_value.handle_message.return_value = "done"
         event = {"text": "hello", "channel": "C123", "ts": "100.0"}
-        bot_unified.handle_project_message(event, say=MagicMock(), channel_name="dayist-dev")
+        bot_unified.handle_project_message(event, say=MagicMock(), channel_name="alpha-dev")
 
     mock_record.assert_called_once()
 ```

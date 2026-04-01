@@ -32,7 +32,7 @@
 | `agents/sub_agents.py` | Modify | Fix label: "test" → "testing" in TRIGGER_MAP |
 | `bot_unified.py` | Modify | Pass app, channel_id, thread_ts to factory |
 | `CLAUDE.md` | Create | Maestro coordination instructions |
-| `.env.example` | Modify | Add GITHUB_TOKEN, DAVE_SLACK_USER_ID |
+| `.env.example` | Modify | Add GITHUB_TOKEN, OWNER_SLACK_USER_ID |
 | `STATE.md` | Update | Reflect new capabilities |
 | `docs/JOURNAL.md` | Update | Log this session's work |
 
@@ -96,7 +96,7 @@ from unittest.mock import patch, MagicMock
 from tools.github_client import GitHubClient
 
 PROJECTS = {
-    "dayist": {"github_repo": "davesleal/Dayist", "platform": "ios"},
+    "alpha": {"github_repo": "your-org/Alpha", "platform": "ios"},
 }
 
 
@@ -108,13 +108,13 @@ def client():
 def test_create_issue_returns_number_and_url(client):
     mock_response = MagicMock()
     mock_response.status_code = 201
-    mock_response.json.return_value = {"number": 42, "html_url": "https://github.com/davesleal/Dayist/issues/42"}
+    mock_response.json.return_value = {"number": 42, "html_url": "https://github.com/your-org/Alpha/issues/42"}
 
     with patch("tools.github_client.requests.post", return_value=mock_response):
-        result = client.create_issue("dayist", "Login crash", "Details here", "crash")
+        result = client.create_issue("alpha", "Login crash", "Details here", "crash")
 
     assert result["number"] == 42
-    assert result["url"] == "https://github.com/davesleal/Dayist/issues/42"
+    assert result["url"] == "https://github.com/your-org/Alpha/issues/42"
 
 
 def test_create_issue_returns_none_on_api_error(client):
@@ -123,7 +123,7 @@ def test_create_issue_returns_none_on_api_error(client):
     mock_response.json.return_value = {"message": "Bad credentials"}
 
     with patch("tools.github_client.requests.post", return_value=mock_response):
-        result = client.create_issue("dayist", "Title", "Body", "crash")
+        result = client.create_issue("alpha", "Title", "Body", "crash")
 
     assert result is None
 
@@ -139,7 +139,7 @@ def test_create_issue_applies_correct_labels_for_crash(client):
     mock_response.json.return_value = {"number": 1, "html_url": "https://github.com/x/y/issues/1"}
 
     with patch("tools.github_client.requests.post", return_value=mock_response) as mock_post:
-        client.create_issue("dayist", "Title", "Body", "crash")
+        client.create_issue("alpha", "Title", "Body", "crash")
         call_json = mock_post.call_args.kwargs["json"]
         assert "crash" in call_json["labels"]
         assert "bug" in call_json["labels"]
@@ -151,7 +151,7 @@ def test_close_issue_returns_true_on_success(client):
     mock_response.status_code = 200
 
     with patch("tools.github_client.requests.patch", return_value=mock_response):
-        result = client.close_issue("dayist", 42)
+        result = client.close_issue("alpha", 42)
 
     assert result is True
 
@@ -161,7 +161,7 @@ def test_close_issue_returns_false_on_error(client):
     mock_response.status_code = 404
 
     with patch("tools.github_client.requests.patch", return_value=mock_response):
-        result = client.close_issue("dayist", 999)
+        result = client.close_issue("alpha", 999)
 
     assert result is False
 ```
@@ -318,8 +318,8 @@ def notifier(app):
         app=app,
         channel_id="C123",
         thread_ts="111.222",
-        project_name="Dayist",
-        dave_user_id="U999",
+        project_name="Alpha",
+        owner_user_id="U999",
     )
 
 
@@ -345,7 +345,7 @@ def test_issue_created_posts_to_thread_and_channel(notifier, app):
     thread_call = next(c for c in calls if c.kwargs.get("thread_ts") == "111.222")
     channel_call = next(c for c in calls if "thread_ts" not in c.kwargs)
     assert "🐛" in thread_call.kwargs["text"]
-    assert "[Dayist]" in channel_call.kwargs["text"]
+    assert "[Alpha]" in channel_call.kwargs["text"]
     assert "#42" in channel_call.kwargs["text"]
 
 
@@ -355,7 +355,7 @@ def test_done_posts_to_thread_and_channel(notifier, app):
     assert len(calls) == 2
     channel_call = next(c for c in calls if "thread_ts" not in c.kwargs)
     assert "✅" in channel_call.kwargs["text"]
-    assert "[Dayist]" in channel_call.kwargs["text"]
+    assert "[Alpha]" in channel_call.kwargs["text"]
 
 
 def test_needs_human_mentions_dave(notifier, app):
@@ -394,12 +394,12 @@ logger = logging.getLogger(__name__)
 
 class LifecycleNotifier:
     def __init__(self, app, channel_id: str, thread_ts: str,
-                 project_name: str, dave_user_id: str):
+                 project_name: str, owner_user_id: str):
         self.app = app
         self.channel_id = channel_id
         self.thread_ts = thread_ts
         self.project_name = project_name
-        self.dave_user_id = dave_user_id
+        self.owner_user_id = owner_user_id
 
     def _post_thread(self, text: str):
         """Post reply in the active thread."""
@@ -454,9 +454,9 @@ class LifecycleNotifier:
         )
 
     def needs_human(self, reason: str):
-        self._post_thread(f"🙋 <@{self.dave_user_id}> — {reason}")
+        self._post_thread(f"🙋 <@{self.owner_user_id}> — {reason}")
         self._post_channel(
-            f"🙋 [{self.project_name}] <@{self.dave_user_id}> — {reason}"
+            f"🙋 [{self.project_name}] <@{self.owner_user_id}> — {reason}"
         )
 ```
 
@@ -670,7 +670,7 @@ def make_app(channel_id="C_REVIEW"):
 def test_stage1_posts_to_code_review_channel():
     app = make_app()
     spr = StagedPeerReview(app=app, code_review_channel_id="C_REVIEW",
-                           dave_user_id="U999")
+                           owner_user_id="U999")
 
     with patch.object(spr.coordinator, "review_pr") as mock_review:
         mock_review.return_value = {
@@ -680,9 +680,9 @@ def test_stage1_posts_to_code_review_channel():
         spr.trigger(
             summary="Fixed login crash",
             changed_files=["LoginView.swift"],
-            project_key="dayist",
+            project_key="alpha",
             origin_thread_ts="111.222",
-            origin_channel_id="C_DAYIST",
+            origin_channel_id="C_ALPHA",
         )
 
     app.client.chat_postMessage.assert_called()
@@ -694,7 +694,7 @@ def test_stage1_posts_to_code_review_channel():
 def test_stage1_tags_dave_on_blocking_issue():
     app = make_app()
     spr = StagedPeerReview(app=app, code_review_channel_id="C_REVIEW",
-                           dave_user_id="U999")
+                           owner_user_id="U999")
 
     with patch.object(spr.coordinator, "review_pr") as mock_review:
         mock_review.return_value = {
@@ -702,7 +702,7 @@ def test_stage1_tags_dave_on_blocking_issue():
                                   status="changes_requested", score=40,
                                   strengths=[], concerns=[], suggestions=[]),
         }
-        spr.trigger("Summary", ["file.py"], "dayist", "111.222", "C_DAYIST")
+        spr.trigger("Summary", ["file.py"], "alpha", "111.222", "C_ALPHA")
 
     texts = [c.kwargs["text"] for c in app.client.chat_postMessage.call_args_list]
     assert any("U999" in t for t in texts)
@@ -711,17 +711,17 @@ def test_stage1_tags_dave_on_blocking_issue():
 def test_stage2_posts_cross_project_review_request():
     app = make_app()
     projects = {
-        "dayist": {"platform": "ios", "language": "swift", "name": "Dayist"},
-        "nova": {"platform": "ios", "language": "swift", "name": "NOVA"},
+        "alpha": {"platform": "ios", "language": "swift", "name": "Alpha"},
+        "gamma": {"platform": "ios", "language": "swift", "name": "Gamma"},
     }
     spr = StagedPeerReview(app=app, code_review_channel_id="C_REVIEW",
-                           dave_user_id="U999", projects=projects)
+                           owner_user_id="U999", projects=projects)
 
     with patch.object(spr.coordinator, "review_pr", return_value={}):
-        spr.trigger("Summary", ["file.swift"], "dayist", "111.222", "C_DAYIST")
+        spr.trigger("Summary", ["file.swift"], "alpha", "111.222", "C_ALPHA")
 
     texts = [c.kwargs.get("text", "") for c in app.client.chat_postMessage.call_args_list]
-    assert any("[nova-review]" in t for t in texts)
+    assert any("[gamma-review]" in t for t in texts)
 
 
 def test_peer_review_agent_parses_structured_json():
@@ -828,11 +828,11 @@ Append at end of `peer_review.py`:
 class StagedPeerReview:
     """Orchestrates Stage 1 (automated) + Stage 2 (cross-project) peer review."""
 
-    def __init__(self, app, code_review_channel_id: str, dave_user_id: str,
+    def __init__(self, app, code_review_channel_id: str, owner_user_id: str,
                  projects: dict = None):
         self.app = app
         self.review_channel = code_review_channel_id
-        self.dave_user_id = dave_user_id
+        self.owner_user_id = owner_user_id
         self.projects = projects or {}
         self.coordinator = PeerReviewCoordinator()
 
@@ -867,7 +867,7 @@ class StagedPeerReview:
             self.app.client.chat_postMessage(
                 channel=self.review_channel,
                 thread_ts=review_thread_ts,
-                text=f"🙋 <@{self.dave_user_id}> — blocking issues found, needs review",
+                text=f"🙋 <@{self.owner_user_id}> — blocking issues found, needs review",
             )
 
         # Stage 2: tag ≤2 peer project agents with same platform/language
@@ -915,39 +915,39 @@ git commit -m "feat: add StagedPeerReview and fix brittle JSON parsing in PeerRe
 In `orchestrator_config.py`, update each project entry:
 
 ```python
-"dayist": {
-    "name": "Dayist",
-    "github_repo": "davesleal/Dayist",
+"alpha": {
+    "name": "Alpha",
+    "github_repo": "your-org/Alpha",
     ...
 },
-"nova": {
-    "name": "NOVA",
-    "github_repo": "davesleal/NOVA",
+"gamma": {
+    "name": "Gamma",
+    "github_repo": "your-org/Gamma",
     ...
 },
-"nudge": {
-    "name": "Nudge",
-    "github_repo": "davesleal/Nudge",
+"delta": {
+    "name": "Delta",
+    "github_repo": "your-org/Delta",
     ...
 },
 "slackclaw": {
     "name": "Shellack",
-    "github_repo": "davesleal/Shellack",
+    "github_repo": "your-org/Shellack",
     ...
 },
-"tiledock": {
-    "name": "TileDock",
-    "github_repo": "davesleal/TileDock",
+"beta": {
+    "name": "Beta",
+    "github_repo": "your-org/Beta",
     ...
 },
-"atmosuniversal": {
-    "name": "Atmos Universal",
-    "github_repo": "davesleal/atmos-universal",
+"echo": {
+    "name": "Echo",
+    "github_repo": "your-org/echo",
     ...
 },
-"sideplane": {
-    "name": "SidePlane",
-    "github_repo": "davesleal/SidePlane",
+"foxtrot": {
+    "name": "Foxtrot",
+    "github_repo": "your-org/Foxtrot",
     ...
 },
 ```
@@ -1019,7 +1019,7 @@ class ProjectAgent:
             channel_id=channel_id,
             thread_ts=thread_ts,
             project_name=project_config["name"],
-            dave_user_id=os.environ.get("DAVE_SLACK_USER_ID", ""),
+            owner_user_id=os.environ.get("OWNER_SLACK_USER_ID", ""),
         )
         self._github = GitHubClient(
             token=os.environ.get("GITHUB_TOKEN", ""),
@@ -1172,7 +1172,7 @@ Be concise and precise. Reference specific files/patterns when relevant."""
         spr = StagedPeerReview(
             app=self.app,
             code_review_channel_id=os.environ.get("CODE_REVIEW_CHANNEL_ID", "code-review"),
-            dave_user_id=os.environ.get("DAVE_SLACK_USER_ID", ""),
+            owner_user_id=os.environ.get("OWNER_SLACK_USER_ID", ""),
             projects=PROJECTS,
         )
         self._lifecycle.pending_review()
@@ -1263,7 +1263,7 @@ Add to `.env.example`:
 ```
 CODE_REVIEW_CHANNEL_ID=code-review   # Slack channel name for peer review posts
 GITHUB_TOKEN=ghp_your_token_here
-DAVE_SLACK_USER_ID=<your-slack-user-id>
+OWNER_SLACK_USER_ID=<your-slack-user-id>
 ```
 
 - [ ] **Step 8.3: Smoke test bot startup**
@@ -1292,24 +1292,24 @@ git commit -m "feat: wire agent factory with thread-scoped context in bot_unifie
 
 - [ ] **Step 9.1: Write maestro CLAUDE.md**
 
-Create `/Users/daveleal/Repos/Shellack/CLAUDE.md`:
+Create `/path/to/shellack/CLAUDE.md`:
 
 ```markdown
 # Shellack — Maestro Agent Instructions
 
-You are the orchestrator for Leal Labs' development workspace. You coordinate across 7 projects and ensure consistent standards, smooth handoffs, and clear communication to Dave.
+You are the orchestrator for your workspace' development workspace. You coordinate across 7 projects and ensure consistent standards, smooth handoffs, and clear communication to the operator.
 
 ## Projects & Channel Routing
 
 | Project | Channel | Platform | Repo |
 |---------|---------|----------|------|
-| Dayist | #dayist-dev | iOS 26+ | davesleal/Dayist |
-| NOVA | #nova-dev | iOS | davesleal/NOVA |
-| Nudge | #nudge-dev | iOS | davesleal/Nudge |
-| TileDock | #tiledock-dev | macOS | davesleal/TileDock |
-| Atmos Universal | #atmos-dev | macOS | davesleal/atmos-universal |
-| SidePlane | #sideplane-dev | macOS | davesleal/SidePlane |
-| Shellack | #slackclaw-dev | Server/Python | davesleal/Shellack |
+| Alpha | #alpha-dev | iOS 26+ | your-org/Alpha |
+| Gamma | #gamma-dev | iOS | your-org/Gamma |
+| Delta | #delta-dev | iOS | your-org/Delta |
+| Beta | #beta-dev | macOS | your-org/Beta |
+| Echo | #echo-dev | macOS | your-org/echo |
+| Foxtrot | #foxtrot-dev | macOS | your-org/Foxtrot |
+| Shellack | #slackclaw-dev | Server/Python | your-org/Shellack |
 
 ## GitHub Issue Standards
 
@@ -1317,16 +1317,16 @@ You are the orchestrator for Leal Labs' development workspace. You coordinate ac
 - Severity: P0 = crash (auto-create), P1 = bug (auto-create), P2 = feature (ask first)
 - Labels: use the taxonomy in `tools/github_client.py` — crash, bug, review, testing, documentation + platform
 
-## Escalation Rules — When to Tag Dave
+## Escalation Rules — When to Tag the operator
 
-Tag `@Dave` when:
+Tag `@operator` when:
 - A peer review Stage 1 flags a **blocking** issue
 - Task is **ambiguous in scope** (unclear if it's P1 or P2, unclear which project)
 - A **security vulnerability** is found
 - Agent encounters an **unrecoverable error** mid-task
 - Work requires **credentials or access** the agent doesn't have
 
-Do NOT tag Dave for: warnings, suggestions, minor style issues, informational questions.
+Do NOT tag the operator for: warnings, suggestions, minor style issues, informational questions.
 
 ## Peer Review Protocol
 
@@ -1355,7 +1355,7 @@ After every task, in this order:
 High-signal events post top-level to the project channel (not just in thread):
 - 🐛 Issue created
 - 👀 Peer review triggered
-- 🙋 Dave escalation
+- 🙋 the operator escalation
 - ✅ Task done
 
 This lets Claude app scan project channels for a workspace-wide status update.
@@ -1421,7 +1421,7 @@ git commit -m "docs: update STATE, JOURNAL, and README after specialized agents 
 | Var | Purpose |
 |-----|---------|
 | `GITHUB_TOKEN` | GitHub API — needs `repo` scope |
-| `DAVE_SLACK_USER_ID` | Used in 🙋 escalations |
+| `OWNER_SLACK_USER_ID` | Used in 🙋 escalations |
 | `CODE_REVIEW_CHANNEL_ID` | Slack channel for peer review (default: `code-review`) |
 | `SLACK_BOT_TOKEN` | Existing — Slack bot auth |
 | `SLACK_APP_TOKEN` | Existing — Socket mode |

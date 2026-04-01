@@ -1,13 +1,13 @@
 # Slack↔Terminal Bridge — Design Spec
 **Date:** 2026-03-18
 **Status:** Approved
-**Author:** Dave Leal + Claude Code
+**Author:** the operator + Claude Code
 
 ---
 
 ## Overview
 
-Build a bridge so Dave can respond to Claude Code prompts from Slack (any device) instead of switching to the terminal. Claude Code posts Block Kit button messages to the project's Slack channel when it needs input; clicking a button writes the answer to a named pipe that Claude Code reads as stdin.
+Build a bridge so the operator can respond to Claude Code prompts from Slack (any device) instead of switching to the terminal. Claude Code posts Block Kit button messages to the project's Slack channel when it needs input; clicking a button writes the answer to a named pipe that Claude Code reads as stdin.
 
 ---
 
@@ -43,7 +43,7 @@ Shellack (always running)
        loads /tmp/claude_bridge/<session_id>.json → gets pipe path
        opens pipe write-end (O_WRONLY | O_NONBLOCK), writes answer + newline
        updates original Slack message: buttons replaced with "✅ You chose: <answer>"
-       on error: chat_postEphemeral to Dave only
+       on error: chat_postEphemeral to the operator only
 ```
 
 ---
@@ -284,7 +284,7 @@ def handle_bridge_input(ack, body, action, client):
             user=user,
             text=f"⚠️ Could not reach terminal session — it may have exited. ({e.strerror})"
         )
-        return  # leave buttons active so Dave can retry or dismiss
+        return  # leave buttons active so the operator can retry or dismiss
 
     # Update message: replace buttons with confirmation text (buttons removed, not disabled —
     # Slack Block Kit has no native disabled state; replacement is the correct approach).
@@ -314,9 +314,9 @@ When `CLAUDE_BRIDGE_SESSION` is set in the environment, Claude Code is running i
 
 When the environment variable `CLAUDE_BRIDGE_SESSION` is set (check with Bash: `echo $CLAUDE_BRIDGE_SESSION`), you are running inside a Slack bridge session. In this mode:
 
-1. When you need input from Dave, use the Slack MCP (`slack_send_message`) to post to `$CLAUDE_BRIDGE_CHANNEL_ID`
+1. When you need input from the operator, use the Slack MCP (`slack_send_message`) to post to `$CLAUDE_BRIDGE_CHANNEL_ID`
 2. Format the message using Block Kit with interactive buttons (action_id: `claude_bridge_input`, value: `{CLAUDE_BRIDGE_SESSION}|{option_value}`)
-3. Then wait — Dave will click a button and the answer will arrive via stdin automatically
+3. Then wait — the operator will click a button and the answer will arrive via stdin automatically
 4. Do NOT ask for input via terminal (it will not be seen)
 
 Helper: `tools/slack_bridge.py::format_bridge_blocks(question, options, session_id)` returns the correct Block Kit JSON.
@@ -332,8 +332,8 @@ Helper: `tools/slack_bridge.py::format_bridge_blocks(question, options, session_
 
 ```python
 CHANNEL_ROUTING = {
-    "dayist-dev":   {"project": "dayist",        "mode": "dedicated", "channel_id": "C..."},
-    "nova-dev":     {"project": "nova",           "mode": "dedicated", "channel_id": "C..."},
+    "alpha-dev":   {"project": "alpha",        "mode": "dedicated", "channel_id": "C..."},
+    "gamma-dev":     {"project": "gamma",           "mode": "dedicated", "channel_id": "C..."},
     ...
     "slackclaw-dev":{"project": "slackclaw",      "mode": "dedicated", "channel_id": "C..."},
     "code-review":  {"project": None,             "mode": "peer_review","channel_id": "C..."},
@@ -352,19 +352,19 @@ Channel IDs are found via Slack app settings or `slack_search_channels`.
 
 ```
 1. cd /Shellack && claude-slack
-2. Wrapper: detects davesleal/Shellack → channel ID C_SLACKCLAW
+2. Wrapper: detects your-org/Shellack → channel ID C_SHELLACK
 3. Creates session abc123, pipe at /tmp/claude_bridge/abc123
 4. Opens write-end fd (keep-alive), then read-end fd
 5. Posts "🟢 Claude Code session started — Shellack" to #slackclaw-dev
 6. Starts `claude` with stdin=read_fd, env includes CLAUDE_BRIDGE_SESSION=abc123,
-   CLAUDE_BRIDGE_CHANNEL_ID=C_SLACKCLAW
+   CLAUDE_BRIDGE_CHANNEL_ID=C_SHELLACK
 
 7. Claude checks: echo $CLAUDE_BRIDGE_SESSION → abc123 (bridge mode active)
 8. Claude needs input → calls format_bridge_blocks("Which approach?", ["A","B","C"], "abc123")
-9. Posts Block Kit message to C_SLACKCLAW via Slack MCP
+9. Posts Block Kit message to C_SHELLACK via Slack MCP
    button values: "abc123|A", "abc123|B", "abc123|C"
 
-10. Dave clicks "B" on phone
+10. the operator clicks "B" on phone
 11. Slack sends action payload to Shellack
 12. handle_bridge_input: parses "abc123|B"
     reads /tmp/claude_bridge/abc123.json → pipe path
@@ -376,7 +376,7 @@ Channel IDs are found via Slack app settings or `slack_search_channels`.
 
 ### Concurrent sessions
 
-Two simultaneous `claude-slack` sessions (e.g. Shellack + Dayist) each get unique session IDs. Button values carry the session ID, so each click writes to the correct pipe. No shared state between sessions.
+Two simultaneous `claude-slack` sessions (e.g. Shellack + Alpha) each get unique session IDs. Button values carry the session ID, so each click writes to the correct pipe. No shared state between sessions.
 
 ---
 
@@ -385,13 +385,13 @@ Two simultaneous `claude-slack` sessions (e.g. Shellack + Dayist) each get uniqu
 | Scenario | Handling |
 |----------|----------|
 | Not a git repo / unknown remote | Silently fall back to `#claude-code` (C0AMEEP7EFL) |
-| Session file missing on button click | `chat_postEphemeral` "Session expired" to Dave only; no crash |
+| Session file missing on button click | `chat_postEphemeral` "Session expired" to the operator only; no crash |
 | Pipe exists but no reader (ENXIO — claude-slack exited after session file write) | `chat_postEphemeral` error; buttons stay active for retry |
 | Other pipe write failure (EPIPE, permission) | `chat_postEphemeral` error; buttons stay active |
 | `claude-slack` killed via SIGTERM | SIGTERM handler cleans up pipe + session file |
 | `claude-slack` killed via SIGKILL | Stale files remain; harmless — "session expired" on next button click |
 | >5 options | `format_bridge_blocks` splits into multiple actions rows (5 per row); total blocks stay well under Slack's 50-block limit |
-| Dave never clicks (async timeout) | Known limitation — Claude Code blocks indefinitely on pipe read. Acceptable for MVP; future work: close write-end after N minutes to send EOF |
+| the operator never clicks (async timeout) | Known limitation — Claude Code blocks indefinitely on pipe read. Acceptable for MVP; future work: close write-end after N minutes to send EOF |
 
 ---
 
@@ -462,7 +462,7 @@ claude-slack -p "do the thing"
 - [ ] Clicking a button on any device feeds the answer to Claude's stdin
 - [ ] Clicked message updates to show selection; buttons replaced with confirmation text
 - [ ] Two concurrent sessions route independently with no cross-contamination
-- [ ] Stale button click (session ended) shows ephemeral error to Dave only, no crash
+- [ ] Stale button click (session ended) shows ephemeral error to the operator only, no crash
 - [ ] ENXIO (no reader on pipe) shows ephemeral error, buttons stay active
 - [ ] `claude-slack --continue` and other claude args pass through correctly
 - [ ] All unit + integration tests pass

@@ -195,12 +195,12 @@ Every tracked file outside `docs/superpowers/specs/` and `docs/superpowers/plans
 
 | Category | Examples | Replacement |
 |----------|----------|-------------|
-| Project names | Dayist, TileDock, Atmos, SidePlane | Generic placeholders or removed entirely |
+| Project names | Alpha, Beta, Echo, Foxtrot | Generic placeholders or removed entirely |
 | Old repo name | SlackClaw | "Shellack" (the bot's actual name) |
-| GitHub org/user | davesleal, YOUR_ORG | `your-org` in examples |
-| Bundle IDs | com.daveleal.Dayist | `com.example.myapp` |
+| GitHub org/user | your-org, YOUR_ORG | `your-org` in examples |
+| Bundle IDs | com.example.Alpha | `com.example.myapp` |
 | Slack channel IDs | C0AM872QM8E, C0AHTQU2CQ2, etc. | Empty strings or `C0EXAMPLE123` |
-| Channel names | #dayist-dev, #tiledock-dev | `#project-a-dev`, `#project-b-dev` |
+| Channel names | #alpha-dev, #beta-dev | `#project-a-dev`, `#project-b-dev` |
 | Fallback channel ID | C0AMEEP7EFL | Empty string, loaded from env/config |
 
 ### Files requiring changes
