@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 import logging
+import os
 import re
 from pathlib import Path
 
@@ -41,6 +42,10 @@ def _sanitize_rule(rule: str) -> str | None:
     if len(rule) > _MAX_RULE_LENGTH:
         logger.warning(f"self_improver: rule too long ({len(rule)} chars), rejected")
         return None
+    # Reject non-ASCII to prevent Unicode lookalike bypasses
+    if not rule.isascii():
+        logger.warning(f"self_improver: rule contains non-ASCII chars, rejected")
+        return None
     if _SUSPICIOUS_PATTERNS.search(rule):
         logger.warning(f"self_improver: suspicious rule rejected: {rule!r}")
         return None
@@ -75,7 +80,6 @@ def reflect_and_update(
 
     Requires SELF_IMPROVER_ENABLED=true in env. Disabled by default.
     """
-    import os
     if os.environ.get("SELF_IMPROVER_ENABLED", "").lower() != "true":
         return None
 

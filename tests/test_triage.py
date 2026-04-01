@@ -117,3 +117,24 @@ def test_default_fallback_uses_current_session_model():
         result = classify("anything")
 
     assert result.model == "claude-opus-4-6"
+
+
+def test_classify_uses_system_kwarg():
+    """Classification prompt must be in system= kwarg, NOT concatenated into messages."""
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = _make_mock_response("simple", "test")
+
+    with patch("tools.triage.Anthropic", return_value=mock_client):
+        classify("What is this?")
+
+    call_kwargs = mock_client.messages.create.call_args[1]
+    # system= kwarg must be present and non-empty
+    assert "system" in call_kwargs, "classify must pass prompt via system= kwarg"
+    assert call_kwargs["system"], "system= kwarg must not be empty"
+    # user input must be in messages, not in system prompt
+    messages = call_kwargs["messages"]
+    assert len(messages) == 1
+    assert messages[0]["role"] == "user"
+    assert messages[0]["content"] == "What is this?"
+    # system prompt must NOT contain the user input
+    assert "What is this?" not in call_kwargs["system"]

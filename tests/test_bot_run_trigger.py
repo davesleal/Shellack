@@ -1,5 +1,5 @@
 # tests/test_bot_run_trigger.py
-"""Tests for @Shellack run: trigger and thread reply routing."""
+"""Tests for @Shellack run: trigger, thread reply routing, and error handling."""
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -113,5 +113,55 @@ def test_non_run_mention_does_not_create_session():
 
     assert bot_unified.RUN_SESSIONS == {}
     mock_proj.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Error sanitization — agent exceptions must NOT leak to Slack
+# ---------------------------------------------------------------------------
+
+def test_agent_error_does_not_leak_exception_text():
+    """When the agent raises, the error posted to Slack must NOT contain the exception message."""
+    import importlib
+    import bot_unified
+    importlib.reload(bot_unified)
+
+    secret_error = "ANTHROPIC_API_KEY=sk-ant-secret123 connection refused"
+
+    # Set up channel routing so handle_project_message reaches the agent
+    fake_routing = {"alpha-dev": {"project": "alpha", "mode": "dedicated"}}
+    fake_projects = {"alpha": {"name": "Alpha", "path": "/tmp/alpha"}}
+
+    with patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
+         patch("bot_unified.is_orchestrator_channel", return_value=False), \
+         patch("bot_unified.is_peer_review_channel", return_value=False), \
+         patch.dict(bot_unified.CHANNEL_ROUTING, fake_routing, clear=True), \
+         patch.dict(bot_unified.PROJECTS, fake_projects, clear=True), \
+         patch("bot_unified.agent_factory") as mock_factory, \
+         patch("bot_unified.ThinkingIndicator") as MockIndicator, \
+         patch("bot_unified.app") as mock_app:
+
+        mock_agent = MagicMock()
+        mock_agent.handle.side_effect = RuntimeError(secret_error)
+        mock_factory.get_agent.return_value = mock_agent
+
+        mock_indicator = MagicMock()
+        MockIndicator.return_value = mock_indicator
+
+        mock_app.client.reactions_add = MagicMock()
+        mock_app.client.reactions_remove = MagicMock()
+        mock_app.client.chat_postMessage = MagicMock()
+
+        event = _make_event("<@BOT> explain the auth system", channel="C123")
+        event["user"] = "U_USER"
+        bot_unified.handle_mention(event, say=MagicMock())
+
+    # Verify chat_postMessage was called with a generic error
+    mock_app.client.chat_postMessage.assert_called_once()
+    posted_text = mock_app.client.chat_postMessage.call_args[1]["text"]
+    # The secret error text must NOT appear in the posted message
+    assert secret_error not in posted_text
+    assert "sk-ant-secret123" not in posted_text
+    # It should be a generic message
+    assert "error occurred" in posted_text.lower() or "try again" in posted_text.lower()
 
 

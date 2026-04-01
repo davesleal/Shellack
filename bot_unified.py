@@ -386,9 +386,15 @@ def _handle_plugin_command(
 
     # --- Owner-only gate for mutating commands ---
     def _require_owner() -> bool:
-        """Return True if user is the owner, False otherwise (posts error)."""
+        """Return True if user is the owner, False otherwise (posts error).
+
+        Fail-closed: if OWNER_SLACK_USER_ID is not set, deny all mutating commands.
+        """
         owner = os.environ.get("OWNER_SLACK_USER_ID", "")
-        if owner and user_id != owner:
+        if not owner:
+            _post_error("OWNER_SLACK_USER_ID is not configured. Plugin management is disabled.")
+            return False
+        if user_id != owner:
             _post_error("Plugin management is restricted to the workspace owner.")
             return False
         return True
@@ -476,7 +482,10 @@ def _handle_config_command(clean_text: str, say, thread_ts: str, event: Dict) ->
 
     if is_config_command:
         owner = os.environ.get("OWNER_SLACK_USER_ID", "")
-        if owner and event.get("user") != owner:
+        if not owner:
+            say("OWNER_SLACK_USER_ID is not configured. Config commands are disabled.", thread_ts=thread_ts)
+            return True
+        if event.get("user") != owner:
             say("Configuration changes are restricted to the workspace owner.", thread_ts=thread_ts)
             return True
 
@@ -992,10 +1001,11 @@ def handle_bridge_input(ack, body, action, client):
         )
         return
     except Exception as e:
+        logger.exception("Could not load bridge session")
         client.chat_postEphemeral(
             channel=channel,
             user=user,
-            text=f"⚠️ Could not load session: {e}",
+            text="⚠️ Could not load session. The terminal session may have ended.",
         )
         return
 
