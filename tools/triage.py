@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 import logging
+import os
 from dataclasses import dataclass
 
 import httpx
@@ -9,13 +10,6 @@ from anthropic import Anthropic
 logger = logging.getLogger(__name__)
 
 _HAIKU = "claude-haiku-4-5-20251001"
-_SONNET = "claude-sonnet-4-6"
-
-_TIER_TO_MODEL: dict[str, str] = {
-    "simple": _HAIKU,
-    "moderate": _SONNET,
-    "complex": _SONNET,
-}
 
 
 @dataclass
@@ -25,8 +19,12 @@ class TriageResult:
     reason: str  # one sentence, for logging only
 
 
+def _configured_model() -> str:
+    return os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
+
+
 # Safe default — returned on any triage failure
-_DEFAULT = TriageResult(tier="moderate", model=_SONNET, reason="triage unavailable")
+_DEFAULT = TriageResult(tier="moderate", model=_configured_model(), reason="triage unavailable")
 
 _PROMPT = """Classify this developer request. Reply with JSON only, no prose.
 {"tier": "simple|moderate|complex", "reason": "one sentence"}
@@ -50,13 +48,16 @@ def classify(prompt: str, project_key: str = "") -> TriageResult:
             max_tokens=64,
             messages=[{"role": "user", "content": _PROMPT + prompt}],
         )
-        data = json.loads(msg.content[0].text)
+        raw = msg.content[0].text.strip()
+        if not raw:
+            raise ValueError("empty response from triage model")
+        data = json.loads(raw)
         tier = data.get("tier", "")
-        if tier not in _TIER_TO_MODEL:
+        if tier not in ("simple", "moderate", "complex"):
             raise ValueError(f"Unknown tier: {tier!r}")
         result = TriageResult(
             tier=tier,
-            model=_TIER_TO_MODEL[tier],
+            model=_configured_model(),
             reason=data.get("reason", ""),
         )
         logger.info(f"Triage: {result.tier} -> {result.model} -- \"{result.reason}\"")

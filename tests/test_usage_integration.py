@@ -32,12 +32,9 @@ def test_run_session_close_records_session():
 
 
 def test_project_message_records_mention():
-    """handle_project_message calls usage_tracker.record_mention with triaged model."""
+    """handle_project_message calls usage_tracker.record_mention with SESSION_MODEL."""
     import bot_unified
     importlib.reload(bot_unified)
-
-    from tools.triage import TriageResult
-    mock_triage_result = TriageResult(tier="simple", model="claude-haiku-4-5-20251001", reason="test")
 
     mock_app = MagicMock()
     mock_app.client.reactions_add = MagicMock()
@@ -48,12 +45,11 @@ def test_project_message_records_mention():
     with patch("bot_unified.agent_factory") as mock_factory, \
          patch("bot_unified.app", mock_app), \
          patch("bot_unified.ThinkingIndicator") as mock_indicator_cls, \
-         patch("bot_unified.classify", return_value=mock_triage_result), \
          patch.object(bot_unified.usage_tracker, "record_mention") as mock_record, \
-         patch.dict("os.environ", {"SESSION_BACKEND": "api", "SESSION_MODEL": "claude-sonnet-4-6", "TRIAGE_ENABLED": "true"}):
+         patch.dict("os.environ", {"SESSION_BACKEND": "api", "SESSION_MODEL": "claude-sonnet-4-6"}):
         mock_indicator_cls.return_value = MagicMock()
         mock_factory.get_agent.return_value.handle.return_value = ("done", "DayistAgent")
         event = {"text": "hello", "channel": "C123", "ts": "100.0"}
         bot_unified.handle_project_message(event, say=MagicMock(), channel_name="dayist-dev")
 
-    mock_record.assert_called_once_with("api", "claude-haiku-4-5-20251001")
+    mock_record.assert_called_once_with("api", "claude-sonnet-4-6")

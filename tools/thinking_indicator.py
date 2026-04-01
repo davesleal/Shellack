@@ -27,7 +27,7 @@ _VERBS = [
     "Marinating", "Meandering", "Moseying", "Mulling", "Mustering",
     "Musing", "Noodling", "Percolating", "Perusing", "Philosophising",
     "Pondering", "Pontificating", "Processing", "Puttering", "Puzzling",
-    "Reticulating", "Ruminating", "Scheming", "Schlepping", "Shimmying",
+    "Reticulating", "Ruminating", "Scheming", "Schlepping", "Shellacking", "Shimmying",
     "Shucking", "Simmering", "Smooshing", "Spelunking", "Spinning",
     "Stewing", "Sussing", "Synthesizing", "Thinking", "Tinkering",
     "Transmuting", "Unfurling", "Unravelling", "Vibing", "Wandering",
@@ -79,8 +79,8 @@ class ThinkingIndicator:
             resp = self._client.chat_postMessage(
                 channel=self._channel_id,
                 thread_ts=self._thread_ts,
-                text=text,
-                attachments=[{"color": _CLAY, "text": text}],
+                text="",
+                attachments=[{"color": _CLAY, "text": text, "fallback": text}],
             )
             self._ts = resp["ts"]
         except Exception as exc:
@@ -109,27 +109,47 @@ class ThinkingIndicator:
                 self._client.chat_update(
                     channel=self._channel_id,
                     ts=self._ts,
-                    text=text,
-                    attachments=[{"color": _CLAY, "text": text}],
+                    text="",
+                    attachments=[{"color": _CLAY, "text": text, "fallback": text}],
                 )
             except Exception as exc:
                 logger.warning(f"ThinkingIndicator: update failed: {exc}")
 
-    def done(self) -> None:
-        """Stop cycling and replace the message with a gray completion summary."""
+    def done(self, response: str = "") -> None:
+        """Stop cycling and replace the message with the churned summary + response."""
         self._stop.set()
         if self._bg:
             self._bg.join(timeout=2.0)
         if not self._ts:
             return
         elapsed = time.monotonic() - self._start
-        summary = f"✻ Churned for {_fmt_elapsed(elapsed)}"
+        header = f"✻ Churned for {_fmt_elapsed(elapsed)}"
+        body = f"{header}\n\n{response}" if response else header
         try:
             self._client.chat_update(
                 channel=self._channel_id,
                 ts=self._ts,
-                text=summary,
-                attachments=[{"color": _GRAY, "text": summary}],
+                text="",
+                attachments=[{"color": _GRAY, "text": body, "fallback": header}],
             )
         except Exception as exc:
             logger.warning(f"ThinkingIndicator: done update failed: {exc}")
+            # Fallback: stamp the indicator as done, post response separately
+            try:
+                self._client.chat_update(
+                    channel=self._channel_id,
+                    ts=self._ts,
+                    text="",
+                    attachments=[{"color": _GRAY, "text": header, "fallback": header}],
+                )
+            except Exception:
+                pass
+            if response:
+                try:
+                    self._client.chat_postMessage(
+                        channel=self._channel_id,
+                        thread_ts=self._thread_ts,
+                        text=response,
+                    )
+                except Exception:
+                    pass

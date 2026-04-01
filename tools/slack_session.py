@@ -33,6 +33,9 @@ _CODE_SEGMENT_RE = re.compile(r"(```[\s\S]*?```|`[^`\n]+`)")
 
 def _md_to_mrkdwn(text: str) -> str:
     """Convert Claude markdown to Slack mrkdwn, leaving code blocks untouched."""
+    # Auto-close any unclosed triple-backtick fence so the regex splits correctly
+    if text.count("```") % 2 != 0:
+        text = text.rstrip() + "\n```"
     parts = _CODE_SEGMENT_RE.split(text)
     out = []
     for i, part in enumerate(parts):

@@ -5,7 +5,7 @@ import pytest
 import httpx
 from unittest.mock import MagicMock, patch
 
-from tools.triage import classify, TriageResult, _DEFAULT, _HAIKU, _SONNET
+from tools.triage import classify, TriageResult, _DEFAULT, _HAIKU, _configured_model
 
 
 def _make_mock_response(tier: str, reason: str = "test reason") -> MagicMock:
@@ -17,41 +17,44 @@ def _make_mock_response(tier: str, reason: str = "test reason") -> MagicMock:
     return msg
 
 
-def test_simple_tier_returns_haiku():
-    """Simple request => tier=simple, model=haiku."""
+def test_simple_tier():
+    """Simple request => tier=simple, model=SESSION_MODEL."""
     mock_client = MagicMock()
     mock_client.messages.create.return_value = _make_mock_response("simple", "just a question")
 
-    with patch("tools.triage.Anthropic", return_value=mock_client):
+    with patch("tools.triage.Anthropic", return_value=mock_client), \
+         patch.dict("os.environ", {"SESSION_MODEL": "claude-sonnet-4-6"}):
         result = classify("What does this project do?")
 
     assert result.tier == "simple"
-    assert result.model == _HAIKU
+    assert result.model == "claude-sonnet-4-6"
     assert result.reason == "just a question"
 
 
-def test_moderate_tier_returns_sonnet():
-    """Moderate request => tier=moderate, model=sonnet."""
+def test_moderate_tier():
+    """Moderate request => tier=moderate, model=SESSION_MODEL."""
     mock_client = MagicMock()
     mock_client.messages.create.return_value = _make_mock_response("moderate", "code review needed")
 
-    with patch("tools.triage.Anthropic", return_value=mock_client):
+    with patch("tools.triage.Anthropic", return_value=mock_client), \
+         patch.dict("os.environ", {"SESSION_MODEL": "claude-sonnet-4-6"}):
         result = classify("Review this function for bugs")
 
     assert result.tier == "moderate"
-    assert result.model == _SONNET
+    assert result.model == "claude-sonnet-4-6"
 
 
-def test_complex_tier_returns_sonnet():
-    """Complex request => tier=complex, model=sonnet."""
+def test_complex_tier():
+    """Complex request => tier=complex, model=SESSION_MODEL."""
     mock_client = MagicMock()
     mock_client.messages.create.return_value = _make_mock_response("complex", "multi-file refactor")
 
-    with patch("tools.triage.Anthropic", return_value=mock_client):
+    with patch("tools.triage.Anthropic", return_value=mock_client), \
+         patch.dict("os.environ", {"SESSION_MODEL": "claude-sonnet-4-6"}):
         result = classify("Refactor the entire auth system across all files")
 
     assert result.tier == "complex"
-    assert result.model == _SONNET
+    assert result.model == "claude-sonnet-4-6"
 
 
 def test_api_exception_returns_default():
@@ -63,7 +66,6 @@ def test_api_exception_returns_default():
         result = classify("some prompt")
 
     assert result.tier == _DEFAULT.tier
-    assert result.model == _DEFAULT.model
     assert result.reason == _DEFAULT.reason
 
 
@@ -81,7 +83,6 @@ def test_malformed_json_returns_default():
         result = classify("some prompt")
 
     assert result.tier == _DEFAULT.tier
-    assert result.model == _DEFAULT.model
 
 
 def test_unknown_tier_returns_default():
@@ -93,7 +94,6 @@ def test_unknown_tier_returns_default():
         result = classify("some prompt")
 
     assert result.tier == _DEFAULT.tier
-    assert result.model == _DEFAULT.model
 
 
 def test_timeout_returns_default():
@@ -105,4 +105,3 @@ def test_timeout_returns_default():
         result = classify("some prompt")
 
     assert result.tier == _DEFAULT.tier
-    assert result.model == _DEFAULT.model

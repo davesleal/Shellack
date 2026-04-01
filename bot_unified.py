@@ -39,7 +39,6 @@ from tools.usage_tracker import UsageTracker
 from tools.config_writer import set_env_var
 from tools.plugin_manager import PluginManager
 from tools.thinking_indicator import ThinkingIndicator
-from tools.triage import classify, TriageResult
 
 # Load environment
 load_dotenv()
@@ -90,7 +89,7 @@ def get_channel_name(channel_id: str) -> str:
 
 
 # ============================================================================
-# PROJECT AGENT HANDLERS (for #dayist-dev, #nova-dev, etc.)
+# PROJECT AGENT HANDLERS (per-channel, see projects.yaml)
 # ============================================================================
 
 
@@ -166,53 +165,12 @@ def handle_project_message(event, say, channel_name: str):
     ctx_chars = sum(len(m.get("content", "")) for m in context)
     estimated_tokens = (len(prompt) + ctx_chars) // 3
 
-    # 3. Triage — runs only in api mode and when not explicitly disabled
     backend_mode = os.environ.get("SESSION_BACKEND", "api")
-    triage_enabled = os.environ.get("TRIAGE_ENABLED", "true").lower() != "false"
 
-    if backend_mode == "api" and triage_enabled:
-        triage_result = classify(prompt, project_key)
-    else:
-        triage_result = None  # max mode or disabled: no triage
-
-    # 4. Complex path — start a SlackSession (streaming, multi-turn)
-    if triage_result is not None and triage_result.tier == "complex":
-        # SlackSession manages its own history — remove any stale active_sessions entry
-        active_sessions.pop(thread_ts, None)
-
-        cwd = project.get("path", ".")
-        system_prompt = f"You are a senior developer working on {project['name']}."
-        triaged_model = triage_result.model
-
-        def _triage_on_close(
-            _mode=backend_mode,
-            _model=triaged_model,
-            _channel=channel_id,
-            _msg_ts=msg_ts,
-        ):
-            RUN_SESSIONS.pop(thread_ts, None)
-            usage_tracker.record_session(_mode, _model)
-            try:
-                app.client.reactions_remove(channel=_channel, name="claude", timestamp=_msg_ts)
-            except Exception:
-                pass
-
-        session = SlackSession(
-            thread_ts=thread_ts,
-            channel_id=channel_id,
-            client=app.client,
-            backend=APIBackend(model=triaged_model),
-            on_close=_triage_on_close,
-        )
-        RUN_SESSIONS[thread_ts] = session
-        session.start(prompt, system_prompt, cwd)
-        return
-
-    # 5. Single-turn path — append user turn now
+    # 4. Single-turn path
     active_sessions[thread_ts].append({"role": "user", "content": prompt})
 
-    # triaged_model is None in max mode or when triage is disabled
-    triaged_model = triage_result.model if triage_result is not None else None
+    model = os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
 
     # 6. Start animated thinking indicator (posts clay-colored message, cycles verbs)
     indicator = ThinkingIndicator(app.client, channel_id, thread_ts)
@@ -223,7 +181,7 @@ def handle_project_message(event, say, channel_name: str):
         agent = agent_factory.get_agent(
             project_key, project, app, channel_id, thread_ts
         )
-        response, agent_label = agent.handle(prompt, context, model=triaged_model)
+        response, agent_label = agent.handle(prompt, context, model=model)
     except Exception as exc:
         indicator.done()
         app.client.chat_postMessage(
@@ -239,13 +197,11 @@ def handle_project_message(event, say, channel_name: str):
 
     active_sessions[thread_ts].append({"role": "assistant", "content": response})
 
-    # 8. Stop indicator — replaces clay message with gray "✻ Churned for Xm Ys"
-    indicator.done()
-
-    # 9. Post the actual answer (with canvas routing for large/code content)
+    # 8. Stop indicator — updates the single clay message to gray with the answer inline
+    from tools.slack_session import _md_to_mrkdwn
     header = f"🤖 *{agent_label}*\n" if agent_label != project["name"] else ""
-    if response:
-        _post_smart(channel_id, thread_ts, f"{header}{response}")
+    formatted = _md_to_mrkdwn(f"{header}{response}") if response else ""
+    indicator.done(response=formatted)
 
     # 10. Remove :claude: reaction — we're done
     try:
@@ -253,8 +209,7 @@ def handle_project_message(event, say, channel_name: str):
     except Exception:
         pass
 
-    actual_model = triaged_model or os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
-    usage_tracker.record_mention(backend_mode, actual_model)
+    usage_tracker.record_mention(backend_mode, model)
 
 
 # ============================================================================
@@ -1064,6 +1019,12 @@ if __name__ == "__main__":
             print(f"  ✅ #{ch_name}")
         except Exception as e:
             print(f"  ⚠️  #{ch_name}: {e}")
+    print()
+
+    # Pre-warm one agent per configured channel (no delay on first message)
+    print("🤖 Warming up project agents...")
+    agent_factory.warmup_all(PROJECTS, CHANNEL_ROUTING, app)
+    print(f"  ✅ {len(agent_factory.list_agents())} agents ready")
     print()
 
     # Start App Store Connect monitoring

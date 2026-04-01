@@ -53,23 +53,8 @@ class LifecycleNotifier:
     def failed(self, error: str):
         self._post_thread(f"❌ Failed: {error}")
 
-    # Thread + channel events
     def issue_created(self, url: str, number: int):
         self._post_thread(f"🐛 Issue #{number} created → {url}")
-        self._post_channel(f"🐛 [{self.project_name}] Issue #{number} opened → {url}")
-
-    def pending_review(self, thread_link: str = ""):
-        self._post_thread("👀 Sending to #code-review...")
-
-    def done(self, summary: str, issue_number: Optional[int] = None):
-        issue_text = (
-            f", issue #{issue_number} closed" if issue_number is not None else ""
-        )
-        self._post_thread(f"✅ Done: {summary}{issue_text}")
 
     def needs_human(self, reason: str):
-        # Escalation: post in thread AND top-level so it's visible in the channel
         self._post_thread(f"🙋 <@{self.owner_user_id}> — {reason}")
-        self._post_channel(
-            f"🙋 [{self.project_name}] <@{self.owner_user_id}> — {reason}"
-        )

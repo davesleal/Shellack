@@ -24,9 +24,10 @@ from .sub_agents import (
 
 logger = logging.getLogger(__name__)
 
-# Matches XML-style tool call blocks that the claude CLI may narrate in text output
+# Strip all XML tool call / result blocks the claude CLI may narrate in text output
 _TOOL_XML_RE = re.compile(
-    r"<(write_file|read_file|bash|str_replace_editor|create_file|delete_file)"
+    r"<(function_calls|function_results|invoke|tool_call|tool_response"
+    r"|write_file|read_file|bash|str_replace_editor|create_file|delete_file)"
     r"[^>]*>[\s\S]*?</\1>",
     re.IGNORECASE,
 )
@@ -58,20 +59,6 @@ PROJECT_KNOWLEDGE = {
             "Blocking the main thread with HealthKit queries",
             "Leaking sensitive health data in logs",
         ],
-    },
-    "nova": {
-        "description": "iOS application",
-        "purpose": "In active development — details TBD",
-        "tech": "Swift, iOS",
-        "patterns": ["Standard iOS MVC/MVVM patterns"],
-        "watch_out": [],
-    },
-    "nudge": {
-        "description": "iOS application",
-        "purpose": "In active development — details TBD",
-        "tech": "Swift, iOS",
-        "patterns": ["Standard iOS MVC/MVVM patterns"],
-        "watch_out": [],
     },
     "tiledock": {
         "description": "macOS grid control surface — one tap triggers multiple actions",
@@ -246,6 +233,9 @@ class ProjectAgent:
                 "\n## Your Role\n"
                 "You have full Claude Code tool access (file read/write, bash, git) in the project directory.\n"
                 "Make changes directly. Don't narrate what you're about to do — just do it and summarise the outcome in one sentence per action.\n"
+                "\n**IMPORTANT:** Do NOT use Slack MCP tools or any messaging tools. "
+                "Do NOT post to Slack channels or threads directly. "
+                "Shellack handles all Slack output — just return your answer as text.\n"
             )
         else:
             role_text = (
@@ -257,7 +247,14 @@ class ProjectAgent:
         role_text += (
             "\n**Reasoning format:** If you need to think before answering, put a one-line "
             "summary on the first line prefixed with `Thinking: `, then a blank line, then "
-            "your answer. Omit if no reasoning is needed.\n\nBe concise."
+            "your answer. Omit if no reasoning is needed."
+            "\n\n**Formatting:** This response renders in Slack. Rules:\n"
+            "- Wrap ALL code (even a single line) in triple-backtick fences with a language tag: "
+            "```swift\\n...\\n``` or ```python\\n...\\n```\n"
+            "- Always close every code block with ``` before continuing prose\n"
+            "- After a closing ``` resume normal text on a new line — never leave a block open\n"
+            "- Use `inline backticks` only for identifiers, file names, and short values\n"
+            "\nBe concise."
         )
         prompt += role_text
 
@@ -293,6 +290,15 @@ class ProjectAgent:
         thread_context: list = None,
         model: str | None = None,  # triage-selected model; None = use SESSION_MODEL
     ) -> tuple[str, str]:
+        # Refresh lifecycle notifier with current thread (channel_id/thread_ts may have
+        # been updated by AgentFactory for a new message on a pre-warmed agent)
+        self._lifecycle = LifecycleNotifier(
+            app=self.app,
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+            project_name=self.project["name"],
+            owner_user_id=os.environ.get("OWNER_SLACK_USER_ID", ""),
+        )
         self._opened_issue_number = None  # reset per-call state
         sub_agent_class = detect_sub_agent(prompt)
         task_type = (
@@ -307,22 +313,16 @@ class ProjectAgent:
 
         # Auto-create GitHub issue for bugs/crashes (significant task)
         if is_bug_task and task_type:
-            self._lifecycle.started(task_summary)
             title = f"[{task_type.title()}] {task_summary}"
             body = f"Reported via Slack:\n\n> {prompt}"
             issue = self._github.create_issue(self.project_key, title, body, task_type)
             if issue:
                 self._opened_issue_number = issue["number"]
                 self._lifecycle.issue_created(issue["url"], issue["number"])
-            else:
-                self._lifecycle.in_progress(
-                    "⚠️ Could not create GitHub issue — continuing"
-                )
 
         # Run sub-agent or main agent
         try:
             if sub_agent_class:
-                self._lifecycle.in_progress("Analyzing...")
                 agent = sub_agent_class(self.client, self.project)
                 label = sub_agent_class.__name__.replace("Agent", "")
                 response = agent.run(prompt, thread_context)
@@ -341,8 +341,7 @@ class ProjectAgent:
                     model=model,
                 )
         except Exception as e:
-            self._lifecycle.failed(str(e))
-            return f"Error: {e}", "Error"
+            raise
 
         # Strip tool call XML before any further processing or posting
         response = _clean_response(response)
@@ -354,34 +353,20 @@ class ProjectAgent:
             project_path=self.project.get("path", "."),
         )
         if rule:
-            self._lifecycle._post_thread(
-                f"📝 Learned something — updated CLAUDE.md:\n_{rule}_"
-            )
+            try:
+                self.app.client.chat_postMessage(
+                    channel=self.channel_id,
+                    thread_ts=self.thread_ts,
+                    text="",
+                    attachments=[{"color": "#888888", "text": f"✦ Learned: {rule}"}],
+                )
+            except Exception:
+                pass
 
-        # Determine if this is a significant task
-        code_changed = self._is_code_changing(sub_agent_class, response)
-        issue_created = self._opened_issue_number is not None
-        is_significant = code_changed or issue_created
-
-        if is_significant:
-            self._trigger_peer_review(prompt, response)
-            if self._opened_issue_number:
-                self._github.close_issue(self.project_key, self._opened_issue_number)
-            summary = " ".join(response.split()[:12]) + "..."
-            self._lifecycle.done(summary, issue_number=self._opened_issue_number)
-            self._write_journal(prompt, response)
+        if self._opened_issue_number:
+            self._github.close_issue(self.project_key, self._opened_issue_number)
 
         return response, label
-
-    def _trigger_peer_review(self, prompt: str, response: str):
-        self._lifecycle.pending_review()
-        self._staged_review.trigger(
-            summary=f"{self.project['name']}: {prompt[:100]}",
-            changed_files=[],
-            project_key=self.project_key,
-            origin_thread_ts=self.thread_ts,
-            origin_channel_id=self.channel_id,
-        )
 
     def _write_journal(self, prompt: str, response: str):
         self._journal.append_entry(

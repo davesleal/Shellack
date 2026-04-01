@@ -36,39 +36,21 @@ def test_in_progress_posts_to_thread_only(notifier, app):
     assert calls[0].kwargs["thread_ts"] == "111.222"
 
 
-def test_issue_created_posts_to_thread_and_channel(notifier, app):
+def test_issue_created_posts_to_thread_only(notifier, app):
     notifier.issue_created("https://github.com/x/y/issues/42", 42)
     calls = app.client.chat_postMessage.call_args_list
-    assert len(calls) == 2
-    thread_call = next(c for c in calls if c.kwargs.get("thread_ts") == "111.222")
-    channel_call = next(c for c in calls if "thread_ts" not in c.kwargs)
-    assert "🐛" in thread_call.kwargs["text"]
-    assert "[Dayist]" in channel_call.kwargs["text"]
-    assert "#42" in channel_call.kwargs["text"]
-
-
-def test_done_posts_to_thread_only(notifier, app):
-    notifier.done("fixed login crash", issue_number=42)
-    calls = app.client.chat_postMessage.call_args_list
     assert len(calls) == 1
     assert calls[0].kwargs["thread_ts"] == "111.222"
-    assert "✅" in calls[0].kwargs["text"]
+    assert "🐛" in calls[0].kwargs["text"]
+    assert "#42" in calls[0].kwargs["text"]
 
 
-def test_needs_human_mentions_owner(notifier, app):
+def test_needs_human_mentions_owner_in_thread(notifier, app):
     notifier.needs_human("ambiguous scope")
     calls = app.client.chat_postMessage.call_args_list
-    assert len(calls) == 2
-    texts = [c.kwargs["text"] for c in calls]
-    assert any("U999" in t for t in texts)
-
-
-def test_pending_review_posts_to_thread_only(notifier, app):
-    notifier.pending_review(thread_link="https://slack.com/thread/123")
-    calls = app.client.chat_postMessage.call_args_list
     assert len(calls) == 1
     assert calls[0].kwargs["thread_ts"] == "111.222"
-    assert "👀" in calls[0].kwargs["text"]
+    assert "U999" in calls[0].kwargs["text"]
 
 
 def test_failed_posts_to_thread_only(notifier, app):

@@ -199,23 +199,15 @@ def quick_reply(
     prompt: str,
     system_prompt: str = "",
     cwd: str = ".",
-    model: str | None = None,  # overrides SESSION_MODEL env var; ignored in max mode
+    model: str | None = None,
 ) -> str:
-    """Single-turn AI call routed through the configured backend.
+    """Single-turn API call — always uses APIBackend for low latency.
 
-    Reads SESSION_BACKEND and SESSION_MODEL from os.environ so the caller
-    is always billed through whichever backend the user configured — never
-    silently falls back to the API when Max is selected.
-
-    Max mode  → claude CLI subprocess (subscription, zero API cost).
-    API mode  → Anthropic SDK (costs API tokens at the configured model rate).
+    Complex tasks that need file/tool access go through SlackSession+MaxBackend
+    instead. quick_reply is for fast conversational responses only.
     """
-    backend_mode = os.environ.get("SESSION_BACKEND", "api")
-    if backend_mode == "max" and MaxBackend.available():
-        backend: SessionBackend = MaxBackend()
-    else:
-        resolved_model = model or os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
-        backend = APIBackend(model=resolved_model)
+    resolved_model = model or os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
+    backend: SessionBackend = APIBackend(model=resolved_model)
 
     try:
         chunks = list(backend.first_turn(prompt, system_prompt=system_prompt, cwd=cwd))
