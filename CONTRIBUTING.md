@@ -1,205 +1,134 @@
-# Contributing to Shellack 🦞
+# Contributing to Shellack
 
-Thanks for your interest in contributing! This document provides guidelines for contributing to Shellack.
-
-## 🚀 Quick Start
-
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/Shellack.git`
-3. Create a branch: `git checkout -b feature/amazing-feature`
-4. Make your changes
-5. Test thoroughly
-6. Commit: `git commit -m 'Add amazing feature'`
-7. Push: `git push origin feature/amazing-feature`
-8. Open a Pull Request
-
-## 🎯 How to Contribute
-
-### Reporting Bugs
-
-Open an issue with:
-- Clear title and description
-- Steps to reproduce
-- Expected vs actual behavior
-- Environment details (Python version, OS, etc.)
-- Relevant logs or screenshots
-
-### Suggesting Features
-
-Open an issue with:
-- Use case and motivation
-- Proposed solution
-- Alternative solutions considered
-- Implementation considerations
-
-### Pull Requests
-
-**Before submitting:**
-- Ensure code follows existing style
-- Add tests if applicable
-- Update documentation
-- Test in both full AI and zero-cost modes
-
-**PR Guidelines:**
-- One feature per PR
-- Clear, descriptive title
-- Detailed description of changes
-- Reference related issues
-- Add screenshots/demos if relevant
-
-## 🏗️ Development Setup
+## Quick start
 
 ```bash
-# Clone your fork
-git clone https://github.com/YOUR_USERNAME/Shellack.git
+git clone https://github.com/your-org/Shellack.git
 cd Shellack
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-
-# Install dev dependencies
-pip install pytest black flake8 mypy
-
-# Run tests
-pytest
-
-# Format code
-black *.py
-
-# Lint
-flake8 *.py
+cp projects.example.yaml projects.yaml
+# Edit projects.yaml with your projects, channels, and paths
+cp .env.example .env
+# Edit .env with your Slack, Anthropic, and GitHub credentials
+git config core.hooksPath hooks
+python bot_unified.py
 ```
 
-## 📝 Code Style
+Run the test suite to verify everything works:
 
-- Follow [PEP 8](https://pep8.org/)
-- Use `black` for formatting
-- Maximum line length: 100 characters
-- Use type hints where possible
-- Add docstrings for functions/classes
-
-Example:
-```python
-def execute_claude_task(
-    project_path: str,
-    task: str,
-    thread_context: Optional[List[Dict]] = None
-) -> str:
-    """
-    Execute a task using Claude with full context.
-
-    Args:
-        project_path: Path to the project directory
-        task: Task description for Claude
-        thread_context: Optional conversation history
-
-    Returns:
-        Claude's response as a string
-
-    Raises:
-        ValueError: If project_path doesn't exist
-    """
-    # Implementation
-```
-
-## 🧪 Testing
-
-Add tests for new features:
-
-```python
-# tests/test_app_store_connect.py
-def test_format_feedback_for_slack():
-    feedback = {
-        "type": "review",
-        "rating": 2,
-        "title": "Test",
-        "body": "Test review"
-    }
-    result = format_feedback_for_slack(feedback)
-    assert "⭐⭐" in result
-    assert "Test review" in result
-```
-
-Run tests:
 ```bash
 pytest
-pytest --cov  # With coverage
 ```
 
-## 📖 Documentation
+For full setup details (Slack app creation, tokens, App Store Connect), see [SETUP_GUIDE.md](./SETUP_GUIDE.md). For an overview of what Shellack does and how to use it, see [README.md](./README.md).
 
-Update documentation when:
-- Adding new features
-- Changing configuration options
-- Modifying setup process
-- Adding new dependencies
+## Project config
 
-Update these files as needed:
-- `README.md` - Overview and quick start
-- `SETUP_GUIDE.md` - Detailed setup instructions
-- `HYBRID_APPROACH.md` - Zero-cost mode documentation
-- Inline code comments
-- Docstrings
+All project definitions live in `projects.yaml`. This file is **gitignored** because it contains your project names, local paths, and Slack channel IDs -- none of which belong in version control.
 
-## 🎨 Feature Ideas
+`projects.example.yaml` is the checked-in template. It shows the full schema with two example projects and every supported field documented inline. Copy it and fill in your details:
 
-Looking for contribution ideas? Check issues tagged with:
-- `good-first-issue` - Great for newcomers
-- `help-wanted` - Community help needed
-- `enhancement` - Feature requests
+```bash
+cp projects.example.yaml projects.yaml
+```
 
-### Potential Contributions
+The config loader (`orchestrator_config.py`) looks for `projects.yaml` in the repo root by default. Override the path with the `SHELLACK_CONFIG` environment variable:
 
-**Features:**
-- [ ] GitHub Actions integration
-- [ ] Crash log analysis from App Store Connect
-- [ ] Multi-language support (Android, web)
-- [ ] Custom agent marketplace
-- [ ] Web dashboard
-- [ ] Telegram bot integration
-- [ ] Discord bot integration
+```bash
+export SHELLACK_CONFIG=/path/to/my-config.yaml
+```
 
-**Improvements:**
-- [ ] Better error handling
-- [ ] Rate limit management
-- [ ] Caching for API responses
-- [ ] Metrics and monitoring
-- [ ] Docker support
-- [ ] Kubernetes deployment
+Per-project paths and bundle IDs can also be overridden via env vars. For a project with slug `myapp`, set `MYAPP_PROJECT_PATH` or `MYAPP_BUNDLE_ID` to override the YAML values.
 
-**Documentation:**
-- [ ] Video tutorials
-- [ ] More examples
-- [ ] Troubleshooting guide
-- [ ] Architecture diagrams
-- [ ] API documentation
+## Secret safety
 
-## 🔒 Security
+A pre-commit hook at `hooks/pre-commit` scans staged diffs for credential patterns before every commit. It catches:
 
-**Reporting vulnerabilities:**
-- DO NOT open public issues for security bugs
-- Email: you@example.com
-- Include detailed description and reproduction steps
+- Slack tokens (`xoxb-`, `xoxp-`, `xoxs-`, `xoxa-`, `xapp-`)
+- Anthropic API keys (`sk-ant-`)
+- GitHub tokens (`ghp_`, `ghs_`)
+- AWS access key IDs (`AKIA...`)
+- Private keys (`-----BEGIN.*PRIVATE KEY`)
+- Google API keys (`AIza...`)
+- Stripe live keys (`sk-live`)
 
-**Security considerations:**
-- Never commit API keys or tokens
-- Validate all user inputs
-- Sanitize data before logging
-- Follow principle of least privilege
+**Setup** (once per clone):
 
-## 💬 Community
+```bash
+git config core.hooksPath hooks
+```
 
-- [Discussions](https://github.com/YOUR_ORG/Shellack/discussions) - Questions and ideas
-- [Issues](https://github.com/YOUR_ORG/Shellack/issues) - Bug reports and feature requests
+The hook only scans added/changed lines in staged files. It automatically skips `*.example*` files, the hook script itself, and binary files.
 
-## 📜 License
+**False positives.** If the hook blocks a commit that doesn't contain real secrets (e.g., documentation mentioning a token prefix), bypass with:
+
+```bash
+git commit --no-verify
+```
+
+Use this sparingly. If a pattern causes frequent false positives, fix the hook instead.
+
+## Running tests
+
+```bash
+pytest
+```
+
+The test suite covers the config loader, triage logic, session backends, lifecycle posts, thinking indicator, project agents, agent factory, Slack sessions, usage tracking, bot commands, and more. All tests live in `tests/`.
+
+**Fresh clones work automatically.** `tests/conftest.py` has a `pytest_configure` hook that detects when `projects.yaml` is absent and generates a minimal temporary config via `SHELLACK_CONFIG`. You don't need a real `projects.yaml` to run tests.
+
+Run a specific test file:
+
+```bash
+pytest tests/test_triage.py -v
+```
+
+## Adding a new project
+
+1. Add an entry to `projects.yaml` under the `projects:` key. Use `projects.example.yaml` as a reference for the full schema.
+
+2. Add a channel mapping under the `channels:` key, pointing at your new project slug.
+
+3. Create the Slack channel (e.g., `#myproject-dev`) and invite the bot: `/invite @Shellack`
+
+4. Optionally add a `context:` block to enrich the agent's system prompt with project-specific description, tech stack, coding patterns, and things to watch out for.
+
+The bot auto-detects new projects on startup -- no code changes required.
+
+## Code style
+
+- **PEP 8** with a **100 character** line length
+- **Type hints** on all function signatures
+- **Docstrings** on public functions
+- **black** for formatting
+
+These standards are also defined in the `standards:` section of `projects.example.yaml`.
+
+## PR workflow
+
+1. Create a branch from `main`.
+
+2. Make your changes. Write tests alongside the code, not after.
+
+3. Run the full suite before pushing:
+   ```bash
+   pytest
+   ```
+
+4. Commit using the repo's convention -- lowercase type prefix, colon, short description:
+   ```
+   feat: add widget support for dashboard projects
+   fix: triage fallback evaluates SESSION_MODEL at call time
+   refactor: remove hardcoded channel IDs from slack_bridge
+   test: add ThinkingIndicator fallback coverage
+   chore: strip all personal project references from tracked files
+   docs: update STATE.md and JOURNAL.md
+   ```
+
+5. Push and open a PR against `main`.
+
+## License
 
 By contributing, you agree that your contributions will be licensed under the MIT License.
-
-## 🙏 Thank You!
-
-Every contribution helps make Shellack better for everyone. Thank you for being part of the community! 🎉
