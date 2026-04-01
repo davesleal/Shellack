@@ -5,6 +5,7 @@ Modular architecture with channel-based routing
 """
 
 import json
+import logging
 import os
 import re
 import shutil
@@ -37,6 +38,9 @@ from tools.thinking_indicator import ThinkingIndicator
 
 # Load environment
 load_dotenv()
+
+# Logging
+logger = logging.getLogger(__name__)
 
 # Initialize services
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
@@ -179,8 +183,9 @@ def handle_project_message(event, say, channel_name: str):
         response, agent_label = agent.handle(prompt, context, model=model)
     except Exception as exc:
         indicator.done()
+        logger.exception(f"Agent error in {channel_name}")
         app.client.chat_postMessage(
-            channel=channel_id, thread_ts=thread_ts, text=f"❌ Error: {exc}"
+            channel=channel_id, thread_ts=thread_ts, text=f"❌ An error occurred while processing your request. Please try again."
         )
         try:
             app.client.reactions_remove(
@@ -435,9 +440,24 @@ def _handle_plugin_command(
     return False
 
 
-def _handle_config_command(clean_text: str, say, thread_ts: str) -> bool:
+def _handle_config_command(clean_text: str, say, thread_ts: str, event: Dict) -> bool:
     """Handle config commands. Returns True if the command was consumed."""
     lower = clean_text.lower()
+
+    # Check if this is a config command that requires owner
+    is_config_command = (
+        lower.startswith("set mode ") or
+        lower.startswith("set model ") or
+        lower == "usage" or
+        lower.startswith("set triage ") or
+        lower == "config"
+    )
+
+    if is_config_command:
+        owner = os.environ.get("OWNER_SLACK_USER_ID", "")
+        if owner and event.get("user") != owner:
+            say("Configuration changes are restricted to the workspace owner.", thread_ts=thread_ts)
+            return True
 
     # set mode max|api
     if lower.startswith("set mode "):
@@ -535,7 +555,7 @@ def handle_mention(event, say):
     clean_text = re.sub(r"<@[A-Z0-9]+>", "", raw_text).strip()
 
     # --- config commands (any channel, any context) ---
-    if _handle_config_command(clean_text, say, thread_ts):
+    if _handle_config_command(clean_text, say, thread_ts, event):
         return
 
     # --- plugin management commands ---
