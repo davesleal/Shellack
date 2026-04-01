@@ -1,14 +1,14 @@
 # Shellack Project Journal
 
-## 2026-04-01 — Fixed XML leak in streaming sessions
+## 2026-04-01 — XML leak fix + genericization cleanup
 
-**Context:** When Shellack ran `run:` sessions via MaxBackend (Claude CLI subprocess), the streamed output sometimes contained raw `<function_calls>` XML — tool invocation markup that Claude CLI narrates in its text output. This XML leaked straight into Slack messages, breaking the user experience.
+**Context:** Two loose ends from the genericization session. First, `run:` sessions via MaxBackend leaked raw `<function_calls>` XML into Slack messages — the streaming path had no filter while the single-turn path did. Second, the historical design and plan docs in `docs/superpowers/` still contained personal project names, paths, and identifiers across 9 files.
 
-**Approach:** The single-turn path already had `_clean_response()` in `project_agent.py` stripping tool XML via regex. The streaming path (`SlackSession._post_chunk`) had no such filter. Moved the `_TOOL_XML_RE` regex into `slack_session.py` as `_strip_tool_xml()`, applied it in `_post_chunk()` before `_md_to_mrkdwn()` conversion, and updated `project_agent.py` to import from the shared location instead of duplicating the pattern. Pure-XML chunks (no prose left after stripping) are silently dropped.
+**Approach:** For the XML leak: moved the `_TOOL_XML_RE` regex into `slack_session.py` as a shared `_strip_tool_xml()`, applied in `_post_chunk()` before `_md_to_mrkdwn()` conversion. `project_agent.py` now imports from there instead of duplicating. Pure-XML chunks are silently dropped. For the docs cleanup: bulk sed across all specs and plans — project names genericized (Dayist→Alpha, TileDock→Beta, etc.), personal paths replaced, operator references neutralized. Added `automation` and `multi-agent` repo topics.
 
-**Outcome:** Both output paths now strip tool XML. 8 new tests covering function_calls, invoke, function_results, multiple blocks, pure-XML, normal angle brackets, tool tags, and case insensitivity. 263 tests total, zero failures.
+**Outcome:** Both output paths strip tool XML. 8 new tests for the XML filter, 263 total. All 9 superpowers docs cleaned — zero personal identifiers in any tracked file. GitHub issue #13 closed with all items resolved. Repo topics updated for discoverability.
 
-**Insights:** The fix was straightforward once you see the two paths diverge — single-turn had the filter, streaming didn't. The regex approach works because Claude CLI's tool XML uses a small set of well-known tag names (`function_calls`, `invoke`, `bash`, `read_file`, etc.) that don't collide with natural prose. The non-greedy `[\s\S]*?` match is safe here because each tag pair is self-contained and the set of tag names is closed.
+**Insights:** The XML leak was a classic "two code paths, one got the fix" bug. The streaming path was added later and nobody thought to apply the same sanitization. The superpowers docs cleanup was pure mechanical grep-and-replace — the kind of thing that's boring but matters for anyone forking the repo. Historical design docs are the first thing a new contributor reads to understand *why* things are built the way they are, and seeing someone else's project names everywhere is disorienting.
 
 ---
 
