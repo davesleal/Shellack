@@ -10,6 +10,8 @@
 
 **Insights:** The hardest part wasn't the config extraction — it was finding every reference. Personal identifiers were woven through comments, docstrings, test fixtures, wrapper scripts, setup guides, and architecture docs. The systematic grep-audit-fix-verify cycle was essential. The YAML loader ended up simpler than the original hardcoded config because it eliminated 5 project entries × 8 fields each of repetitive Python dict literals. The pre-commit hook is the kind of thing you wish you'd added on day one — a 66-line bash script that removes an entire class of "oh no" moments.
 
+**Security hardening (same session):** An infosec review surfaced 10 findings. Two HIGH: plugin manager allowed arbitrary git clone + import from any Slack user (RCE), and the self-improver could poison CLAUDE.md via second-order prompt injection. Both fixed with owner-only gates (fail-closed when `OWNER_SLACK_USER_ID` is unset) and rule sanitization (length cap, suspicious pattern blocklist, non-ASCII rejection, opt-in via env var). Four MEDIUM: pre-commit hook expanded to 16 patterns, triage classifier now separates system prompt from user input, ripgrep search uses fixed-strings to prevent ReDoS, Slack manifest scopes documented. Four LOW: untracked leaked metadata files, config commands gated to owner, error messages sanitized to prevent path leakage. 255 tests total, 37 specifically verifying security controls.
+
 ---
 
 ## 2026-03-18 — Slack↔Terminal Bridge
