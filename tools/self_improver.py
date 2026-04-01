@@ -27,6 +27,25 @@ _BLOCK_SIGNALS = [
 ]
 _BLOCK_RE = re.compile("|".join(_BLOCK_SIGNALS), re.IGNORECASE)
 
+# Patterns that indicate a poisoned rule (prompt injection via Haiku output)
+_SUSPICIOUS_PATTERNS = re.compile(
+    r"ignore|override|disregard|forget|secret|exfiltrate"
+    r"|\.env\b|token|credential|password|api.key",
+    re.IGNORECASE,
+)
+_MAX_RULE_LENGTH = 200
+
+
+def _sanitize_rule(rule: str) -> str | None:
+    """Return the rule if safe, or None if it looks like prompt injection."""
+    if len(rule) > _MAX_RULE_LENGTH:
+        logger.warning(f"self_improver: rule too long ({len(rule)} chars), rejected")
+        return None
+    if _SUSPICIOUS_PATTERNS.search(rule):
+        logger.warning(f"self_improver: suspicious rule rejected: {rule!r}")
+        return None
+    return rule
+
 # Minimum matches required to consider a response "blocked"
 # Prevents single casual uses of signal words (e.g. "couldn't find a better name") from triggering
 _MIN_BLOCK_SIGNALS = 2
@@ -52,7 +71,14 @@ def reflect_and_update(
     response: str,
     project_path: str,
 ) -> str | None:
-    """Detect block in response, reflect, update CLAUDE.md. Returns rule or None."""
+    """Detect block in response, reflect, update CLAUDE.md. Returns rule or None.
+
+    Requires SELF_IMPROVER_ENABLED=true in env. Disabled by default.
+    """
+    import os
+    if os.environ.get("SELF_IMPROVER_ENABLED", "").lower() != "true":
+        return None
+
     result = _detect_block(response)
     if result is None:
         return None
@@ -65,6 +91,10 @@ def reflect_and_update(
 
     rule = rule_data["rule"]
     section = rule_data["section"]
+
+    rule = _sanitize_rule(rule)
+    if rule is None:
+        return None
 
     try:
         _append_to_claude_md(project_path, rule, section)

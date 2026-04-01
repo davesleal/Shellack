@@ -233,7 +233,8 @@ def test_reflect_and_update_block_detected_rule_appended(tmp_path):
     payload = json.dumps({"rule": "Always check connection before calling API.", "section": "Watch Out For"})
     mock_cls = _make_mock_anthropic(payload)
 
-    with patch("tools.self_improver.Anthropic", mock_cls):
+    with patch("tools.self_improver.Anthropic", mock_cls), \
+         patch.dict("os.environ", {"SELF_IMPROVER_ENABLED": "true"}):
         result = reflect_and_update(
             prompt="Connect to service",
             response=response,
@@ -258,7 +259,8 @@ def test_reflect_and_update_bad_json_returns_none(tmp_path):
     response = _long_response(["error: bad thing", "failed"])
     mock_cls = _make_mock_anthropic("not json")
 
-    with patch("tools.self_improver.Anthropic", mock_cls):
+    with patch("tools.self_improver.Anthropic", mock_cls), \
+         patch.dict("os.environ", {"SELF_IMPROVER_ENABLED": "true"}):
         result = reflect_and_update(
             prompt="Do a thing",
             response=response,
@@ -280,7 +282,8 @@ def test_reflect_and_update_api_fails_returns_none(tmp_path):
     mock_client.messages.create.side_effect = Exception("timeout")
     mock_cls = MagicMock(return_value=mock_client)
 
-    with patch("tools.self_improver.Anthropic", mock_cls):
+    with patch("tools.self_improver.Anthropic", mock_cls), \
+         patch.dict("os.environ", {"SELF_IMPROVER_ENABLED": "true"}):
         result = reflect_and_update(
             prompt="Do a thing",
             response=response,
@@ -297,7 +300,8 @@ def test_reflect_and_update_missing_claude_md_returns_none(tmp_path):
     payload = json.dumps({"rule": "A rule.", "section": "General"})
     mock_cls = _make_mock_anthropic(payload)
 
-    with patch("tools.self_improver.Anthropic", mock_cls):
+    with patch("tools.self_improver.Anthropic", mock_cls), \
+         patch.dict("os.environ", {"SELF_IMPROVER_ENABLED": "true"}):
         result = reflect_and_update(
             prompt="Do a thing",
             response=response,
@@ -330,11 +334,60 @@ def test_reflect_and_update_short_response_returns_none(tmp_path):
     original = claude_md.read_text()
 
     # Two signals but very short
-    result = reflect_and_update(
-        prompt="Do a thing",
-        response="error: failed unfortunately",
-        project_path=str(tmp_path),
-    )
+    with patch.dict("os.environ", {"SELF_IMPROVER_ENABLED": "true"}):
+        result = reflect_and_update(
+            prompt="Do a thing",
+            response="error: failed unfortunately",
+            project_path=str(tmp_path),
+        )
 
     assert result is None
     assert claude_md.read_text() == original
+
+
+# ---------------------------------------------------------------------------
+# Opt-in gate tests
+# ---------------------------------------------------------------------------
+
+import os
+
+
+def test_disabled_by_default(tmp_path):
+    """reflect_and_update returns None when SELF_IMPROVER_ENABLED is not set."""
+    claude_md = tmp_path / "CLAUDE.md"
+    claude_md.write_text("## General\n- Rule\n")
+    response = _long_response(["error: bad", "failed"])
+
+    env = {k: v for k, v in os.environ.items() if k != "SELF_IMPROVER_ENABLED"}
+    with patch.dict("os.environ", env, clear=True):
+        result = reflect_and_update("prompt", response, str(tmp_path))
+
+    assert result is None
+
+
+def test_disabled_when_not_true(tmp_path):
+    """reflect_and_update returns None when SELF_IMPROVER_ENABLED != 'true'."""
+    response = _long_response(["error: bad", "failed"])
+    with patch.dict("os.environ", {"SELF_IMPROVER_ENABLED": "false"}):
+        result = reflect_and_update("prompt", response, str(tmp_path))
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Sanitization tests
+# ---------------------------------------------------------------------------
+
+from tools.self_improver import _sanitize_rule
+
+
+def test_sanitize_clean_rule():
+    assert _sanitize_rule("Always validate inputs") == "Always validate inputs"
+
+
+def test_sanitize_rejects_long_rule():
+    assert _sanitize_rule("x" * 201) is None
+
+
+def test_sanitize_rejects_suspicious_patterns():
+    for word in ["ignore", "override", "exfiltrate", ".env", "token", "credential", "password", "api key"]:
+        assert _sanitize_rule(f"Always {word} the settings") is None, f"should reject: {word}"
