@@ -17,7 +17,7 @@ import requests
 
 from orchestrator_config import CHANNEL_ROUTING, PROJECTS
 
-_FALLBACK_CHANNEL_ID = "C0AMEEP7EFL"  # #claude-code
+_FALLBACK_CHANNEL_ID = os.environ.get("FALLBACK_CHANNEL_ID", "")
 _FALLBACK_PROJECT = "Unknown"
 
 logger = logging.getLogger(__name__)

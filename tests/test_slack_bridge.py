@@ -72,50 +72,52 @@ def test_format_choice_empty_options_raises():
 # ---------------------------------------------------------------------------
 
 FAKE_PROJECTS = {
-    "slackclaw": {
-        "name": "Shellack",
-        "primary_channel": "slackclaw-dev",
-        "github_repo": "YOUR_ORG/Shellack",
+    "alpha": {
+        "name": "Alpha",
+        "primary_channel": "alpha-dev",
+        "github_repo": "test-org/Alpha",
     }
 }
 
 FAKE_ROUTING_OK = {
-    "slackclaw-dev": {"mode": "dedicated", "channel_id": "C_SC"},
+    "alpha-dev": {"mode": "dedicated", "channel_id": "C_ALPHA"},
 }
 
 FAKE_ROUTING_MISSING = {
-    "slackclaw-dev": {"mode": "dedicated"},  # no channel_id
+    "alpha-dev": {"mode": "dedicated"},  # no channel_id
 }
 
 
 def test_detect_known_repo_returns_channel_id():
     from tools.slack_bridge import detect_channel_id
-    with patch("subprocess.check_output", return_value=b"git@github.com:YOUR_ORG/Shellack.git"), \
+    with patch("subprocess.check_output", return_value=b"git@github.com:test-org/Alpha.git"), \
          patch("tools.slack_bridge.PROJECTS", FAKE_PROJECTS), \
          patch("tools.slack_bridge.CHANNEL_ROUTING", FAKE_ROUTING_OK):
         channel_id, project_name = detect_channel_id()
-    assert channel_id == "C_SC"
-    assert project_name == "Shellack"
+    assert channel_id == "C_ALPHA"
+    assert project_name == "Alpha"
 
 
 def test_detect_unknown_repo_falls_back():
     from tools.slack_bridge import detect_channel_id
     with patch("subprocess.check_output", return_value=b"git@github.com:someone/other.git"), \
          patch("tools.slack_bridge.PROJECTS", FAKE_PROJECTS), \
-         patch("tools.slack_bridge.CHANNEL_ROUTING", FAKE_ROUTING_OK):
+         patch("tools.slack_bridge.CHANNEL_ROUTING", FAKE_ROUTING_OK), \
+         patch("tools.slack_bridge._FALLBACK_CHANNEL_ID", "C_FALLBACK"):
         channel_id, project_name = detect_channel_id()
-    assert channel_id == "C0AMEEP7EFL"
+    assert channel_id == "C_FALLBACK"
     assert project_name == "Unknown"
 
 
 def test_detect_missing_channel_id_falls_back_with_warning(capsys):
     from tools.slack_bridge import detect_channel_id
-    with patch("subprocess.check_output", return_value=b"git@github.com:YOUR_ORG/Shellack.git"), \
+    with patch("subprocess.check_output", return_value=b"git@github.com:test-org/Alpha.git"), \
          patch("tools.slack_bridge.PROJECTS", FAKE_PROJECTS), \
-         patch("tools.slack_bridge.CHANNEL_ROUTING", FAKE_ROUTING_MISSING):
+         patch("tools.slack_bridge.CHANNEL_ROUTING", FAKE_ROUTING_MISSING), \
+         patch("tools.slack_bridge._FALLBACK_CHANNEL_ID", "C_FALLBACK"):
         channel_id, project_name = detect_channel_id()
-    assert channel_id == "C0AMEEP7EFL"
-    assert project_name == "Shellack"
+    assert channel_id == "C_FALLBACK"
+    assert project_name == "Alpha"
     captured = capsys.readouterr()
     assert "WARNING" in captured.err
 
@@ -123,9 +125,10 @@ def test_detect_missing_channel_id_falls_back_with_warning(capsys):
 def test_detect_not_a_git_repo_falls_back():
     from tools.slack_bridge import detect_channel_id
     import subprocess
-    with patch("subprocess.check_output", side_effect=subprocess.CalledProcessError(128, "git")):
+    with patch("subprocess.check_output", side_effect=subprocess.CalledProcessError(128, "git")), \
+         patch("tools.slack_bridge._FALLBACK_CHANNEL_ID", "C_FALLBACK"):
         channel_id, project_name = detect_channel_id()
-    assert channel_id == "C0AMEEP7EFL"
+    assert channel_id == "C_FALLBACK"
     assert project_name == "Unknown"
 
 
