@@ -93,10 +93,10 @@ def test_warmup_all_skips_non_dedicated_modes(MockAgent):
     MockAgent.return_value = MagicMock()
     factory = _make_factory()
     routing = {
-        "orchestrator": {"mode": "orchestrator", "channel_id": "C99", "project": "slackclaw"},
-        "code-review": {"mode": "peer_review", "channel_id": "C88", "project": "slackclaw"},
+        "orchestrator": {"mode": "orchestrator", "channel_id": "C99", "project": "shellack"},
+        "code-review": {"mode": "peer_review", "channel_id": "C88", "project": "shellack"},
     }
-    projects = {"slackclaw": {"name": "Shellack", "path": "/tmp", "language": "python"}}
+    projects = {"shellack": {"name": "Shellack", "path": "/tmp", "language": "python"}}
 
     factory.warmup_all(projects, routing, app=MagicMock())
 

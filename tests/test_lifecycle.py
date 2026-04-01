@@ -16,7 +16,7 @@ def notifier(app):
         app=app,
         channel_id="C123",
         thread_ts="111.222",
-        project_name="Dayist",
+        project_name="Alpha",
         owner_user_id="U999",
     )
 

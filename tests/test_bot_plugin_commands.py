@@ -35,7 +35,7 @@ def test_plugins_command_calls_list_all():
     list_all_result = {"plugins": ["p1", "p2"], "mcps": ["mcp1"], "bot_plugins": []}
 
     with patch.object(bot_unified.plugin_manager, "list_all", return_value=list_all_result) as mock_list, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"):
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> plugins")
         bot_unified.handle_mention(event, say=say)
 
@@ -56,7 +56,7 @@ def test_add_plugin_calls_install_plugin():
 
     say = _make_say()
     with patch.object(bot_unified.plugin_manager, "install_plugin", return_value={"ok": True, "stdout": "Installed"}) as mock_install, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"):
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> add plugin my-plugin")
         bot_unified.handle_mention(event, say=say)
 
@@ -71,7 +71,7 @@ def test_add_plugin_error_posts_ephemeral():
 
     say = _make_say()
     with patch.object(bot_unified.plugin_manager, "install_plugin", return_value={"ok": False, "error": "Not found"}) as mock_install, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"), \
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"), \
          patch("bot_unified.app") as mock_app:
         mock_app.client.chat_postEphemeral = MagicMock()
         event = _make_event("<@BOT> add plugin bad-plugin")
@@ -93,7 +93,7 @@ def test_remove_plugin_calls_uninstall_plugin():
 
     say = _make_say()
     with patch.object(bot_unified.plugin_manager, "uninstall_plugin", return_value={"ok": True, "stdout": "Removed"}) as mock_uninstall, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"):
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> remove plugin my-plugin")
         bot_unified.handle_mention(event, say=say)
 
@@ -112,7 +112,7 @@ def test_add_mcp_calls_add_mcp():
 
     say = _make_say()
     with patch.object(bot_unified.plugin_manager, "add_mcp", return_value={"ok": True, "stdout": "Added"}) as mock_add, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"):
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> add mcp my-server npx my-server")
         bot_unified.handle_mention(event, say=say)
 
@@ -131,7 +131,7 @@ def test_remove_mcp_calls_remove_mcp():
 
     say = _make_say()
     with patch.object(bot_unified.plugin_manager, "remove_mcp", return_value={"ok": True, "stdout": "Removed"}) as mock_remove, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"):
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> remove mcp my-server")
         bot_unified.handle_mention(event, say=say)
 
@@ -151,7 +151,7 @@ def test_add_bot_plugin_calls_add_bot_plugin():
     say = _make_say()
     mock_module = MagicMock()
     with patch.object(bot_unified.plugin_manager, "add_bot_plugin", return_value={"ok": True, "name": "cool-ext", "module": mock_module}) as mock_add, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"):
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> add bot-plugin cool-ext")
         bot_unified.handle_mention(event, say=say)
 
@@ -170,7 +170,7 @@ def test_remove_bot_plugin_calls_remove_bot_plugin():
 
     say = _make_say()
     with patch.object(bot_unified.plugin_manager, "remove_bot_plugin", return_value={"ok": True}) as mock_remove, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"):
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> remove bot-plugin cool-ext")
         bot_unified.handle_mention(event, say=say)
 
@@ -189,7 +189,7 @@ def test_add_mcp_error_posts_ephemeral():
 
     say = _make_say()
     with patch.object(bot_unified.plugin_manager, "add_mcp", return_value={"ok": False, "error": "Something went wrong"}) as mock_add, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"), \
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"), \
          patch("bot_unified.app") as mock_app:
         mock_app.client.chat_postEphemeral = MagicMock()
         event = _make_event("<@BOT> add mcp broken-server broken-cmd")

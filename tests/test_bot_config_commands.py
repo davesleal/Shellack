@@ -22,7 +22,7 @@ def test_set_mode_max_updates_env():
     say = _make_say()
     with patch("bot_unified.shutil.which", return_value="/usr/local/bin/claude"), \
          patch("bot_unified.set_env_var") as mock_set, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"):
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> set mode max")
         bot_unified.handle_mention(event, say=say)
     mock_set.assert_called_once_with("SESSION_BACKEND", "max")
@@ -35,7 +35,7 @@ def test_set_mode_api_updates_env():
     importlib.reload(bot_unified)
     say = _make_say()
     with patch("bot_unified.set_env_var") as mock_set, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"):
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> set mode api")
         bot_unified.handle_mention(event, say=say)
     mock_set.assert_called_once_with("SESSION_BACKEND", "api")
@@ -46,7 +46,7 @@ def test_set_model_sonnet_updates_env():
     importlib.reload(bot_unified)
     say = _make_say()
     with patch("bot_unified.set_env_var") as mock_set, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"):
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> set model sonnet")
         bot_unified.handle_mention(event, say=say)
     mock_set.assert_called_once_with("SESSION_MODEL", "claude-sonnet-4-6")
@@ -57,7 +57,7 @@ def test_usage_command_posts_stats():
     importlib.reload(bot_unified)
     say = _make_say()
     with patch.object(bot_unified.usage_tracker, "format_usage_message", return_value="stats"), \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"):
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> usage")
         bot_unified.handle_mention(event, say=say)
     say.assert_called_once()
@@ -70,7 +70,7 @@ def test_set_mode_max_fails_when_claude_not_found():
     say = _make_say()
     with patch("bot_unified.shutil.which", return_value=None), \
          patch("bot_unified.set_env_var") as mock_set, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"):
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> set mode max")
         bot_unified.handle_mention(event, say=say)
     mock_set.assert_not_called()
@@ -82,7 +82,7 @@ def test_config_command_posts_settings():
     import bot_unified
     importlib.reload(bot_unified)
     say = _make_say()
-    with patch("bot_unified.get_channel_name", return_value="slackclaw-dev"), \
+    with patch("bot_unified.get_channel_name", return_value="shellack-dev"), \
          patch.dict("os.environ", {"SESSION_BACKEND": "api", "SESSION_MODEL": "claude-sonnet-4-6"}):
         event = _make_event("<@BOT> config")
         bot_unified.handle_mention(event, say=say)

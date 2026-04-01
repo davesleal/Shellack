@@ -15,7 +15,7 @@ def test_run_session_close_records_session():
 
     with patch("bot_unified.SlackSession", return_value=mock_session), \
          patch("bot_unified.APIBackend"), \
-         patch("bot_unified.get_channel_name", return_value="dayist-dev"), \
+         patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
          patch.object(bot_unified.usage_tracker, "record_session") as mock_record, \
          patch.dict("os.environ", {"SESSION_BACKEND": "api", "SESSION_MODEL": "claude-sonnet-4-6"}):
 
@@ -42,14 +42,19 @@ def test_project_message_records_mention():
     mock_app.client.chat_delete = MagicMock()
     mock_app.client.reactions_remove = MagicMock()
 
+    fake_routing = {"alpha-dev": {"mode": "dedicated", "project": "alpha", "channel_id": "C_ALPHA"}}
+    fake_projects = {"alpha": {"name": "Alpha", "path": "/tmp", "language": "python"}}
+
     with patch("bot_unified.agent_factory") as mock_factory, \
          patch("bot_unified.app", mock_app), \
+         patch("bot_unified.CHANNEL_ROUTING", fake_routing), \
+         patch("bot_unified.PROJECTS", fake_projects), \
          patch("bot_unified.ThinkingIndicator") as mock_indicator_cls, \
          patch.object(bot_unified.usage_tracker, "record_mention") as mock_record, \
          patch.dict("os.environ", {"SESSION_BACKEND": "api", "SESSION_MODEL": "claude-sonnet-4-6"}):
         mock_indicator_cls.return_value = MagicMock()
-        mock_factory.get_agent.return_value.handle.return_value = ("done", "DayistAgent")
+        mock_factory.get_agent.return_value.handle.return_value = ("done", "AlphaAgent")
         event = {"text": "hello", "channel": "C123", "ts": "100.0"}
-        bot_unified.handle_project_message(event, say=MagicMock(), channel_name="dayist-dev")
+        bot_unified.handle_project_message(event, say=MagicMock(), channel_name="alpha-dev")
 
     mock_record.assert_called_once_with("api", "claude-sonnet-4-6")

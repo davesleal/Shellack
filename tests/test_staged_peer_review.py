@@ -24,9 +24,9 @@ def test_stage1_posts_to_code_review_channel():
         spr.trigger(
             summary="Fixed login crash",
             changed_files=["LoginView.swift"],
-            project_key="dayist",
+            project_key="alpha",
             origin_thread_ts="111.222",
-            origin_channel_id="C_DAYIST",
+            origin_channel_id="C_ALPHA",
         )
 
     app.client.chat_postMessage.assert_called()
@@ -46,7 +46,7 @@ def test_stage1_tags_owner_on_blocking_issue():
                                   status="changes_requested", score=40,
                                   strengths=[], concerns=[], suggestions=[]),
         }
-        spr.trigger("Summary", ["file.py"], "dayist", "111.222", "C_DAYIST")
+        spr.trigger("Summary", ["file.py"], "alpha", "111.222", "C_ALPHA")
 
     texts = [c.kwargs["text"] for c in app.client.chat_postMessage.call_args_list]
     assert any("U999" in t for t in texts)
@@ -55,17 +55,17 @@ def test_stage1_tags_owner_on_blocking_issue():
 def test_stage2_posts_cross_project_review_request():
     app = make_app()
     projects = {
-        "dayist": {"platform": "ios", "language": "swift", "name": "Dayist"},
-        "tiledock": {"platform": "macos", "language": "swift", "name": "TileDock"},
+        "alpha": {"platform": "ios", "language": "swift", "name": "Alpha"},
+        "beta": {"platform": "macos", "language": "swift", "name": "Beta"},
     }
     spr = StagedPeerReview(app=app, code_review_channel_id="C_REVIEW",
                            owner_user_id="U999", projects=projects)
 
     with patch.object(spr.coordinator, "review_pr", return_value={}):
-        spr.trigger("Summary", ["file.swift"], "dayist", "111.222", "C_DAYIST")
+        spr.trigger("Summary", ["file.swift"], "alpha", "111.222", "C_ALPHA")
 
     texts = [c.kwargs.get("text", "") for c in app.client.chat_postMessage.call_args_list]
-    assert any("[tiledock-review]" in t for t in texts)
+    assert any("[beta-review]" in t for t in texts)
 
 
 def test_peer_review_agent_parses_structured_json():

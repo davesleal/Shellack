@@ -22,7 +22,7 @@ def test_run_prefix_creates_slack_session():
 
     with patch("bot_unified.SlackSession", return_value=mock_session), \
          patch("bot_unified.APIBackend"), \
-         patch("bot_unified.get_channel_name", return_value="dayist-dev"), \
+         patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
          patch.dict("os.environ", {"SESSION_BACKEND": "api", "SESSION_MODEL": "claude-sonnet-4-6"}):
 
         event = _make_event("<@BOT> run: investigate the crash")
@@ -42,7 +42,7 @@ def test_run_prefix_uses_max_backend_when_configured():
 
     with patch("bot_unified.SlackSession", return_value=mock_session), \
          patch("bot_unified.MaxBackend") as MockMax, \
-         patch("bot_unified.get_channel_name", return_value="slackclaw-dev"), \
+         patch("bot_unified.get_channel_name", return_value="shellack-dev"), \
          patch.dict("os.environ", {"SESSION_BACKEND": "max"}):
 
         MockMax.available.return_value = True
@@ -59,7 +59,7 @@ def test_thread_run_prefix_does_not_create_session():
     importlib.reload(bot_unified)
 
     with patch("bot_unified.handle_project_message") as mock_proj, \
-         patch("bot_unified.get_channel_name", return_value="dayist-dev"), \
+         patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
          patch("bot_unified.is_orchestrator_channel", return_value=False), \
          patch("bot_unified.is_peer_review_channel", return_value=False):
 
@@ -104,7 +104,7 @@ def test_non_run_mention_does_not_create_session():
     importlib.reload(bot_unified)
 
     with patch("bot_unified.handle_project_message") as mock_proj, \
-         patch("bot_unified.get_channel_name", return_value="dayist-dev"), \
+         patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
          patch("bot_unified.is_orchestrator_channel", return_value=False), \
          patch("bot_unified.is_peer_review_channel", return_value=False):
 
