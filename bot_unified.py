@@ -262,6 +262,25 @@ def handle_project_message(event, say, channel_name: str):
         except Exception:
             pass  # never block on gut check
 
+    # 8c. Consultant dispatch: check for triggers and invoke specialists
+    use_consultants = project.get("features", {}).get("consultants", True)
+    if use_consultants and use_token_cart:
+        try:
+            from tools.consultants import detect_triggers, consult
+            triggered_roles = detect_triggers(response)
+            for role in triggered_roles:
+                feedback = consult(
+                    role=role,
+                    response=response,
+                    handoff=session.get("handoff"),
+                    registry=registry_content,
+                )
+                if feedback:
+                    response += f"\n\n{feedback}"
+                    logger.info(f"Consultant {role} flagged findings")
+        except Exception:
+            pass  # never block on consultants
+
     # 9. Stop indicator — updates the single clay message to gray with the answer inline
     from tools.slack_session import _md_to_mrkdwn
     header = f"🤖 *{agent_label}*\n" if agent_label != project["name"] else ""
