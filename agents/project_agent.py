@@ -155,14 +155,19 @@ class ProjectAgent:
                 'If the task needs file access or code changes, say: "Try `@Shellack run: <task>`"\n'
             )
         role_text += (
-            "\n**Reasoning format:** If you need to think before answering, put a one-line "
-            "summary on the first line prefixed with `Thinking: `, then a blank line, then "
-            "your answer. Omit if no reasoning is needed."
-            "\n\n**Formatting:** This response renders in Slack. Rules:\n"
-            "- Wrap ALL code (even a single line) in triple-backtick fences with a language tag: "
+            "\n\n**Response format:** Structure your response with tags:\n"
+            "\n`[think]` Your reasoning — what you're checking, key observations, decisions. "
+            "Shown in a collapsible block. Keep it concise. Skip if no reasoning needed.\n"
+            "\n`[reply]` Your answer to the operator. This is the main response. "
+            "Always include [reply]. Be direct and actionable.\n"
+            "\nExample:\n"
+            "[think] Checking auth/middleware.py — the session token handling looks outdated.\n"
+            "[reply] The middleware at `auth/middleware.py:42` stores session tokens without "
+            "the `SameSite` attribute. Here's the fix: ...\n"
+            "\n**Formatting:** This response renders in Slack. Rules:\n"
+            "- Wrap ALL code in triple-backtick fences with a language tag: "
             "```swift\\n...\\n``` or ```python\\n...\\n```\n"
-            "- Always close every code block with ``` before continuing prose\n"
-            "- After a closing ``` resume normal text on a new line — never leave a block open\n"
+            "- Always close every code block before continuing prose\n"
             "- Use `inline backticks` only for identifiers, file names, and short values\n"
             "\nBe concise."
         )
