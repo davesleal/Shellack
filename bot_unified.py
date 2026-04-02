@@ -217,6 +217,17 @@ def handle_project_message(event, say, channel_name: str):
     else:
         enriched_context = prompt
 
+    # Agent Manager: intelligent model selection (opt-in, default OFF)
+    use_agent_manager = project.get("features", {}).get("agent-manager", False)
+    if use_agent_manager and use_token_cart:
+        try:
+            from tools.agent_manager import classify_complexity, select_model
+            complexity = classify_complexity(prompt, handoff=session.get("handoff"))
+            model = select_model(complexity)
+            logger.info(f"Agent manager: {complexity} → {model}")
+        except Exception:
+            pass  # fall through to default model
+
     # 7. Run the agent
     try:
         agent = agent_factory.get_agent(
