@@ -1,193 +1,175 @@
 # Shellack Architecture
 
-Modular unified bot with channel-based routing.
+Modular unified bot with channel-based routing and a multi-tier agent system.
 
-## Architecture Overview
+## System Overview
 
 ```
 Shellack Unified Bot (single process)
 │
-├─ Project Agents
-│  ├─ #project-a-dev → Project A
+├─ Token Cart (Haiku — always on)
+│  ├─ Pre-call context enrichment
+│  ├─ Post-call compaction (async)
+│  ├─ Gut check before posting
+│  ├─ Correction detection → registry updates
+│  └─ Cross-thread persistence
+│
+├─ Project Agents (per channel)
+│  ├─ #project-a-dev → Agent + team
+│  │  ├─ Primary: Opus (reasoning)
+│  │  ├─ Token Cart: Haiku (context)
+│  │  ├─ Infosec: Sonnet (security review)
+│  │  └─ Architect: Sonnet (structure review)
+│  └─ .shellack/registry.md (patterns + rules)
+│
+├─ Agent Manager (opt-in)
+│  └─ Classifies complexity → selects model tier
 │
 ├─ Orchestrator
-│  └─ #shellack-central
-│     ├─ Update all CLAUDE.md files
-│     ├─ Sync standards between projects
-│     ├─ Cross-project search
-│     └─ Global governance
+│  └─ #shellack-central (cross-project coordination)
 │
 └─ Peer Review
-   └─ #code-review
-      ├─ Code Quality Agent
-      ├─ Security Agent
-      └─ Performance Agent
+   └─ #code-review (staged review agents)
+```
+
+## Three-Tier Model Hierarchy
+
+| Model | Role | Cost (per MTok) |
+|---|---|---|
+| **Haiku 4.5** | Token Cart — compaction, enrichment, gut check, corrections | $0.25 / $1.25 |
+| **Sonnet 4.6** | Consultants, journal polish, output editing | $3 / $15 |
+| **Opus 4.6** | Primary reasoning — main agent work | $15 / $75 |
+
+## Turn Lifecycle
+
+```
+1. User @mentions Shellack in a project channel
+2. :claude: reaction added
+3. ThinkingIndicator posts (clay-colored, cycling verbs)
+4. Token Cart pre-call: enriches context from handoff + registry
+5. Agent Manager: classifies complexity, selects model (opt-in)
+6. ProjectAgent.handle(): runs reasoning model
+7. Gut check: Haiku sanity-checks against registry
+8. Consultants: infosec/architect review if triggered
+9. ThinkingIndicator.done(): gray block with "Churned for Xs · $cost"
+10. :claude: reaction removed
+11. Post-call (async): Haiku compacts → handoff, journal, thread memory
+12. Correction detection (async): updates registry if operator corrected agent
 ```
 
 ## Channel Routing
 
-The bot automatically routes to the right module based on channel name:
+Configured in `projects.yaml` (gitignored). The bot routes based on channel name:
 
-```python
-if channel == "shellack-central":
-    → orchestrator.handle()
-elif channel == "code-review":
-    → peer_review.handle()
-else:
-    → project_agent.handle()
+```
+if channel == "shellack-central"  → orchestrator.handle()
+elif channel == "code-review"     → peer_review.handle()
+elif channel in CHANNEL_ROUTING   → handle_project_message()
 ```
 
-## Modules
+## Token Cart Flow
 
-### 1. Project Agents (`bot_unified.py`)
-
-Handle project-specific work:
-- Code analysis
-- Bug investigation
-- Feature implementation
-- Code reviews
-- Testing
-
-**Channels:** Any configured project channel (see `orchestrator_config.py`)
-
-**Example:**
 ```
-#project-a-dev
-@Shellack what files are in Views/Settings?
-@Shellack fix the login bug
-@Shellack run tests
-```
-
-### 2. Orchestrator (`orchestrator.py`)
-
-Cross-project coordination:
-- Update CLAUDE.md across all projects
-- Sync coding standards
-- Global search
-- Coordinate multi-project changes
-
-**Channel:** `#shellack-central`
-
-**Example:**
-```
-#shellack-central
-@Shellack update all CLAUDE.md: prefer composition over inheritance
-@Shellack sync standards from project-a to project-b
-@Shellack search all: deprecated UserDefaults
+Turn N:
+  handoff_N-1 + prompt + registry
+      ↓
+  Haiku pre-call → enriched context (relevant context only)
+      ↓
+  Reasoning model (Opus/Sonnet) → response
+      ↓
+  Haiku gut check → PROCEED or CONCERN
+      ↓
+  Sonnet consultants → security/architecture findings (if triggered)
+      ↓
+  Response posted to Slack
+      ↓
+  Haiku post-call (async) → handoff_N + journal draft
+      ↓
+  Thread memory persisted to .shellack/thread-memory/
 ```
 
-### 3. Peer Review (`peer_review.py`)
+## Feature Configuration
 
-Autonomous code review:
-- Code quality analysis
-- Security scanning
-- Performance review
-- Approval workflow
+All features opt-in via `projects.yaml` or runtime `@Shellack config`:
 
-**Channel:** `#code-review`
+| Feature | Default | Description |
+|---|---|---|
+| `token-cart` | on | Context compaction between turns |
+| `external-handoff` | on | Cross-thread persistence |
+| `gut-check` | on | Sanity check before posting |
+| `consultants` | on | Infosec + architect review |
+| `registry` | on | Auto-maintained pattern index |
+| `cost-observability` | on | Token spend tracking |
+| `code-review` | on | Inline self-healing review |
+| `agent-manager` | **off** | Complexity-based model selection |
 
-**Example:**
-```
-#code-review
-🤖 PR #123 ready for review
-Files: LoginView.swift, AuthManager.swift
-Description: Fixed race condition
-
-[Bot analyzes and provides review]
-```
-
-## Configuration
-
-Edit `orchestrator_config.py` to:
-- Add projects
-- Configure channels
-- Set global standards
-- Define review rules
-
-## Running the Bot
-
-### Development
-```bash
-python bot_unified.py
-```
-
-### Production
-```bash
-# Option 1: systemd/launchd service
-# Option 2: Docker
-# Option 3: Cloud deployment (Railway, Fly.io, etc.)
-```
-
-## File Structure
+## Key Files
 
 ```
 Shellack/
-├── bot_unified.py              # Main unified bot
-├── orchestrator_config.py      # Configuration
-├── orchestrator.py             # Cross-project operations
-├── peer_review.py              # Autonomous review system
-├── app_store_connect.py        # ASC integration
-│
-├── bot_enhanced.py             # Legacy: Full AI bot
-├── monitor_only.py             # Legacy: Zero-cost monitoring
-│
-└── README.md                   # Project docs
+├── bot_unified.py              # Main bot — entry point, routing, wiring
+├── orchestrator_config.py      # YAML loader for projects.yaml
+├── projects.yaml               # YOUR config (gitignored)
+├── projects.example.yaml       # Template with full schema
+├── agents/
+│   ├── agent_factory.py        # Per-channel agent cache + warmup
+│   ├── project_agent.py        # ProjectAgent with CLAUDE.md context
+│   └── sub_agents.py           # Crash / Testing / Review / Docs
+├── tools/
+│   ├── token_cart.py           # Haiku context compaction + gut check
+│   ├── registry.py             # .shellack/registry.md management
+│   ├── thread_memory.py        # Cross-thread persistence
+│   ├── cost_tracker.py         # Per-turn/thread cost tracking
+│   ├── consultants.py          # Infosec + architect consultants
+│   ├── agent_manager.py        # Complexity classification + model selection
+│   ├── github_journal.py       # GitHub Discussions journal posting
+│   ├── journal_polisher.py     # Sonnet journal polish
+│   ├── session_backend.py      # APIBackend + MaxBackend + quick_reply()
+│   ├── slack_session.py        # run: session lifecycle + canvas routing
+│   ├── thinking_indicator.py   # Animated Slack indicator
+│   ├── lifecycle.py            # Structured Slack status posts
+│   ├── github_client.py        # Issue creation & management
+│   └── self_improver.py        # Auto-update CLAUDE.md on recovered blocks
+├── hooks/pre-commit            # Secret scanning (16 patterns)
+└── tests/                      # 373 tests
 ```
 
 ## Adding New Projects
 
-1. Edit `orchestrator_config.py`:
-```python
-PROJECTS = {
-    "new-project": {
-        "name": "NewProject",
-        "path": "/path/to/project",
-        "bundle_id": "com.example.app",
-        "primary_channel": "new-project-dev",
-        "language": "swift",
-        "platform": "ios"
-    }
-}
+1. Edit `projects.yaml`:
+```yaml
+projects:
+  myapp:
+    name: MyApp
+    primary_channel: myapp-dev
+    language: swift
+    platform: ios
+    github_repo: your-org/MyApp
+    path: ~/Repos/MyApp
 ```
 
-2. Add channel routing:
-```python
-CHANNEL_ROUTING = {
-    "new-project-dev": {
-        "project": "new-project",
-        "mode": "dedicated"
-    }
-}
+2. Create and invite:
 ```
-
-3. Create Slack channel:
-```
-/create #new-project-dev
+/create #myapp-dev
 /invite @Shellack
 ```
 
-Done! The bot automatically picks up the new project.
+3. Restart the bot. The agent bootstraps automatically.
 
-## Adding New Orchestrator Commands
+## Persistence
 
-1. Edit `orchestrator.py`
-2. Add new method to `Orchestrator` class
-3. Update `handle_orchestrator_message()` in `bot_unified.py`
+| Data | Storage | Lifespan |
+|---|---|---|
+| Internal handoffs | In-memory (`active_sessions`) | Thread lifetime |
+| External handoffs | `.shellack/thread-memory/` | Across threads |
+| Project registry | `.shellack/registry.md` | Permanent |
+| Journal drafts | In-memory → GitHub Discussions | Session → permanent |
+| Usage stats | `usage.json` | Monthly reset |
 
-## Benefits of This Architecture
+## Security
 
-✅ **Single deployment** - One bot process
-✅ **Modular** - Easy to maintain and extend
-✅ **Scalable** - Add projects without code changes
-✅ **Flexible** - Enable/disable features per channel
-✅ **Clean** - Clear separation of concerns
-✅ **Powerful** - Cross-project coordination
-
-## Future Enhancements
-
-- [ ] Web dashboard for monitoring
-- [ ] Metrics and analytics
-- [ ] Custom review agents
-- [ ] Workflow automation
-- [ ] Multi-language support
-- [ ] Integration with CI/CD
+- Pre-commit hook: 16 secret patterns (Slack tokens, API keys, AWS, GitHub, private keys)
+- Owner-only gates: plugin/MCP/config commands fail-closed when `OWNER_SLACK_USER_ID` is unset
+- Triage: system prompts separated from user input
+- Error messages: sanitized, no exception details leak to Slack
+- Self-improver: opt-in, rules sanitized (length cap, suspicious patterns, non-ASCII rejection)

@@ -19,12 +19,18 @@ Shellack connects your Slack workspace to Claude AI, giving each project channel
 | 🖥️ **Full sessions** | `@Shellack run: <task>` — interactive Claude Code session in a thread |
 | 🎨 **Canvas output** | Code blocks route to a Slack Canvas instead of flooding the thread |
 | 🤖 **Project agents** | Each channel gets a dedicated agent loaded with `CLAUDE.md` context |
+| 🧠 **Token Cart** | Haiku-powered context compaction — replaces full-history replay, ~57% token savings |
+| 🛡️ **Agent teams** | Infosec + architect consultants review responses when triggered |
+| ✅ **Gut check** | Sanity check against project registry before posting responses |
+| 📋 **Project registry** | Auto-maintained index of reusable components, patterns, and rules |
+| 🔄 **Cross-thread memory** | Handoffs persist across threads via `.shellack/thread-memory/` |
 | 🐛 **GitHub issues** | Bugs and crashes auto-open issues with correct labels |
 | 🔍 **Peer review** | Staged Quality / Security / Performance review in `#code-review` |
-| 📔 **Journal** | Narrative `JOURNAL.md` entries written after significant work |
+| 📔 **Journal** | Narrative journal entries via GitHub Discussions (weekly threads) |
 | 📱 **App Store Connect** | Auto-monitors reviews and TestFlight feedback |
 | 🔌 **Plugin management** | Install Claude plugins, MCP servers, and bot extensions from Slack |
-| ⚙️ **Live config** | Switch AI mode/model without restarting the bot |
+| ⚙️ **Live config** | Switch AI mode/model/features without restarting the bot |
+| 💰 **Cost tracking** | Per-turn token spend displayed in the Churned block |
 | 🌉 **Terminal bridge** | `claude-slack` — respond to Claude Code prompts via Slack buttons on any device |
 
 ---
@@ -85,21 +91,34 @@ APP_STORE_CONNECT_PRIVATE_KEY_PATH=~/.appstoreconnect/AuthKey_XXXXX.p8
 
 ### Project & channel routing
 
-Edit `orchestrator_config.py` to register your projects and map them to Slack channels:
+Copy `projects.example.yaml` to `projects.yaml` and fill in your projects:
 
-```python
-PROJECTS = {
-    "myapp": {
-        "name": "MyApp",
-        "path": os.environ.get("MYAPP_PROJECT_PATH", os.path.expanduser("~/Repos/MyApp")),
-        "bundle_id": os.environ.get("MYAPP_BUNDLE_ID", ""),
-        "primary_channel": "myapp-dev",
-        "language": "swift",
-        "platform": "ios",
-        "github_repo": f"{_GITHUB_ORG}/MyApp",
-    },
-}
+```bash
+cp projects.example.yaml projects.yaml
+# Edit projects.yaml with your channels, paths, and repos
 ```
+
+```yaml
+# projects.yaml (gitignored — your config, not committed)
+github_org: your-org
+projects:
+  myapp:
+    name: MyApp
+    primary_channel: myapp-dev
+    language: swift
+    platform: ios
+    github_repo: your-org/MyApp
+    path: ~/Repos/MyApp
+    # Optional: Token Cart feature flags
+    features:
+      token-cart: true        # context compaction (default: on)
+      gut-check: true         # sanity check (default: on)
+      consultants: true       # infosec + architect (default: on)
+      registry: true          # pattern index (default: on)
+      agent-manager: false    # model selection (default: off)
+```
+
+See `projects.example.yaml` for the full schema with all options.
 
 ---
 
@@ -147,9 +166,13 @@ These work in any channel, any context:
 | `@Shellack set model sonnet` | Use claude-sonnet-4-6 (default) |
 | `@Shellack set model haiku` | Use claude-haiku-4-5 |
 | `@Shellack config` | Show current mode, model, and onboarding status |
+| `@Shellack config show` | Show all Token Cart feature flags for this channel |
+| `@Shellack config <feature> on/off` | Toggle a feature at runtime (e.g., `config gut-check off`) |
 | `@Shellack usage` | Show this month's session and mention counts |
 
-Mode and model changes take effect immediately — no restart required.
+All changes take effect immediately — no restart required.
+
+**Configurable features:** `token-cart`, `gut-check`, `registry`, `consultants`, `external-handoff`, `cost-observability`, `code-review`, `agent-manager`
 
 ---
 
@@ -225,6 +248,14 @@ Shellack/
 │   ├── project_agent.py    # Per-project agent with CLAUDE.md context
 │   └── sub_agents.py       # Crash / Testing / Review / Docs sub-agents
 ├── tools/
+│   ├── token_cart.py       # Haiku-powered context compaction + gut check
+│   ├── registry.py         # .shellack/registry.md management
+│   ├── thread_memory.py    # Cross-thread persistence
+│   ├── cost_tracker.py     # Per-turn/thread cost tracking
+│   ├── consultants.py      # Infosec + architect consultants
+│   ├── agent_manager.py    # Complexity-based model selection
+│   ├── github_journal.py   # GitHub Discussions journal posting
+│   ├── journal_polisher.py # Sonnet journal polish
 │   ├── session_backend.py  # APIBackend + MaxBackend + quick_reply()
 │   ├── slack_session.py    # run: session lifecycle, canvas routing
 │   ├── lifecycle.py        # Structured Slack status posts
@@ -242,20 +273,48 @@ Shellack/
 
 ---
 
+## 🧠 Token Cart — Multi-Agent Architecture
+
+Shellack uses a three-tier model hierarchy to minimize costs while maximizing quality:
+
+| Model | Role | Cost |
+|---|---|---|
+| **Haiku 4.5** | Token Cart — context compaction, gut checks, correction detection | $0.25/MTok |
+| **Sonnet 4.6** | Consultants (infosec, architect), journal polish, output editing | $3/MTok |
+| **Opus 4.6** | Primary reasoning — main agent work | $15/MTok |
+
+Instead of replaying full conversation history (quadratic token cost), the Token Cart compacts each turn into a structured handoff. By turn 10, this saves ~57% on tokens.
+
+**How it works per turn:**
+1. Haiku enriches context from prior handoff + project registry
+2. Reasoning model (Opus/Sonnet) handles the task
+3. Gut check verifies response against registry
+4. Consultants review if security/architecture triggers detected
+5. Haiku compacts the turn into a new handoff (async, non-blocking)
+6. Corrections auto-update the project registry
+
+All features are independently toggleable via `@Shellack config <feature> on/off`.
+
+---
+
 ## 🔐 Security
 
 - Tokens stored in `.env` (gitignored)
+- Pre-commit hook scans for 16 secret patterns (Slack tokens, API keys, AWS, GitHub, private keys)
+- Owner-only gates on plugin/MCP/config commands (fail-closed when `OWNER_SLACK_USER_ID` is unset)
 - Each channel is isolated to its configured project directory
 - Bot extensions require a full Git URL — no implicit registry installs
 - All destructive operations (file writes, issue creation) require an active agent task
+- Error messages sanitized — no exception details leak to Slack
+- Triage separates system prompts from user input (prompt injection prevention)
 
 ---
 
 ## 📮 Support
 
 - 📚 [Setup guide](./SETUP_GUIDE.md)
-- 🐛 [Report issues](https://github.com/your-org/Shellack/issues)
-- 💬 [Discussions](https://github.com/your-org/Shellack/discussions)
+- 🐛 [Report issues](https://github.com/davesleal/Shellack/issues)
+- 💬 [Discussions](https://github.com/davesleal/Shellack/discussions)
 
 ---
 
