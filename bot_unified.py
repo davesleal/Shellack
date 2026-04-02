@@ -187,9 +187,9 @@ def handle_project_message(event, say, channel_name: str):
     # Pre-call: enrich context via Token Cart (skip if feature-gated off)
     use_token_cart = project.get("features", {}).get("token-cart", True)
     use_external_handoff = project.get("features", {}).get("external-handoff", True)
+    registry_content = None  # initialized before conditional for downstream use
     if use_token_cart:
         # Read project registry for context enrichment (feature-gated)
-        registry_content = None
         if project.get("features", {}).get("registry", True):
             from tools.registry import read_registry
             registry_content = read_registry(project.get("path", ""))
@@ -311,45 +311,50 @@ def handle_project_message(event, say, channel_name: str):
     except Exception:
         pass
 
-    # Post-call: compact via Token Cart (skip if feature-gated off)
+    # Post-call: compact via Token Cart — async, never blocks the user
     if use_token_cart:
-        try:
-            cart_result = token_cart.post_call(
-                handoff=session["handoff"],
-                prompt=prompt,
-                response=response,
-            )
-            session["handoff"] = cart_result["handoff"]
-            session["journal_draft"] = cart_result["journal_draft"]
-            session["turn_count"] += 1
+        def _post_call_async():
+            try:
+                cart_result = token_cart.post_call(
+                    handoff=session["handoff"],
+                    prompt=prompt,
+                    response=response,
+                )
+                session["handoff"] = cart_result["handoff"]
+                session["journal_draft"] = cart_result["journal_draft"]
+                session["turn_count"] += 1
 
-            # Cross-thread persistence: save latest handoff for future threads
-            if use_external_handoff and cart_result["handoff"]:
-                try:
-                    from tools.thread_memory import write_thread_memory
-                    write_thread_memory(
-                        project.get("path", ""), project_key, cart_result["handoff"]
-                    )
-                except Exception:
-                    pass  # never block on persistence
-        except Exception as exc:
-            logger.warning(f"Token cart post-call failed: {exc}")
+                # Cross-thread persistence: save latest handoff for future threads
+                if use_external_handoff and cart_result["handoff"]:
+                    try:
+                        from tools.thread_memory import write_thread_memory
+                        write_thread_memory(
+                            project.get("path", ""), project_key, cart_result["handoff"]
+                        )
+                    except Exception:
+                        pass  # never block on persistence
+            except Exception as exc:
+                logger.warning(f"Token cart post-call failed: {exc}")
 
-    # Correction feedback: detect and update registry
+        threading.Thread(target=_post_call_async, daemon=True).start()
+
+    # Correction feedback: detect and update registry (async)
     if use_token_cart and project.get("features", {}).get("registry", True):
         if detect_correction(prompt):
-            try:
-                correction = token_cart.extract_correction(prompt, response)
-                if correction:
-                    from tools.registry import append_to_registry
-                    append_to_registry(
-                        project.get("path", ""),
-                        correction["section"],
-                        correction["entry"],
-                    )
-                    logger.info(f"Registry updated with correction: {correction['section']}")
-            except Exception:
-                pass  # never block on correction processing
+            def _correction_async():
+                try:
+                    correction = token_cart.extract_correction(prompt, response)
+                    if correction:
+                        from tools.registry import append_to_registry
+                        append_to_registry(
+                            project.get("path", ""),
+                            correction["section"],
+                            correction["entry"],
+                        )
+                        logger.info(f"Registry updated with correction: {correction['section']}")
+                except Exception:
+                    pass
+            threading.Thread(target=_correction_async, daemon=True).start()
 
     usage_tracker.record_mention(backend_mode, model)
 
