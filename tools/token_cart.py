@@ -78,6 +78,21 @@ _CORRECTION_PATTERNS = [
     r"\bnever\s+(use|create|write|add)\b",
 ]
 
+_GUT_CHECK_SYSTEM = """You are a sanity check agent. Review the reasoning model's planned response against the project registry and handoff context.
+
+Check for:
+- Registry compliance: Is the response about to create something that already exists in the registry?
+- Scope creep: Is the response doing more than what was asked?
+- Consistency: Does the approach match established patterns in the registry?
+- Risk: Is anything being deleted or overwritten?
+
+Respond with EXACTLY one of:
+PROCEED
+or
+CONCERN: {one-line description of the concern}
+
+Nothing else. No explanation."""
+
 _CORRECTION_SYSTEM = """You are a correction extraction agent. The operator corrected the AI agent. Extract the correction as a registry rule.
 
 Output format (exactly):
@@ -280,3 +295,31 @@ class HaikuTokenCart:
         except Exception as exc:
             logger.warning(f"Token cart external handoff failed: {exc}")
             return ""
+
+    def gut_check(
+        self,
+        response: str,
+        registry: str | None = None,
+        handoff: str | None = None,
+    ) -> str | None:
+        """Quick sanity check on agent response. Returns concern string or None."""
+        user_content = f"## Agent Response\n{response[:2000]}"
+        if registry:
+            user_content += f"\n\n## Project Registry\n{registry[:2000]}"
+        if handoff:
+            user_content += f"\n\n## Current Handoff\n{handoff[:1000]}"
+
+        try:
+            msg = self._client.messages.create(
+                model=self._model,
+                max_tokens=128,
+                system=_GUT_CHECK_SYSTEM,
+                messages=[{"role": "user", "content": user_content}],
+            )
+            text = msg.content[0].text.strip()
+            if text.startswith("CONCERN:"):
+                return text[len("CONCERN:"):].strip()
+            return None  # PROCEED
+        except Exception as exc:
+            logger.warning(f"Gut check failed: {exc}")
+            return None  # on failure, proceed

@@ -247,6 +247,21 @@ def handle_project_message(event, say, channel_name: str):
             session["cost"] = ThreadCost()
         session["cost"].add_turn(turn_cost)
 
+    # 8b. Gut check: sanity check response before posting
+    use_gut_check = project.get("features", {}).get("gut-check", True)
+    if use_gut_check and use_token_cart:
+        try:
+            concern = token_cart.gut_check(
+                response=response,
+                registry=registry_content,
+                handoff=session["handoff"],
+            )
+            if concern:
+                response += f"\n\n⚠️ *Gut check:* {concern}"
+                logger.info(f"Gut check flagged: {concern}")
+        except Exception:
+            pass  # never block on gut check
+
     # 9. Stop indicator — updates the single clay message to gray with the answer inline
     from tools.slack_session import _md_to_mrkdwn
     header = f"🤖 *{agent_label}*\n" if agent_label != project["name"] else ""

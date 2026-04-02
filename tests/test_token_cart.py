@@ -258,3 +258,50 @@ def test_extract_correction_api_failure():
     cart._client.messages.create.side_effect = Exception("timeout")
     result = cart.extract_correction("Don't do that", "response")
     assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Gut check tests
+# ---------------------------------------------------------------------------
+
+def test_gut_check_proceed_returns_none():
+    """PROCEED response means no concern."""
+    mock_cls = _mock_anthropic("PROCEED")
+    with patch("tools.token_cart.Anthropic", mock_cls):
+        cart = HaikuTokenCart()
+    result = cart.gut_check(response="I'll create a Modal component")
+    assert result is None
+
+
+def test_gut_check_concern_returns_message():
+    """CONCERN response returns the concern text."""
+    mock_cls = _mock_anthropic("CONCERN: Modal already exists in src/components/Modal.tsx")
+    with patch("tools.token_cart.Anthropic", mock_cls):
+        cart = HaikuTokenCart()
+    result = cart.gut_check(
+        response="I'll create a new Modal component",
+        registry="## UI Components\n| Modal | src/components/Modal.tsx |",
+    )
+    assert result == "Modal already exists in src/components/Modal.tsx"
+
+
+def test_gut_check_failure_returns_none():
+    """API failure means proceed (no blocking)."""
+    mock_cls = _mock_anthropic("")
+    with patch("tools.token_cart.Anthropic", mock_cls):
+        cart = HaikuTokenCart()
+    cart._client.messages.create.side_effect = Exception("timeout")
+    result = cart.gut_check(response="some response")
+    assert result is None
+
+
+def test_gut_check_caps_input_length():
+    """Long responses are capped to avoid huge Haiku input."""
+    mock_cls = _mock_anthropic("PROCEED")
+    with patch("tools.token_cart.Anthropic", mock_cls):
+        cart = HaikuTokenCart()
+    long_response = "x" * 5000
+    cart.gut_check(response=long_response)
+    call_content = cart._client.messages.create.call_args[1]["messages"][0]["content"]
+    # Response should be capped at 2000 chars in the user content
+    assert len(call_content) < 5000
