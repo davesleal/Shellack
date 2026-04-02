@@ -1,5 +1,17 @@
 # Shellack Project Journal
 
+## 2026-04-02 — Token Cart complete: 393 tests, full agent team, journal wiring
+
+**Context:** After the core Token Cart implementation (9 subsystems, 373 tests), three gaps remained from observer review: missing consultant roles, journal draft never consumed, and the visual UX story. Also needed to address inline code review in the post-call prompt, monthly Discussion rollups, and consultant client performance.
+
+**Approach:** Dispatched parallel agents for non-conflicting work. Added tester and output-editor consultant roles with a singleton Anthropic client (previously creating a new client per call). Added visual UX/accessibility consultant that checks WCAG 2.x compliance, UX laws (Fitts's, Hick's, Miller's, Jakob's), and design system consistency via the project registry. Added inline code review to the post-call Haiku prompt (new `---REVIEW---` section marker). Added monthly Discussion rollup function. Wired journal posting to session lifecycle — a background cleanup thread detects idle sessions (10 minutes), polishes the accumulated journal draft via Sonnet, and posts to GitHub Discussions as weekly threads.
+
+**Outcome:** 393 tests (up from 373). All observer findings addressed. The full Token Cart system is now wired end to end: context flows in (pre-call enrichment), gets compacted (post-call), persists across threads (external handoffs), corrections feed back to the registry, costs are tracked, consultants review when triggered, and journals get polished and posted when sessions end. Six consultant roles active: infosec, architect, tester, output-editor, visual-ux, plus gut check.
+
+**Insights:** The journal wiring was the missing piece that closes the loop — without it, the journal draft accumulated in memory and evaporated when the session ended. The idle-timeout approach (10min, checked every 60s) is simple and reliable. The visual UX consultant is interesting because it bridges code review and design review — it reads the same project registry as other consultants but checks for entirely different things (contrast ratios, touch targets, platform conventions). Created three forward-looking issues: Computer Use (#15), Visual UX screenshots (#16), and Log Access (#17) — together these give agents eyes on code + UI + runtime.
+
+---
+
 ## 2026-04-02 — Token Cart multi-agent system: spec to implementation in one session
 
 **Context:** The bot replayed full conversation history on every API call — token consumption grew quadratically. Agents created duplicate components because they had no inventory of what existed. Corrections in one thread were forgotten by the next. The operator wanted a multi-tier agent system where cheap models handle structured work (compaction, review, classification) and expensive models focus on reasoning.

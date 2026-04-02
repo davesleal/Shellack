@@ -1,6 +1,6 @@
 # Shellack Current State
 **Last Updated:** 2026-04-02
-**Status:** Production-ready — Token Cart multi-agent system implemented, 373 tests green
+**Status:** Production-ready — Token Cart multi-agent system complete, 393 tests green
 
 ---
 
@@ -73,19 +73,22 @@ Loaded from `projects.yaml` at startup. Validated with `validate_config()`.
 
 - [x] Strip tool XML from SlackSession streaming chunks
 - [x] Follow-ups from genericization (davesleal/Shellack#13 — closed)
-- [x] Haiku Token Cart — full system implemented (373 tests):
+- [x] Haiku Token Cart — full system implemented + wired (393 tests):
   - Token Cart Core (pre/post enrichment, handoff store)
   - Project Registry (.shellack/registry.md)
   - Cross-Thread Persistence (external handoffs)
   - Correction Feedback Loop (auto-update registry)
   - Cost Observability (per-turn spend in Churned block)
   - Gut Check Agent (sanity check before posting)
-  - Channel Agent Teams (infosec + architect consultants)
+  - Inline Code Review (self-healing via post-call prompt)
+  - Channel Agent Teams (infosec, architect, tester, output-editor, visual-ux consultants)
   - Agent Manager (complexity-based model selection)
-  - Feature Configuration (runtime toggles)
-  - GitHub Discussions Journal + Sonnet polisher (modules ready, not yet wired to session lifecycle)
-- [ ] Message UX redesign — tag system `[think]/[action]/[reply]`, rendering flow, message splitting
-- [ ] Wire journal posting to session end detection
+  - Feature Configuration (runtime toggles via `@Shellack config`)
+  - GitHub Discussions Journal — Sonnet polish + weekly threads, wired to session idle timeout
+  - Session cleanup — 10min idle → journal finalized, session purged
+- [ ] Message UX redesign — `[think]/[action]/[reply]` tag system, collapsible reasoning, message splitting
+- [ ] XML leak fix for cross-chunk boundaries in streaming
+- [ ] Computer Use (#15), Visual UX screenshots (#16), Log Access (#17)
 - [ ] LLM-driven agent transitions — mid-conversation routing (davesleal/Shellack#14, low priority)
 
 ---
