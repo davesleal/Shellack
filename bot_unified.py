@@ -324,6 +324,14 @@ def handle_project_message(event, say, channel_name: str):
                 session["journal_draft"] = cart_result["journal_draft"]
                 session["turn_count"] += 1
 
+                # Inline code review: surface issues for next turn
+                review = cart_result.get("review", "")
+                if review and review.strip() != "CLEAN" and review.strip():
+                    logger.info(f"Token cart code review: {review}")
+                    # Store for next turn's handoff context
+                    if session["handoff"]:
+                        session["handoff"] += f"\n\n### Code Review Flags\n{review}"
+
                 # Cross-thread persistence: save latest handoff for future threads
                 if use_external_handoff and cart_result["handoff"]:
                     try:

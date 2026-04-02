@@ -140,6 +140,15 @@ Output format (you MUST use these exact markers):
 ---JOURNAL---
 {One paragraph: what was asked, what was done, what was learned this turn. Past tense, third person. Include specific details.}
 
+---REVIEW---
+Quick code scan of the response. Check for:
+- Obvious bugs (unclosed resources, missing returns, off-by-one)
+- Security (hardcoded secrets, unsanitized input, injection vectors)
+- Consistency (naming doesn't match surrounding code, wrong patterns)
+
+If clean, output: CLEAN
+If issues found, output one line per issue, max 3.
+
 Rules:
 - Follow the template exactly
 - Extract ONLY what was discussed — do not infer or expand
@@ -154,22 +163,30 @@ Rules:
 # Response parsing
 # ---------------------------------------------------------------------------
 
-def _parse_cart_response(text: str) -> tuple[str, str]:
-    """Split a post-call response into (handoff, journal_draft)."""
+def _parse_cart_response(text: str) -> tuple[str, str, str]:
+    """Split a post-call response into (handoff, journal_draft, review)."""
     handoff = ""
     journal = ""
+    review = ""
 
     if "---HANDOFF---" in text:
         parts = text.split("---HANDOFF---", 1)[1]
         if "---JOURNAL---" in parts:
-            handoff, journal = parts.split("---JOURNAL---", 1)
+            handoff, rest = parts.split("---JOURNAL---", 1)
+            if "---REVIEW---" in rest:
+                journal, review = rest.split("---REVIEW---", 1)
+            else:
+                journal = rest
         else:
-            handoff = parts
+            if "---REVIEW---" in parts:
+                handoff, review = parts.split("---REVIEW---", 1)
+            else:
+                handoff = parts
     else:
         # No markers — treat entire text as handoff
         handoff = text
 
-    return handoff.strip(), journal.strip()
+    return handoff.strip(), journal.strip(), review.strip()
 
 
 # ---------------------------------------------------------------------------
@@ -248,13 +265,13 @@ class HaikuTokenCart:
                 messages=[{"role": "user", "content": user_content}],
             )
             text = msg.content[0].text.strip()
-            h, j = _parse_cart_response(text)
-            return {"handoff": h, "journal_draft": j}
+            h, j, r = _parse_cart_response(text)
+            return {"handoff": h, "journal_draft": j, "review": r}
         except Exception as exc:
             logger.warning(f"Token cart post-call failed: {exc}")
 
         # Fallback: preserve prior handoff
-        return {"handoff": handoff or "", "journal_draft": ""}
+        return {"handoff": handoff or "", "journal_draft": "", "review": ""}
 
     def extract_correction(self, prompt: str, response: str) -> dict | None:
         """Extract a registry correction from the operator's message.

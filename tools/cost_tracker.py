@@ -22,6 +22,10 @@ def _get_pricing(model: str) -> dict:
     return _PRICING.get(model, _DEFAULT_PRICING)
 
 
+# Token counts are estimated from character length (chars // 4).
+# This is approximate — actual counts vary by tokenizer.
+# When Anthropic API usage fields are available, wire them in for accuracy.
+
 @dataclass
 class TurnCost:
     """Cost for a single turn."""

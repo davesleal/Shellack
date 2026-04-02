@@ -100,6 +100,7 @@ def test_post_call_first_turn_creates_handoff():
     )
     assert "Handoff Context" in result["handoff"]
     assert "auth" in result["journal_draft"].lower()
+    assert "review" in result
 
 
 def test_post_call_subsequent_turn_updates_handoff():
@@ -155,27 +156,44 @@ def test_parse_response_splits_sections():
     """Response with both markers splits correctly."""
     from tools.token_cart import _parse_cart_response
     text = "---HANDOFF---\nhandoff content here\n---JOURNAL---\njournal content here"
-    handoff, journal = _parse_cart_response(text)
+    handoff, journal, review = _parse_cart_response(text)
     assert handoff == "handoff content here"
     assert journal == "journal content here"
+    assert review == ""
 
 
 def test_parse_response_handoff_only():
     """Response with only handoff marker."""
     from tools.token_cart import _parse_cart_response
     text = "---HANDOFF---\nhandoff only"
-    handoff, journal = _parse_cart_response(text)
+    handoff, journal, review = _parse_cart_response(text)
     assert handoff == "handoff only"
     assert journal == ""
+    assert review == ""
 
 
 def test_parse_response_no_markers():
     """Response with no markers — treat entire text as handoff."""
     from tools.token_cart import _parse_cart_response
     text = "some raw text without markers"
-    handoff, journal = _parse_cart_response(text)
+    handoff, journal, review = _parse_cart_response(text)
     assert handoff == "some raw text without markers"
     assert journal == ""
+    assert review == ""
+
+
+def test_parse_response_with_review():
+    """Response with all three markers splits correctly."""
+    from tools.token_cart import _parse_cart_response
+    text = (
+        "---HANDOFF---\nhandoff content\n"
+        "---JOURNAL---\njournal content\n"
+        "---REVIEW---\nCLEAN"
+    )
+    handoff, journal, review = _parse_cart_response(text)
+    assert handoff == "handoff content"
+    assert journal == "journal content"
+    assert review == "CLEAN"
 
 
 # ---------------------------------------------------------------------------
