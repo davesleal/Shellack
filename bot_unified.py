@@ -579,6 +579,13 @@ def _handle_plugin_command(
     return False
 
 
+_VALID_FEATURES = {
+    "token-cart", "internal-handoff", "external-handoff",
+    "gut-check", "code-review", "consultants",
+    "registry", "cost-observability", "agent-manager",
+}
+
+
 def _handle_config_command(clean_text: str, say, thread_ts: str, event: Dict) -> bool:
     """Handle config commands. Returns True if the command was consumed."""
     lower = clean_text.lower()
@@ -589,7 +596,8 @@ def _handle_config_command(clean_text: str, say, thread_ts: str, event: Dict) ->
         lower.startswith("set model ") or
         lower == "usage" or
         lower.startswith("set triage ") or
-        lower == "config"
+        lower == "config" or
+        lower.startswith("config ")
     )
 
     if is_config_command:
@@ -660,7 +668,7 @@ def _handle_config_command(clean_text: str, say, thread_ts: str, event: Dict) ->
             say(text="Usage: `@Shellack set triage on|off`", thread_ts=thread_ts)
         return True
 
-    # config
+    # config (global settings summary)
     if lower == "config":
         mode = os.environ.get("SESSION_BACKEND", "api")
         model = os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
@@ -675,6 +683,59 @@ def _handle_config_command(clean_text: str, say, thread_ts: str, event: Dict) ->
         ]
         say(text="\n".join(lines), thread_ts=thread_ts)
         return True
+
+    # config show — list feature flags for the current project
+    if lower == "config show":
+        channel_id = event.get("channel", "")
+        channel_name = get_channel_name(channel_id)
+        routing = CHANNEL_ROUTING.get(channel_name, {})
+        project_key = routing.get("project")
+        project = PROJECTS.get(project_key) if project_key else None
+        if not project:
+            say(text="❌ No project mapped to this channel.", thread_ts=thread_ts)
+            return True
+        features = project.get("features", {})
+        project_name = project.get("name", project_key)
+        lines = [f"🦞 *Feature flags — {project_name}*"]
+        for feat in sorted(_VALID_FEATURES):
+            enabled = features.get(feat, False)
+            lines.append(f"  `{feat}`: {'on ✓' if enabled else 'off'}")
+        say(text="\n".join(lines), thread_ts=thread_ts)
+        return True
+
+    # config <feature> on|off — toggle a feature flag for the current project
+    if lower.startswith("config "):
+        parts = lower[7:].split()
+        if len(parts) == 2:
+            feature_name, toggle = parts
+            if feature_name not in _VALID_FEATURES:
+                valid_list = ", ".join(f"`{f}`" for f in sorted(_VALID_FEATURES))
+                say(
+                    text=f"❌ Unknown feature `{feature_name}`. Valid features: {valid_list}",
+                    thread_ts=thread_ts,
+                )
+                return True
+            if toggle not in ("on", "off"):
+                say(text=f"Usage: `@Shellack config {feature_name} on|off`", thread_ts=thread_ts)
+                return True
+            channel_id = event.get("channel", "")
+            channel_name = get_channel_name(channel_id)
+            routing = CHANNEL_ROUTING.get(channel_name, {})
+            project_key = routing.get("project")
+            project = PROJECTS.get(project_key) if project_key else None
+            if not project:
+                say(text="❌ No project mapped to this channel.", thread_ts=thread_ts)
+                return True
+            if "features" not in project:
+                project["features"] = {}
+            project["features"][feature_name] = toggle == "on"
+            project_name = project.get("name", project_key)
+            state = "on" if toggle == "on" else "off"
+            say(
+                text=f"✅ `{feature_name}` is now *{state}* for {project_name}",
+                thread_ts=thread_ts,
+            )
+            return True
 
     return False
 
