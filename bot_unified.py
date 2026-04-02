@@ -200,6 +200,22 @@ def handle_project_message(event, say, channel_name: str):
     # Remove bot mention
     prompt = text.split(">", 1)[1].strip() if ">" in text else text
 
+    # Handle empty prompt (e.g., voice messages, file-only messages)
+    if not prompt.strip():
+        if event.get("files"):
+            app.client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=thread_ts,
+                text="🎙️ Voice and file-only messages aren't supported yet — type your message or try again with text.",
+            )
+        else:
+            app.client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=thread_ts,
+                text="❓ Empty message received. Try again with some text.",
+            )
+        return
+
     # Initialise session context
     with _session_lock:
         if thread_ts not in active_sessions:
