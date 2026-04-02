@@ -270,8 +270,11 @@ class HaikuTokenCart:
         except Exception as exc:
             logger.warning(f"Token cart post-call failed: {exc}")
 
-        # Fallback: preserve prior handoff
-        return {"handoff": handoff or "", "journal_draft": "", "review": ""}
+        # Fallback: preserve prior handoff with failure note
+        prior = handoff or ""
+        if prior:
+            prior += "\n\n*[Note: post-call compaction failed; prior handoff preserved as-is]*"
+        return {"handoff": prior, "journal_draft": "", "review": ""}
 
     def extract_correction(self, prompt: str, response: str) -> dict | None:
         """Extract a registry correction from the operator's message.

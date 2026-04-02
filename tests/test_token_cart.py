@@ -133,7 +133,8 @@ def test_post_call_haiku_failure_preserves_prior():
         prompt="question",
         response="answer",
     )
-    assert result["handoff"] == "## Prior handoff"
+    assert result["handoff"].startswith("## Prior handoff")
+    assert "prior handoff preserved as-is" in result["handoff"]
     assert result["journal_draft"] == ""
 
 

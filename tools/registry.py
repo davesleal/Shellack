@@ -1,5 +1,7 @@
 """Project Registry — auto-populated index of reusable patterns."""
 import logging
+import os
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -47,13 +49,28 @@ def read_registry(project_path: str) -> Optional[str]:
     return None
 
 
+def _atomic_write(path: Path, content: str) -> None:
+    """Atomic write: write to temp file, then rename."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(content)
+        os.replace(tmp, str(path))
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
 def write_registry(project_path: str, content: str) -> bool:
     """Write content to the project registry. Creates .shellack/ dir if needed."""
     registry_dir = Path(project_path) / _REGISTRY_DIR
     registry_path = registry_dir / _REGISTRY_FILE
     try:
-        registry_dir.mkdir(exist_ok=True)
-        registry_path.write_text(content)
+        _atomic_write(registry_path, content)
         return True
     except Exception as exc:
         logger.warning(f"Failed to write registry at {registry_path}: {exc}")

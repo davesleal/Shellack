@@ -1,5 +1,7 @@
 """Thread memory — cross-thread persistence via .shellack/thread-memory/."""
 import logging
+import os
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -19,13 +21,28 @@ def read_thread_memory(project_path: str, project_key: str) -> Optional[str]:
     return None
 
 
+def _atomic_write(path: Path, content: str) -> None:
+    """Atomic write: write to temp file, then rename."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(content)
+        os.replace(tmp, str(path))
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
 def write_thread_memory(project_path: str, project_key: str, content: str) -> bool:
     """Write persistent thread memory."""
     mem_dir = Path(project_path) / _MEMORY_DIR
     mem_path = mem_dir / f"{project_key}.md"
     try:
-        mem_dir.mkdir(parents=True, exist_ok=True)
-        mem_path.write_text(content)
+        _atomic_write(mem_path, content)
         return True
     except Exception as exc:
         logger.warning(f"Failed to write thread memory: {exc}")

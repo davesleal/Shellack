@@ -59,6 +59,7 @@ agent_factory = AgentFactory(anthropic_client)
 
 # Session management
 active_sessions: Dict[str, dict] = {}
+_session_lock = threading.Lock()
 token_cart = HaikuTokenCart()
 
 _SESSION_IDLE_TIMEOUT = int(os.environ.get("SESSION_IDLE_TIMEOUT", 600))  # 10 minutes
@@ -93,14 +94,14 @@ def _session_cleanup_loop():
         time.sleep(_SESSION_CHECK_INTERVAL)
         now = time.time()
         stale = []
-        for thread_ts, session in list(active_sessions.items()):
-            last_active = session.get("last_active", 0)
-            if last_active and (now - last_active) > _SESSION_IDLE_TIMEOUT:
-                stale.append(thread_ts)
-
-        for thread_ts in stale:
-            session = active_sessions.pop(thread_ts, None)
-            if session and session.get("journal_draft"):
+        with _session_lock:
+            for thread_ts, session in list(active_sessions.items()):
+                last_active = session.get("last_active", 0)
+                if last_active and (now - last_active) > _SESSION_IDLE_TIMEOUT:
+                    stale.append((thread_ts, active_sessions.pop(thread_ts)))
+        # Finalize outside the lock
+        for thread_ts, session in stale:
+            if session.get("journal_draft"):
                 _finalize_journal(session)
 
 
@@ -200,17 +201,18 @@ def handle_project_message(event, say, channel_name: str):
     prompt = text.split(">", 1)[1].strip() if ">" in text else text
 
     # Initialise session context
-    if thread_ts not in active_sessions:
-        active_sessions[thread_ts] = {
-            "handoff": None,
-            "journal_draft": "",
-            "turn_count": 0,
-            "project_key": project_key,
-            "cost": ThreadCost(),
-            "last_active": time.time(),
-        }
-    session = active_sessions[thread_ts]
-    session["last_active"] = time.time()
+    with _session_lock:
+        if thread_ts not in active_sessions:
+            active_sessions[thread_ts] = {
+                "handoff": None,
+                "journal_draft": "",
+                "turn_count": 0,
+                "project_key": project_key,
+                "cost": ThreadCost(),
+                "last_active": time.time(),
+            }
+        session = active_sessions[thread_ts]
+        session["last_active"] = time.time()
 
     # 1. React :claude: on the user's message — visible immediately
     try:
@@ -385,19 +387,22 @@ def handle_project_message(event, say, channel_name: str):
                     prompt=prompt,
                     response=response,
                 )
-                session["handoff"] = cart_result["handoff"]
-                session["journal_draft"] = cart_result["journal_draft"]
-                session["turn_count"] += 1
+                with _session_lock:
+                    if thread_ts in active_sessions:
+                        session["handoff"] = cart_result["handoff"]
+                        session["journal_draft"] = cart_result["journal_draft"]
+                        session["turn_count"] += 1
 
-                # Inline code review: surface issues for next turn
-                review = cart_result.get("review", "")
-                if review and review.strip() != "CLEAN" and review.strip():
-                    logger.info(f"Token cart code review: {review}")
-                    # Store for next turn's handoff context
-                    if session["handoff"]:
-                        session["handoff"] += f"\n\n### Code Review Flags\n{review}"
+                        # Inline code review: surface issues for next turn
+                        review = cart_result.get("review", "")
+                        if review and review.strip() != "CLEAN" and review.strip():
+                            logger.info(f"Token cart code review: {review}")
+                            # Store for next turn's handoff context
+                            if session["handoff"]:
+                                session["handoff"] += f"\n\n### Code Review Flags\n{review}"
 
                 # Cross-thread persistence: save latest handoff for future threads
+                # File I/O — outside the lock
                 if use_external_handoff and cart_result["handoff"]:
                     try:
                         from tools.thread_memory import write_thread_memory
