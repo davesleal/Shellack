@@ -76,10 +76,12 @@ If `[think]` is absent or empty, the Churned block shows only the header line.
 
 Slack caps messages at ~4000 characters. When `[reply]` content exceeds 3500 chars:
 
-1. Split on paragraph boundaries (`\n\n`) where possible
-2. If a single paragraph exceeds 3500, split on sentence boundaries
-3. Each chunk posted as a separate thread reply
-4. No "continued..." markers — just clean consecutive messages
+1. Never split inside a fenced code block (``` ... ```) — keep the entire block in one chunk
+2. Split on paragraph boundaries (`\n\n`) where possible
+3. If a single paragraph exceeds 3500, split on sentence boundaries (`. `)
+4. If a code block alone exceeds 3500, post it as-is (Slack will truncate with "Show more")
+5. Each chunk posted as a separate thread reply
+6. No "continued..." markers — just clean consecutive messages
 
 ## ThinkingIndicator Changes
 
