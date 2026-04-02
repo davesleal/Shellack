@@ -184,10 +184,16 @@ def handle_project_message(event, say, channel_name: str):
     # Pre-call: enrich context via Token Cart (skip if feature-gated off)
     use_token_cart = project.get("features", {}).get("token-cart", True)
     if use_token_cart:
+        # Read project registry for context enrichment (feature-gated)
+        registry_content = None
+        if project.get("features", {}).get("registry", True):
+            from tools.registry import read_registry
+            registry_content = read_registry(project.get("path", ""))
         try:
             enriched_context = token_cart.pre_call(
                 handoff=session["handoff"],
                 prompt=prompt,
+                registry=registry_content,
             )
         except Exception as exc:
             logger.warning(f"Token cart pre-call failed: {exc}")
