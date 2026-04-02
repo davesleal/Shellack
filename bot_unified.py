@@ -242,6 +242,7 @@ def handle_project_message(event, say, channel_name: str):
         # Read project registry for context enrichment (feature-gated)
         if project.get("features", {}).get("registry", True):
             from tools.registry import read_registry
+
             registry_content = read_registry(project.get("path", ""))
 
         # Cross-thread persistence: load prior thread memory for new threads
@@ -249,6 +250,7 @@ def handle_project_message(event, say, channel_name: str):
         if use_external_handoff and not effective_handoff:
             try:
                 from tools.thread_memory import read_thread_memory
+
                 effective_handoff = read_thread_memory(
                     project.get("path", ""), project_key
                 )
@@ -272,6 +274,7 @@ def handle_project_message(event, say, channel_name: str):
     if use_agent_manager and use_token_cart:
         try:
             from tools.agent_manager import classify_complexity, select_model
+
             complexity = classify_complexity(prompt, handoff=session.get("handoff"))
             model = select_model(complexity)
             logger.info(f"Agent manager: {complexity} → {model}")
@@ -288,7 +291,9 @@ def handle_project_message(event, say, channel_name: str):
         indicator.done()
         logger.exception(f"Agent error in {channel_name}")
         app.client.chat_postMessage(
-            channel=channel_id, thread_ts=thread_ts, text=f"❌ An error occurred while processing your request. Please try again."
+            channel=channel_id,
+            thread_ts=thread_ts,
+            text=f"❌ An error occurred while processing your request. Please try again.",
         )
         try:
             app.client.reactions_remove(
@@ -301,9 +306,14 @@ def handle_project_message(event, say, channel_name: str):
     # 8. Estimate turn cost
     if project.get("features", {}).get("cost-observability", True):
         model_used = model or os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
-        est_input = (len(prompt) + len(enriched_context if isinstance(enriched_context, str) else "")) // 4
+        est_input = (
+            len(prompt)
+            + len(enriched_context if isinstance(enriched_context, str) else "")
+        ) // 4
         est_output = len(response) // 4
-        turn_cost = TurnCost(input_tokens=est_input, output_tokens=est_output, model=model_used)
+        turn_cost = TurnCost(
+            input_tokens=est_input, output_tokens=est_output, model=model_used
+        )
         if "cost" not in session:
             session["cost"] = ThreadCost()
         session["cost"].add_turn(turn_cost)
@@ -328,6 +338,7 @@ def handle_project_message(event, say, channel_name: str):
     if use_consultants and use_token_cart:
         try:
             from tools.consultants import detect_triggers, consult
+
             triggered_roles = detect_triggers(response)
             for role in triggered_roles:
                 feedback = consult(
@@ -350,7 +361,9 @@ def handle_project_message(event, say, channel_name: str):
 
     # Cost string for the churned block
     cost_str = ""
-    if project.get("features", {}).get("cost-observability", True) and session.get("cost"):
+    if project.get("features", {}).get("cost-observability", True) and session.get(
+        "cost"
+    ):
         last_turn = session["cost"].turns[-1] if session["cost"].turns else None
         if last_turn:
             cost_str = session["cost"].format_turn_summary(last_turn)
@@ -380,6 +393,7 @@ def handle_project_message(event, say, channel_name: str):
 
     # Post-call: compact via Token Cart — async, never blocks the user
     if use_token_cart:
+
         def _post_call_async():
             try:
                 cart_result = token_cart.post_call(
@@ -399,13 +413,16 @@ def handle_project_message(event, say, channel_name: str):
                             logger.info(f"Token cart code review: {review}")
                             # Store for next turn's handoff context
                             if session["handoff"]:
-                                session["handoff"] += f"\n\n### Code Review Flags\n{review}"
+                                session[
+                                    "handoff"
+                                ] += f"\n\n### Code Review Flags\n{review}"
 
                 # Cross-thread persistence: save latest handoff for future threads
                 # File I/O — outside the lock
                 if use_external_handoff and cart_result["handoff"]:
                     try:
                         from tools.thread_memory import write_thread_memory
+
                         write_thread_memory(
                             project.get("path", ""), project_key, cart_result["handoff"]
                         )
@@ -419,19 +436,24 @@ def handle_project_message(event, say, channel_name: str):
     # Correction feedback: detect and update registry (async)
     if use_token_cart and project.get("features", {}).get("registry", True):
         if detect_correction(prompt):
+
             def _correction_async():
                 try:
                     correction = token_cart.extract_correction(prompt, response)
                     if correction:
                         from tools.registry import append_to_registry
+
                         append_to_registry(
                             project.get("path", ""),
                             correction["section"],
                             correction["entry"],
                         )
-                        logger.info(f"Registry updated with correction: {correction['section']}")
+                        logger.info(
+                            f"Registry updated with correction: {correction['section']}"
+                        )
                 except Exception:
                     pass
+
             threading.Thread(target=_correction_async, daemon=True).start()
 
     usage_tracker.record_mention(backend_mode, model)
@@ -617,7 +639,9 @@ def _handle_plugin_command(
         """
         owner = os.environ.get("OWNER_SLACK_USER_ID", "")
         if not owner:
-            _post_error("OWNER_SLACK_USER_ID is not configured. Plugin management is disabled.")
+            _post_error(
+                "OWNER_SLACK_USER_ID is not configured. Plugin management is disabled."
+            )
             return False
         if user_id != owner:
             _post_error("Plugin management is restricted to the workspace owner.")
@@ -693,9 +717,15 @@ def _handle_plugin_command(
 
 
 _VALID_FEATURES = {
-    "token-cart", "internal-handoff", "external-handoff",
-    "gut-check", "code-review", "consultants",
-    "registry", "cost-observability", "agent-manager",
+    "token-cart",
+    "internal-handoff",
+    "external-handoff",
+    "gut-check",
+    "code-review",
+    "consultants",
+    "registry",
+    "cost-observability",
+    "agent-manager",
 }
 
 
@@ -705,21 +735,27 @@ def _handle_config_command(clean_text: str, say, thread_ts: str, event: Dict) ->
 
     # Check if this is a config command that requires owner
     is_config_command = (
-        lower.startswith("set mode ") or
-        lower.startswith("set model ") or
-        lower == "usage" or
-        lower.startswith("set triage ") or
-        lower == "config" or
-        lower.startswith("config ")
+        lower.startswith("set mode ")
+        or lower.startswith("set model ")
+        or lower == "usage"
+        or lower.startswith("set triage ")
+        or lower == "config"
+        or lower.startswith("config ")
     )
 
     if is_config_command:
         owner = os.environ.get("OWNER_SLACK_USER_ID", "")
         if not owner:
-            say("OWNER_SLACK_USER_ID is not configured. Config commands are disabled.", thread_ts=thread_ts)
+            say(
+                "OWNER_SLACK_USER_ID is not configured. Config commands are disabled.",
+                thread_ts=thread_ts,
+            )
             return True
         if event.get("user") != owner:
-            say("Configuration changes are restricted to the workspace owner.", thread_ts=thread_ts)
+            say(
+                "Configuration changes are restricted to the workspace owner.",
+                thread_ts=thread_ts,
+            )
             return True
 
     # set mode max|api
@@ -773,10 +809,16 @@ def _handle_config_command(clean_text: str, say, thread_ts: str, event: Dict) ->
         state = lower[11:].strip()
         if state == "on":
             set_env_var("TRIAGE_ENABLED", "true")
-            say(text="✅ Triage enabled. Requests will be auto-routed to haiku/sonnet.", thread_ts=thread_ts)
+            say(
+                text="✅ Triage enabled. Requests will be auto-routed to haiku/sonnet.",
+                thread_ts=thread_ts,
+            )
         elif state == "off":
             set_env_var("TRIAGE_ENABLED", "false")
-            say(text="✅ Triage disabled. All requests use SESSION_MODEL.", thread_ts=thread_ts)
+            say(
+                text="✅ Triage disabled. All requests use SESSION_MODEL.",
+                thread_ts=thread_ts,
+            )
         else:
             say(text="Usage: `@Shellack set triage on|off`", thread_ts=thread_ts)
         return True
@@ -829,7 +871,10 @@ def _handle_config_command(clean_text: str, say, thread_ts: str, event: Dict) ->
                 )
                 return True
             if toggle not in ("on", "off"):
-                say(text=f"Usage: `@Shellack config {feature_name} on|off`", thread_ts=thread_ts)
+                say(
+                    text=f"Usage: `@Shellack config {feature_name} on|off`",
+                    thread_ts=thread_ts,
+                )
                 return True
             channel_id = event.get("channel", "")
             channel_name = get_channel_name(channel_id)
@@ -1072,7 +1117,10 @@ def check_and_post_onboarding() -> None:
     onboarding_channel = os.environ.get("ONBOARDING_CHANNEL", "")
     if not onboarding_channel:
         for _ch_name, routing in CHANNEL_ROUTING.items():
-            if routing.get("mode") == "dedicated" and routing.get("project") == "shellack":
+            if (
+                routing.get("mode") == "dedicated"
+                and routing.get("project") == "shellack"
+            ):
                 onboarding_channel = _ch_name
                 break
         if not onboarding_channel:

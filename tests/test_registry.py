@@ -1,4 +1,5 @@
 """Tests for tools/registry.py — Project Registry subsystem."""
+
 from tools.registry import (
     _INITIAL_TEMPLATE,
     append_to_registry,

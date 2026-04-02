@@ -24,8 +24,12 @@ import yaml
 logger = logging.getLogger(__name__)
 
 _KNOWN_TOP_LEVEL_KEYS = {
-    "github_org", "projects", "channels", "standards",
-    "orchestrator_commands", "peer_review",
+    "github_org",
+    "projects",
+    "channels",
+    "standards",
+    "orchestrator_commands",
+    "peer_review",
 }
 
 # ---------------------------------------------------------------------------
@@ -216,8 +220,6 @@ def validate_config() -> List[str]:
 
         # Check empty channel_ids on dedicated channels
         if ch.get("mode") == "dedicated" and not ch.get("channel_id"):
-            warnings.append(
-                f"Channel '{ch_name}' has no channel_id set"
-            )
+            warnings.append(f"Channel '{ch_name}' has no channel_id set")
 
     return warnings

@@ -73,11 +73,16 @@ def pytest_configure(config):
     if os.path.isfile(_REAL_CONFIG):
         return  # real config exists, nothing to do
 
-    if os.environ.get("SHELLACK_CONFIG") and os.path.isfile(os.environ["SHELLACK_CONFIG"]):
+    if os.environ.get("SHELLACK_CONFIG") and os.path.isfile(
+        os.environ["SHELLACK_CONFIG"]
+    ):
         return  # caller already set a valid override
 
     _tmp_file = tempfile.NamedTemporaryFile(
-        mode="w", suffix=".yaml", prefix="shellack_test_", delete=False,
+        mode="w",
+        suffix=".yaml",
+        prefix="shellack_test_",
+        delete=False,
     )
     _tmp_file.write(_FALLBACK_CONFIG)
     _tmp_file.flush()

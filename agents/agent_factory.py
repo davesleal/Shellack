@@ -34,13 +34,18 @@ class AgentFactory:
                 )
                 logger.info(f"Warmed up agent for {project['name']} ({channel_name})")
 
-    def get_agent(self, project_key: str, project_config: dict,
-                  app, channel_id: str, thread_ts: str) -> "ProjectAgent":
+    def get_agent(
+        self,
+        project_key: str,
+        project_config: dict,
+        app,
+        channel_id: str,
+        thread_ts: str,
+    ) -> "ProjectAgent":
         """Return the channel's agent, creating it if not yet warmed up."""
         if channel_id not in self._agents:
             self._agents[channel_id] = ProjectAgent(
-                project_key, project_config, self.client,
-                app, channel_id, thread_ts
+                project_key, project_config, self.client, app, channel_id, thread_ts
             )
         # Update thread context for this request
         self._agents[channel_id].channel_id = channel_id

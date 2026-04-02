@@ -1,4 +1,5 @@
 """Project Registry — auto-populated index of reusable patterns."""
+
 import logging
 import os
 import tempfile

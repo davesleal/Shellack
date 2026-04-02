@@ -1,4 +1,5 @@
 """Journal polisher — Sonnet refines Haiku's journal draft."""
+
 from __future__ import annotations
 
 import logging

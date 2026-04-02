@@ -1,5 +1,6 @@
 # tests/test_triage.py
 """Unit tests for tools/triage.py — all Anthropic calls mocked."""
+
 import json
 import pytest
 import httpx
@@ -20,10 +21,13 @@ def _make_mock_response(tier: str, reason: str = "test reason") -> MagicMock:
 def test_simple_tier():
     """Simple request => tier=simple, model=SESSION_MODEL."""
     mock_client = MagicMock()
-    mock_client.messages.create.return_value = _make_mock_response("simple", "just a question")
+    mock_client.messages.create.return_value = _make_mock_response(
+        "simple", "just a question"
+    )
 
-    with patch("tools.triage.Anthropic", return_value=mock_client), \
-         patch.dict("os.environ", {"SESSION_MODEL": "claude-sonnet-4-6"}):
+    with patch("tools.triage.Anthropic", return_value=mock_client), patch.dict(
+        "os.environ", {"SESSION_MODEL": "claude-sonnet-4-6"}
+    ):
         result = classify("What does this project do?")
 
     assert result.tier == "simple"
@@ -34,10 +38,13 @@ def test_simple_tier():
 def test_moderate_tier():
     """Moderate request => tier=moderate, model=SESSION_MODEL."""
     mock_client = MagicMock()
-    mock_client.messages.create.return_value = _make_mock_response("moderate", "code review needed")
+    mock_client.messages.create.return_value = _make_mock_response(
+        "moderate", "code review needed"
+    )
 
-    with patch("tools.triage.Anthropic", return_value=mock_client), \
-         patch.dict("os.environ", {"SESSION_MODEL": "claude-sonnet-4-6"}):
+    with patch("tools.triage.Anthropic", return_value=mock_client), patch.dict(
+        "os.environ", {"SESSION_MODEL": "claude-sonnet-4-6"}
+    ):
         result = classify("Review this function for bugs")
 
     assert result.tier == "moderate"
@@ -47,10 +54,13 @@ def test_moderate_tier():
 def test_complex_tier():
     """Complex request => tier=complex, model=SESSION_MODEL."""
     mock_client = MagicMock()
-    mock_client.messages.create.return_value = _make_mock_response("complex", "multi-file refactor")
+    mock_client.messages.create.return_value = _make_mock_response(
+        "complex", "multi-file refactor"
+    )
 
-    with patch("tools.triage.Anthropic", return_value=mock_client), \
-         patch.dict("os.environ", {"SESSION_MODEL": "claude-sonnet-4-6"}):
+    with patch("tools.triage.Anthropic", return_value=mock_client), patch.dict(
+        "os.environ", {"SESSION_MODEL": "claude-sonnet-4-6"}
+    ):
         result = classify("Refactor the entire auth system across all files")
 
     assert result.tier == "complex"
@@ -88,7 +98,9 @@ def test_malformed_json_returns_default():
 def test_unknown_tier_returns_default():
     """Unknown tier in JSON => moderate fallback returned, no raise."""
     mock_client = MagicMock()
-    mock_client.messages.create.return_value = _make_mock_response("unknown", "weird tier")
+    mock_client.messages.create.return_value = _make_mock_response(
+        "unknown", "weird tier"
+    )
 
     with patch("tools.triage.Anthropic", return_value=mock_client):
         result = classify("some prompt")
@@ -112,8 +124,9 @@ def test_default_fallback_uses_current_session_model():
     mock_client = MagicMock()
     mock_client.messages.create.side_effect = RuntimeError("boom")
 
-    with patch("tools.triage.Anthropic", return_value=mock_client), \
-         patch.dict("os.environ", {"SESSION_MODEL": "claude-opus-4-6"}):
+    with patch("tools.triage.Anthropic", return_value=mock_client), patch.dict(
+        "os.environ", {"SESSION_MODEL": "claude-opus-4-6"}
+    ):
         result = classify("anything")
 
     assert result.model == "claude-opus-4-6"

@@ -4,6 +4,7 @@ Tests for the claude_bridge_input Bolt action handler.
 We test the handler function directly by importing it and calling it with
 mock ack/body/action/client arguments.
 """
+
 import errno
 import json
 import os
@@ -14,6 +15,7 @@ from unittest.mock import MagicMock, patch
 
 def _make_handler():
     from bot_unified import handle_bridge_input
+
     return handle_bridge_input
 
 
@@ -62,7 +64,9 @@ def test_handle_session_file_not_found(tmp_path):
         return open(path, *args, **kwargs)
 
     with patch("builtins.open", side_effect=patched_open):
-        handler(ack=ack, body=_body(), action=_action(f"{_VALID_UUID}|X"), client=client)
+        handler(
+            ack=ack, body=_body(), action=_action(f"{_VALID_UUID}|X"), client=client
+        )
 
     ack.assert_called_once()
     client.chat_postEphemeral.assert_called_once()
@@ -87,15 +91,22 @@ def test_handle_pipe_enxio_shows_ephemeral_leaves_buttons(tmp_path):
         json.dump(session_data, f)
 
     real_open = open
+
     def patched_open(path, *args, **kwargs):
         if "claude_bridge" in str(path):
             return real_open(session_file, *args, **kwargs)
         return real_open(path, *args, **kwargs)
 
     enxio = OSError(errno.ENXIO, "No such device or address")
-    with patch("builtins.open", side_effect=patched_open), \
-         patch("os.open", side_effect=enxio):
-        handler(ack=ack, body=_body(), action=_action(f"{session_id_enxio}|X"), client=client)
+    with patch("builtins.open", side_effect=patched_open), patch(
+        "os.open", side_effect=enxio
+    ):
+        handler(
+            ack=ack,
+            body=_body(),
+            action=_action(f"{session_id_enxio}|X"),
+            client=client,
+        )
 
     client.chat_postEphemeral.assert_called_once()
     client.chat_update.assert_not_called()
@@ -109,7 +120,7 @@ def test_handle_missing_message_ts_skips_chat_update(tmp_path):
 
     pipe_path = str(tmp_path / "pipe_nots")
     os.mkfifo(pipe_path)
-    read_fd  = os.open(pipe_path, os.O_RDONLY | os.O_NONBLOCK)
+    read_fd = os.open(pipe_path, os.O_RDONLY | os.O_NONBLOCK)
     write_fd = os.open(pipe_path, os.O_WRONLY | os.O_NONBLOCK)
 
     session_data = {"pipe": pipe_path}
@@ -121,13 +132,19 @@ def test_handle_missing_message_ts_skips_chat_update(tmp_path):
     body_no_ts = {"channel": {"id": "C1"}, "user": {"id": "U1"}}
 
     real_open = open
+
     def patched_open(path, *args, **kwargs):
         if "claude_bridge" in str(path):
             return real_open(session_file, *args, **kwargs)
         return real_open(path, *args, **kwargs)
 
     with patch("builtins.open", side_effect=patched_open):
-        handler(ack=ack, body=body_no_ts, action=_action(f"{session_id_nots}|Y"), client=client)
+        handler(
+            ack=ack,
+            body=body_no_ts,
+            action=_action(f"{session_id_nots}|Y"),
+            client=client,
+        )
 
     ack.assert_called_once()
     client.chat_update.assert_not_called()
@@ -140,12 +157,18 @@ def test_handle_missing_message_ts_skips_chat_update(tmp_path):
 def test_handle_missing_channel_returns_early():
     """Body with no channel → early return after UUID validation, nothing posted."""
     import uuid as _uuid
+
     handler = _make_handler()
     ack = MagicMock()
     client = _client()
     valid_session_id = str(_uuid.uuid4())
     body_no_channel = {"user": {"id": "U1"}, "message": {"ts": "1.2"}}
-    handler(ack=ack, body=body_no_channel, action=_action(f"{valid_session_id}|X"), client=client)
+    handler(
+        ack=ack,
+        body=body_no_channel,
+        action=_action(f"{valid_session_id}|X"),
+        client=client,
+    )
     ack.assert_called_once()
     client.chat_postEphemeral.assert_not_called()
     client.chat_update.assert_not_called()
@@ -156,7 +179,9 @@ def test_handle_invalid_uuid_ignored():
     handler = _make_handler()
     ack = MagicMock()
     client = _client()
-    handler(ack=ack, body=_body(), action={"value": "../etc/passwd|evil"}, client=client)
+    handler(
+        ack=ack, body=_body(), action={"value": "../etc/passwd|evil"}, client=client
+    )
     ack.assert_called_once()
     client.chat_postEphemeral.assert_not_called()
     client.chat_update.assert_not_called()
@@ -171,18 +196,20 @@ def test_handle_happy_path(tmp_path):
     pipe_path = str(tmp_path / "test_pipe")
     os.mkfifo(pipe_path)
     # Open read end first (POSIX), then write end (keep-alive)
-    read_fd  = os.open(pipe_path, os.O_RDONLY | os.O_NONBLOCK)
+    read_fd = os.open(pipe_path, os.O_RDONLY | os.O_NONBLOCK)
     write_fd = os.open(pipe_path, os.O_WRONLY | os.O_NONBLOCK)
 
     session_data = {"pipe": pipe_path}
     # Use a valid UUID as session_id
     import uuid as _uuid
+
     session_id = str(_uuid.uuid4())
     session_file = str(tmp_path / f"{session_id}.json")
     with open(session_file, "w") as f:
         json.dump(session_data, f)
 
     real_open = open
+
     def patched_open(path, *args, **kwargs):
         if "claude_bridge" in str(path):
             return real_open(session_file, *args, **kwargs)

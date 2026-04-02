@@ -20,7 +20,7 @@ _BLOCK_SIGNALS = [
     r"couldn'?t",
     r"failed",
     r"retrying",
-    r"instead,?\s+I\b",    # "instead, I tried..." (uppercase I + word boundary avoids "instead, if/it/is")
+    r"instead,?\s+I\b",  # "instead, I tried..." (uppercase I + word boundary avoids "instead, if/it/is")
     r"however,",
     r"unfortunately",
     r"let me try",
@@ -50,6 +50,7 @@ def _sanitize_rule(rule: str) -> str | None:
         logger.warning(f"self_improver: suspicious rule rejected: {rule!r}")
         return None
     return rule
+
 
 # Minimum matches required to consider a response "blocked"
 # Prevents single casual uses of signal words (e.g. "couldn't find a better name") from triggering
@@ -110,7 +111,9 @@ def reflect_and_update(
     return rule
 
 
-_MIN_RESPONSE_LENGTH = 400  # responses shorter than this lack distinct block + resolution sections
+_MIN_RESPONSE_LENGTH = (
+    400  # responses shorter than this lack distinct block + resolution sections
+)
 
 
 def _detect_block(response: str) -> tuple[str, str] | None:
@@ -155,14 +158,16 @@ def _reflect(prompt: str, block_excerpt: str, resolution_excerpt: str) -> dict |
         msg = client.messages.create(
             model=_HAIKU,
             max_tokens=128,
-            messages=[{
-                "role": "user",
-                "content": _REFLECT_PROMPT.format(
-                    prompt=prompt[:300],
-                    block_excerpt=block_excerpt[:300],
-                    resolution_excerpt=resolution_excerpt[:300],
-                ),
-            }],
+            messages=[
+                {
+                    "role": "user",
+                    "content": _REFLECT_PROMPT.format(
+                        prompt=prompt[:300],
+                        block_excerpt=block_excerpt[:300],
+                        resolution_excerpt=resolution_excerpt[:300],
+                    ),
+                }
+            ],
         )
         raw = msg.content[0].text.strip()
         # Strip markdown code fences if Haiku wraps output (e.g. ```json\n{...}\n```)

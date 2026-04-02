@@ -14,15 +14,13 @@ _HAIKU = "claude-haiku-4-5-20251001"
 
 @dataclass
 class TriageResult:
-    tier: str    # "simple" | "moderate" | "complex"
-    model: str   # full model ID
+    tier: str  # "simple" | "moderate" | "complex"
+    model: str  # full model ID
     reason: str  # one sentence, for logging only
 
 
 def _configured_model() -> str:
     return os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
-
-
 
 
 _SYSTEM_PROMPT = """Classify this developer request. Reply with JSON only, no prose.
@@ -58,7 +56,7 @@ def classify(prompt: str, project_key: str = "") -> TriageResult:
             model=_configured_model(),
             reason=data.get("reason", ""),
         )
-        logger.info(f"Triage: {result.tier} -> {result.model} -- \"{result.reason}\"")
+        logger.info(f'Triage: {result.tier} -> {result.model} -- "{result.reason}"')
         return result
     except Exception as exc:
         logger.warning(f"Triage failed: {exc} -- using default (moderate/sonnet)")

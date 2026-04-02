@@ -1,4 +1,5 @@
 """Tests for journal polisher module."""
+
 from unittest.mock import MagicMock, patch
 
 import pytest

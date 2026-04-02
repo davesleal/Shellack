@@ -3,10 +3,10 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch
 
-
 # ---------------------------------------------------------------------------
 # APIBackend
 # ---------------------------------------------------------------------------
+
 
 def _make_stream(texts):
     """Return a mock context manager whose text_stream yields texts."""
@@ -19,6 +19,7 @@ def _make_stream(texts):
 
 def test_api_backend_first_turn_yields_chunks():
     from tools.session_backend import APIBackend
+
     with patch("tools.session_backend.Anthropic") as MockAnthropic:
         client = MockAnthropic.return_value
         client.messages.stream.return_value = _make_stream(["Hello", " world"])
@@ -29,6 +30,7 @@ def test_api_backend_first_turn_yields_chunks():
 
 def test_api_backend_builds_history():
     from tools.session_backend import APIBackend
+
     with patch("tools.session_backend.Anthropic") as MockAnthropic:
         client = MockAnthropic.return_value
         client.messages.stream.side_effect = [
@@ -47,6 +49,7 @@ def test_api_backend_builds_history():
 
 def test_api_backend_passes_system_prompt():
     from tools.session_backend import APIBackend
+
     with patch("tools.session_backend.Anthropic") as MockAnthropic:
         client = MockAnthropic.return_value
         client.messages.stream.return_value = _make_stream(["ok"])
@@ -58,6 +61,7 @@ def test_api_backend_passes_system_prompt():
 
 def test_api_backend_next_turn_raises_without_first_turn():
     from tools.session_backend import APIBackend
+
     with patch("tools.session_backend.Anthropic"):
         backend = APIBackend()
         with pytest.raises(RuntimeError, match="first_turn"):
@@ -66,6 +70,7 @@ def test_api_backend_next_turn_raises_without_first_turn():
 
 def test_api_backend_close_clears_history():
     from tools.session_backend import APIBackend
+
     with patch("tools.session_backend.Anthropic") as MockAnthropic:
         client = MockAnthropic.return_value
         client.messages.stream.return_value = _make_stream(["hi"])
@@ -78,6 +83,7 @@ def test_api_backend_close_clears_history():
 # ---------------------------------------------------------------------------
 # MaxBackend
 # ---------------------------------------------------------------------------
+
 
 def _make_proc(lines, returncode=0):
     """Return a mock Popen process whose stdout yields JSONL lines."""
@@ -95,24 +101,33 @@ def _make_proc(lines, returncode=0):
     return proc
 
 
-_ASSISTANT_EVENT = json.dumps({
-    "type": "assistant",
-    "message": {"content": [{"type": "text", "text": "Hello from Max"}]},
-    "session_id": "test-session-abc",
-})
-_RESULT_EVENT = json.dumps({
-    "type": "result", "subtype": "success", "result": "Hello from Max",
-    "session_id": "test-session-abc",
-})
+_ASSISTANT_EVENT = json.dumps(
+    {
+        "type": "assistant",
+        "message": {"content": [{"type": "text", "text": "Hello from Max"}]},
+        "session_id": "test-session-abc",
+    }
+)
+_RESULT_EVENT = json.dumps(
+    {
+        "type": "result",
+        "subtype": "success",
+        "result": "Hello from Max",
+        "session_id": "test-session-abc",
+    }
+)
 
 
 def test_max_backend_first_turn_yields_text():
     from tools.session_backend import MaxBackend
+
     with patch("tools.session_backend.subprocess.Popen") as MockPopen:
-        MockPopen.return_value = _make_proc([
-            _ASSISTANT_EVENT + "\n",
-            _RESULT_EVENT + "\n",
-        ])
+        MockPopen.return_value = _make_proc(
+            [
+                _ASSISTANT_EVENT + "\n",
+                _RESULT_EVENT + "\n",
+            ]
+        )
         backend = MaxBackend()
         chunks = list(backend.first_turn("say hello", cwd="/tmp"))
     assert "Hello from Max" in chunks
@@ -121,6 +136,7 @@ def test_max_backend_first_turn_yields_text():
 def test_max_backend_first_turn_includes_session_id_flag():
     """--session-id must appear in the first-turn command."""
     from tools.session_backend import MaxBackend
+
     with patch("tools.session_backend.subprocess.Popen") as MockPopen:
         MockPopen.return_value = _make_proc([_RESULT_EVENT + "\n"])
         backend = MaxBackend()
@@ -130,12 +146,14 @@ def test_max_backend_first_turn_includes_session_id_flag():
     # The element after --session-id should be a valid UUID string
     idx = cmd.index("--session-id")
     import uuid as _uuid
+
     _uuid.UUID(cmd[idx + 1])  # raises ValueError if not a valid UUID
 
 
 def test_max_backend_next_turn_uses_resume():
     """--resume must appear in subsequent turn commands."""
     from tools.session_backend import MaxBackend
+
     with patch("tools.session_backend.subprocess.Popen") as MockPopen:
         MockPopen.side_effect = [
             _make_proc([_RESULT_EVENT + "\n"]),
@@ -152,6 +170,7 @@ def test_max_backend_next_turn_uses_resume():
 def test_max_backend_resume_uses_same_session_id():
     """The session_id passed to --resume must match the one from --session-id."""
     from tools.session_backend import MaxBackend
+
     with patch("tools.session_backend.subprocess.Popen") as MockPopen:
         MockPopen.side_effect = [
             _make_proc([_RESULT_EVENT + "\n"]),
@@ -170,6 +189,7 @@ def test_max_backend_resume_uses_same_session_id():
 
 def test_max_backend_next_turn_raises_without_first_turn():
     from tools.session_backend import MaxBackend
+
     backend = MaxBackend()
     with pytest.raises(RuntimeError, match="first_turn"):
         list(backend.next_turn("hello"))
@@ -177,14 +197,17 @@ def test_max_backend_next_turn_raises_without_first_turn():
 
 def test_max_backend_skips_non_assistant_events():
     from tools.session_backend import MaxBackend
+
     rate_limit_event = json.dumps({"type": "rate_limit_event"})
     system_event = json.dumps({"type": "system", "subtype": "init"})
     with patch("tools.session_backend.subprocess.Popen") as MockPopen:
-        MockPopen.return_value = _make_proc([
-            rate_limit_event + "\n",
-            system_event + "\n",
-            _ASSISTANT_EVENT + "\n",
-        ])
+        MockPopen.return_value = _make_proc(
+            [
+                rate_limit_event + "\n",
+                system_event + "\n",
+                _ASSISTANT_EVENT + "\n",
+            ]
+        )
         backend = MaxBackend()
         chunks = list(backend.first_turn("task"))
     assert chunks == ["Hello from Max"]
@@ -192,11 +215,15 @@ def test_max_backend_skips_non_assistant_events():
 
 def test_max_backend_available_false_when_no_claude():
     from tools.session_backend import MaxBackend
+
     with patch("tools.session_backend.shutil.which", return_value=None):
         assert MaxBackend.available() is False
 
 
 def test_max_backend_available_true_when_claude_exists():
     from tools.session_backend import MaxBackend
-    with patch("tools.session_backend.shutil.which", return_value="/usr/local/bin/claude"):
+
+    with patch(
+        "tools.session_backend.shutil.which", return_value="/usr/local/bin/claude"
+    ):
         assert MaxBackend.available() is True

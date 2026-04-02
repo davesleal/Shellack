@@ -1,4 +1,5 @@
 """Cost tracking for Token Cart — per-turn and per-thread spend."""
+
 from __future__ import annotations
 
 import logging
@@ -26,9 +27,11 @@ def _get_pricing(model: str) -> dict:
 # This is approximate — actual counts vary by tokenizer.
 # When Anthropic API usage fields are available, wire them in for accuracy.
 
+
 @dataclass
 class TurnCost:
     """Cost for a single turn."""
+
     input_tokens: int = 0
     output_tokens: int = 0
     model: str = ""
@@ -36,9 +39,8 @@ class TurnCost:
 
     def calculate(self) -> float:
         pricing = _get_pricing(self.model)
-        self.cost_usd = (
-            (self.input_tokens * pricing["input"] / 1_000_000)
-            + (self.output_tokens * pricing["output"] / 1_000_000)
+        self.cost_usd = (self.input_tokens * pricing["input"] / 1_000_000) + (
+            self.output_tokens * pricing["output"] / 1_000_000
         )
         return self.cost_usd
 
@@ -46,6 +48,7 @@ class TurnCost:
 @dataclass
 class ThreadCost:
     """Accumulated cost for a thread."""
+
     turns: list[TurnCost] = field(default_factory=list)
 
     @property

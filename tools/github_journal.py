@@ -1,4 +1,5 @@
 """GitHub Discussions journal — weekly threads with daily entries."""
+
 from __future__ import annotations
 
 import json
@@ -27,9 +28,16 @@ def _find_weekly_discussion(repo: str, category: str, dt: datetime) -> Optional[
     title = _week_title(dt)
     try:
         result = subprocess.run(
-            ["gh", "api", f"repos/{repo}/discussions",
-             "--jq", f'[.[] | select(.title == "{title}")] | .[0].number'],
-            capture_output=True, text=True, timeout=15,
+            [
+                "gh",
+                "api",
+                f"repos/{repo}/discussions",
+                "--jq",
+                f'[.[] | select(.title == "{title}")] | .[0].number',
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         if result.returncode == 0 and result.stdout.strip():
             num = result.stdout.strip()
@@ -40,14 +48,23 @@ def _find_weekly_discussion(repo: str, category: str, dt: datetime) -> Optional[
     return None
 
 
-def _create_discussion(repo: str, category: str, title: str, body: str) -> Optional[int]:
+def _create_discussion(
+    repo: str, category: str, title: str, body: str
+) -> Optional[int]:
     """Create a GitHub Discussion. Returns discussion number or None."""
     try:
         # Get category ID first
         cat_result = subprocess.run(
-            ["gh", "api", f"repos/{repo}/discussions/categories",
-             "--jq", f'[.[] | select(.name == "{category}")] | .[0].slug'],
-            capture_output=True, text=True, timeout=15,
+            [
+                "gh",
+                "api",
+                f"repos/{repo}/discussions/categories",
+                "--jq",
+                f'[.[] | select(.name == "{category}")] | .[0].slug',
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         category_slug = cat_result.stdout.strip() if cat_result.returncode == 0 else ""
 
@@ -57,12 +74,22 @@ def _create_discussion(repo: str, category: str, title: str, body: str) -> Optio
 
         # Create via gh CLI
         result = subprocess.run(
-            ["gh", "discussion", "create",
-             "--repo", repo,
-             "--category", category,
-             "--title", title,
-             "--body", body],
-            capture_output=True, text=True, timeout=30,
+            [
+                "gh",
+                "discussion",
+                "create",
+                "--repo",
+                repo,
+                "--category",
+                category,
+                "--title",
+                title,
+                "--body",
+                body,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         if result.returncode == 0:
             # Parse discussion number from URL in output
@@ -78,10 +105,19 @@ def _comment_on_discussion(repo: str, number: int, body: str) -> bool:
     """Add a comment to an existing discussion."""
     try:
         result = subprocess.run(
-            ["gh", "discussion", "comment", str(number),
-             "--repo", repo,
-             "--body", body],
-            capture_output=True, text=True, timeout=15,
+            [
+                "gh",
+                "discussion",
+                "comment",
+                str(number),
+                "--repo",
+                repo,
+                "--body",
+                body,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         return result.returncode == 0
     except Exception as exc:
@@ -111,11 +147,22 @@ def post_monthly_summary(
     # Check if monthly summary already exists
     try:
         result = subprocess.run(
-            ["gh", "api", f"repos/{repo}/discussions",
-             "--jq", f'[.[] | select(.title == "{title}")] | .[0].number'],
-            capture_output=True, text=True, timeout=15,
+            [
+                "gh",
+                "api",
+                f"repos/{repo}/discussions",
+                "--jq",
+                f'[.[] | select(.title == "{title}")] | .[0].number',
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
-        if result.returncode == 0 and result.stdout.strip() and result.stdout.strip() != "null":
+        if (
+            result.returncode == 0
+            and result.stdout.strip()
+            and result.stdout.strip() != "null"
+        ):
             # Already exists — add as comment instead
             number = int(result.stdout.strip())
             return _comment_on_discussion(repo, number, summary)

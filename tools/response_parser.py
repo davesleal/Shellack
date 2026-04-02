@@ -1,4 +1,5 @@
 """Response parser — extracts [think]/[action]/[reply] tags from agent responses."""
+
 from __future__ import annotations
 
 import re
@@ -8,6 +9,7 @@ from dataclasses import dataclass, field
 @dataclass
 class ParsedResponse:
     """Parsed agent response split by tags."""
+
     think: str = ""
     actions: list[str] = field(default_factory=list)
     reply: str = ""
@@ -100,7 +102,7 @@ def split_message(text: str, max_chars: int = 3500) -> list[str]:
 
 def _split_on_sentences(text: str, max_chars: int) -> list[str]:
     """Split a paragraph on sentence boundaries."""
-    sentences = re.split(r'(?<=\.)\s+', text)
+    sentences = re.split(r"(?<=\.)\s+", text)
     chunks: list[str] = []
     current = ""
     for sent in sentences:

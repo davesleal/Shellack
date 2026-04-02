@@ -1,4 +1,5 @@
 """Tests for tools/response_parser.py — tag parsing + message splitter."""
+
 from tools.response_parser import parse_response, ParsedResponse, split_message
 
 
@@ -35,7 +36,9 @@ def test_think_only_no_reply():
 
 def test_action_tags():
     """[action] lines are collected."""
-    text = "[action] Reading files...\n[action] Running tests...\n[reply] All tests pass."
+    text = (
+        "[action] Reading files...\n[action] Running tests...\n[reply] All tests pass."
+    )
     result = parse_response(text)
     assert len(result.actions) == 2
     assert "Reading files" in result.actions[0]
@@ -102,7 +105,7 @@ def test_split_preserves_code_fence():
     # Code block must be intact in one chunk
     for chunk in result:
         if "```python" in chunk:
-            assert "```" in chunk[chunk.index("```python") + 1:]  # has closing fence
+            assert "```" in chunk[chunk.index("```python") + 1 :]  # has closing fence
 
 
 def test_split_long_paragraph_on_sentence():

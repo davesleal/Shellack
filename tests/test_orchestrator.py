@@ -1,5 +1,6 @@
 # tests/test_orchestrator.py
 """Security tests for orchestrator.py — search uses fixed strings."""
+
 import subprocess
 from unittest.mock import patch, MagicMock
 
@@ -12,9 +13,9 @@ def test_search_all_projects_uses_fixed_strings_flag():
         {"name": "Alpha", "path": "/tmp/alpha"},
     ]
 
-    with patch("orchestrator.get_all_projects", return_value=fake_projects), \
-         patch("orchestrator.Path") as mock_path_cls, \
-         patch("subprocess.run") as mock_run:
+    with patch("orchestrator.get_all_projects", return_value=fake_projects), patch(
+        "orchestrator.Path"
+    ) as mock_path_cls, patch("subprocess.run") as mock_run:
         mock_path_cls.return_value.exists.return_value = True
         mock_run.return_value = MagicMock(returncode=1, stdout="")
 

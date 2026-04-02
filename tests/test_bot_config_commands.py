@@ -1,5 +1,6 @@
 # tests/test_bot_config_commands.py
 """Tests for @Shellack set mode, set model, usage, config commands."""
+
 import importlib
 import os
 import pytest
@@ -30,14 +31,17 @@ def _owner_env(**extra):
 # Happy-path config commands (owner authenticated)
 # ---------------------------------------------------------------------------
 
+
 def test_set_mode_max_updates_env():
     import bot_unified
+
     importlib.reload(bot_unified)
     say = _make_say()
-    with patch.dict("os.environ", _owner_env()), \
-         patch("bot_unified.shutil.which", return_value="/usr/local/bin/claude"), \
-         patch("bot_unified.set_env_var") as mock_set, \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
+    with patch.dict("os.environ", _owner_env()), patch(
+        "bot_unified.shutil.which", return_value="/usr/local/bin/claude"
+    ), patch("bot_unified.set_env_var") as mock_set, patch(
+        "bot_unified.get_channel_name", return_value="shellack-dev"
+    ):
         event = _make_event("<@BOT> set mode max")
         bot_unified.handle_mention(event, say=say)
     mock_set.assert_called_once_with("SESSION_BACKEND", "max")
@@ -47,11 +51,12 @@ def test_set_mode_max_updates_env():
 
 def test_set_mode_api_updates_env():
     import bot_unified
+
     importlib.reload(bot_unified)
     say = _make_say()
-    with patch.dict("os.environ", _owner_env()), \
-         patch("bot_unified.set_env_var") as mock_set, \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
+    with patch.dict("os.environ", _owner_env()), patch(
+        "bot_unified.set_env_var"
+    ) as mock_set, patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> set mode api")
         bot_unified.handle_mention(event, say=say)
     mock_set.assert_called_once_with("SESSION_BACKEND", "api")
@@ -59,11 +64,12 @@ def test_set_mode_api_updates_env():
 
 def test_set_model_sonnet_updates_env():
     import bot_unified
+
     importlib.reload(bot_unified)
     say = _make_say()
-    with patch.dict("os.environ", _owner_env()), \
-         patch("bot_unified.set_env_var") as mock_set, \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
+    with patch.dict("os.environ", _owner_env()), patch(
+        "bot_unified.set_env_var"
+    ) as mock_set, patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> set model sonnet")
         bot_unified.handle_mention(event, say=say)
     mock_set.assert_called_once_with("SESSION_MODEL", "claude-sonnet-4-6")
@@ -71,11 +77,12 @@ def test_set_model_sonnet_updates_env():
 
 def test_usage_command_posts_stats():
     import bot_unified
+
     importlib.reload(bot_unified)
     say = _make_say()
-    with patch.dict("os.environ", _owner_env()), \
-         patch.object(bot_unified.usage_tracker, "format_usage_message", return_value="stats"), \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
+    with patch.dict("os.environ", _owner_env()), patch.object(
+        bot_unified.usage_tracker, "format_usage_message", return_value="stats"
+    ), patch("bot_unified.get_channel_name", return_value="shellack-dev"):
         event = _make_event("<@BOT> usage")
         bot_unified.handle_mention(event, say=say)
     say.assert_called_once()
@@ -84,12 +91,14 @@ def test_usage_command_posts_stats():
 
 def test_set_mode_max_fails_when_claude_not_found():
     import bot_unified
+
     importlib.reload(bot_unified)
     say = _make_say()
-    with patch.dict("os.environ", _owner_env()), \
-         patch("bot_unified.shutil.which", return_value=None), \
-         patch("bot_unified.set_env_var") as mock_set, \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
+    with patch.dict("os.environ", _owner_env()), patch(
+        "bot_unified.shutil.which", return_value=None
+    ), patch("bot_unified.set_env_var") as mock_set, patch(
+        "bot_unified.get_channel_name", return_value="shellack-dev"
+    ):
         event = _make_event("<@BOT> set mode max")
         bot_unified.handle_mention(event, say=say)
     mock_set.assert_not_called()
@@ -99,10 +108,13 @@ def test_set_mode_max_fails_when_claude_not_found():
 
 def test_config_command_posts_settings():
     import bot_unified
+
     importlib.reload(bot_unified)
     say = _make_say()
-    with patch("bot_unified.get_channel_name", return_value="shellack-dev"), \
-         patch.dict("os.environ", _owner_env(SESSION_BACKEND="api", SESSION_MODEL="claude-sonnet-4-6")):
+    with patch("bot_unified.get_channel_name", return_value="shellack-dev"), patch.dict(
+        "os.environ",
+        _owner_env(SESSION_BACKEND="api", SESSION_MODEL="claude-sonnet-4-6"),
+    ):
         event = _make_event("<@BOT> config")
         bot_unified.handle_mention(event, say=say)
     say.assert_called_once()
@@ -124,11 +136,13 @@ _RESTRICTED_CONFIG_COMMANDS = [
 def test_non_owner_blocked_from_config_commands(command):
     """Non-owner user is blocked from set mode, set model, set triage."""
     import bot_unified
+
     importlib.reload(bot_unified)
 
     say = _make_say()
-    with patch.dict("os.environ", {"OWNER_SLACK_USER_ID": _OWNER_ID}), \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
+    with patch.dict("os.environ", {"OWNER_SLACK_USER_ID": _OWNER_ID}), patch(
+        "bot_unified.get_channel_name", return_value="shellack-dev"
+    ):
         event = _make_event(f"<@BOT> {command}", user=_NON_OWNER_ID)
         bot_unified.handle_mention(event, say=say)
 
@@ -141,12 +155,13 @@ def test_non_owner_blocked_from_config_commands(command):
 def test_owner_allowed_config_commands(command):
     """Owner user passes the gate for config commands."""
     import bot_unified
+
     importlib.reload(bot_unified)
 
     say = _make_say()
-    with patch.dict("os.environ", {"OWNER_SLACK_USER_ID": _OWNER_ID}), \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"), \
-         patch("bot_unified.set_env_var"):
+    with patch.dict("os.environ", {"OWNER_SLACK_USER_ID": _OWNER_ID}), patch(
+        "bot_unified.get_channel_name", return_value="shellack-dev"
+    ), patch("bot_unified.set_env_var"):
         event = _make_event(f"<@BOT> {command}", user=_OWNER_ID)
         bot_unified.handle_mention(event, say=say)
 
@@ -159,12 +174,14 @@ def test_owner_allowed_config_commands(command):
 def test_config_owner_env_unset_blocks_all_users(command):
     """When OWNER_SLACK_USER_ID is not set, config commands are fail-closed (blocked)."""
     import bot_unified
+
     importlib.reload(bot_unified)
 
     say = _make_say()
     env = {k: v for k, v in os.environ.items() if k != "OWNER_SLACK_USER_ID"}
-    with patch.dict("os.environ", env, clear=True), \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
+    with patch.dict("os.environ", env, clear=True), patch(
+        "bot_unified.get_channel_name", return_value="shellack-dev"
+    ):
         event = _make_event(f"<@BOT> {command}", user="U_ANYONE")
         bot_unified.handle_mention(event, say=say)
 
@@ -200,13 +217,14 @@ def _patch_project(project_dict):
 def test_config_feature_toggle_on():
     """@Shellack config token-cart off disables token cart."""
     import bot_unified
+
     importlib.reload(bot_unified)
     say = _make_say()
     project = {**_TEST_PROJECT, "features": {**_TEST_PROJECT["features"]}}
     p_projects, p_routing = _patch_project(project)
-    with patch.dict("os.environ", _feature_env()), \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"), \
-         p_projects, p_routing:
+    with patch.dict("os.environ", _feature_env()), patch(
+        "bot_unified.get_channel_name", return_value="shellack-dev"
+    ), p_projects, p_routing:
         event = _make_event("<@BOT> config token-cart off")
         bot_unified.handle_mention(event, say=say)
     say.assert_called_once()
@@ -219,13 +237,14 @@ def test_config_feature_toggle_on():
 def test_config_feature_toggle_enables():
     """@Shellack config registry on enables the feature."""
     import bot_unified
+
     importlib.reload(bot_unified)
     say = _make_say()
     project = {**_TEST_PROJECT, "features": {**_TEST_PROJECT["features"]}}
     p_projects, p_routing = _patch_project(project)
-    with patch.dict("os.environ", _feature_env()), \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"), \
-         p_projects, p_routing:
+    with patch.dict("os.environ", _feature_env()), patch(
+        "bot_unified.get_channel_name", return_value="shellack-dev"
+    ), p_projects, p_routing:
         event = _make_event("<@BOT> config registry on")
         bot_unified.handle_mention(event, say=say)
     say.assert_called_once()
@@ -237,13 +256,14 @@ def test_config_feature_toggle_enables():
 def test_config_feature_toggle_invalid():
     """Invalid feature name returns error."""
     import bot_unified
+
     importlib.reload(bot_unified)
     say = _make_say()
     project = {**_TEST_PROJECT, "features": {**_TEST_PROJECT["features"]}}
     p_projects, p_routing = _patch_project(project)
-    with patch.dict("os.environ", _feature_env()), \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"), \
-         p_projects, p_routing:
+    with patch.dict("os.environ", _feature_env()), patch(
+        "bot_unified.get_channel_name", return_value="shellack-dev"
+    ), p_projects, p_routing:
         event = _make_event("<@BOT> config foobar off")
         bot_unified.handle_mention(event, say=say)
     say.assert_called_once()
@@ -254,13 +274,14 @@ def test_config_feature_toggle_invalid():
 def test_config_show_lists_features():
     """@Shellack config show lists all feature flags."""
     import bot_unified
+
     importlib.reload(bot_unified)
     say = _make_say()
     project = {**_TEST_PROJECT, "features": {**_TEST_PROJECT["features"]}}
     p_projects, p_routing = _patch_project(project)
-    with patch.dict("os.environ", _feature_env()), \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"), \
-         p_projects, p_routing:
+    with patch.dict("os.environ", _feature_env()), patch(
+        "bot_unified.get_channel_name", return_value="shellack-dev"
+    ), p_projects, p_routing:
         event = _make_event("<@BOT> config show")
         bot_unified.handle_mention(event, say=say)
     say.assert_called_once()
@@ -274,12 +295,12 @@ def test_config_show_lists_features():
 def test_config_feature_no_project():
     """Feature toggle in unmapped channel returns error."""
     import bot_unified
+
     importlib.reload(bot_unified)
     say = _make_say()
-    with patch.dict("os.environ", _feature_env()), \
-         patch("bot_unified.get_channel_name", return_value="random-channel"), \
-         patch("bot_unified.PROJECTS", {}), \
-         patch("bot_unified.CHANNEL_ROUTING", {}):
+    with patch.dict("os.environ", _feature_env()), patch(
+        "bot_unified.get_channel_name", return_value="random-channel"
+    ), patch("bot_unified.PROJECTS", {}), patch("bot_unified.CHANNEL_ROUTING", {}):
         event = _make_event("<@BOT> config token-cart on")
         bot_unified.handle_mention(event, say=say)
     say.assert_called_once()
@@ -290,10 +311,12 @@ def test_config_feature_no_project():
 def test_config_feature_non_owner_blocked():
     """Non-owner cannot toggle features."""
     import bot_unified
+
     importlib.reload(bot_unified)
     say = _make_say()
-    with patch.dict("os.environ", _feature_env()), \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"):
+    with patch.dict("os.environ", _feature_env()), patch(
+        "bot_unified.get_channel_name", return_value="shellack-dev"
+    ):
         event = _make_event("<@BOT> config token-cart off", user=_NON_OWNER_ID)
         bot_unified.handle_mention(event, say=say)
     say.assert_called_once()
@@ -304,13 +327,14 @@ def test_config_feature_non_owner_blocked():
 def test_config_feature_creates_features_dict():
     """Toggle works even if project has no features dict yet."""
     import bot_unified
+
     importlib.reload(bot_unified)
     say = _make_say()
     project = {"name": "Beta", "channel_id": "C123", "path": "/tmp/beta"}
     p_projects, p_routing = _patch_project(project)
-    with patch.dict("os.environ", _feature_env()), \
-         patch("bot_unified.get_channel_name", return_value="shellack-dev"), \
-         p_projects, p_routing:
+    with patch.dict("os.environ", _feature_env()), patch(
+        "bot_unified.get_channel_name", return_value="shellack-dev"
+    ), p_projects, p_routing:
         event = _make_event("<@BOT> config gut-check on")
         bot_unified.handle_mention(event, say=say)
     assert project["features"]["gut-check"] is True

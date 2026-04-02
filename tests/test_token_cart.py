@@ -1,4 +1,5 @@
 """Tests for tools/token_cart.py — all Anthropic calls mocked."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -7,10 +8,10 @@ import pytest
 
 from tools.token_cart import HaikuTokenCart
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _mock_anthropic(text: str):
     """Return a mock Anthropic class whose .messages.create() returns `text`."""
@@ -25,6 +26,7 @@ def _mock_anthropic(text: str):
 # ---------------------------------------------------------------------------
 # pre_call tests
 # ---------------------------------------------------------------------------
+
 
 def test_pre_call_first_turn_no_handoff():
     """First turn — no handoff exists. Returns prompt as-is."""
@@ -83,6 +85,7 @@ def test_pre_call_haiku_failure_falls_back_to_raw():
 # ---------------------------------------------------------------------------
 # post_call tests
 # ---------------------------------------------------------------------------
+
 
 def test_post_call_first_turn_creates_handoff():
     """First turn — no prior handoff. Creates initial handoff + journal."""
@@ -153,9 +156,11 @@ def test_post_call_no_prior_handoff_failure_returns_empty():
 # parse response tests
 # ---------------------------------------------------------------------------
 
+
 def test_parse_response_splits_sections():
     """Response with both markers splits correctly."""
     from tools.token_cart import _parse_cart_response
+
     text = "---HANDOFF---\nhandoff content here\n---JOURNAL---\njournal content here"
     handoff, journal, review = _parse_cart_response(text)
     assert handoff == "handoff content here"
@@ -166,6 +171,7 @@ def test_parse_response_splits_sections():
 def test_parse_response_handoff_only():
     """Response with only handoff marker."""
     from tools.token_cart import _parse_cart_response
+
     text = "---HANDOFF---\nhandoff only"
     handoff, journal, review = _parse_cart_response(text)
     assert handoff == "handoff only"
@@ -176,6 +182,7 @@ def test_parse_response_handoff_only():
 def test_parse_response_no_markers():
     """Response with no markers — treat entire text as handoff."""
     from tools.token_cart import _parse_cart_response
+
     text = "some raw text without markers"
     handoff, journal, review = _parse_cart_response(text)
     assert handoff == "some raw text without markers"
@@ -186,6 +193,7 @@ def test_parse_response_no_markers():
 def test_parse_response_with_review():
     """Response with all three markers splits correctly."""
     from tools.token_cart import _parse_cart_response
+
     text = (
         "---HANDOFF---\nhandoff content\n"
         "---JOURNAL---\njournal content\n"
@@ -200,6 +208,7 @@ def test_parse_response_with_review():
 # ---------------------------------------------------------------------------
 # external_handoff tests
 # ---------------------------------------------------------------------------
+
 
 def test_external_handoff_produces_summary():
     """external_handoff calls Haiku and returns the summary."""
@@ -256,7 +265,9 @@ def test_extract_correction_returns_rule():
     mock_cls = _mock_anthropic(response_text)
     with patch("tools.token_cart.Anthropic", mock_cls):
         cart = HaikuTokenCart()
-    result = cart.extract_correction("Don't write inline styles", "I added some inline CSS")
+    result = cart.extract_correction(
+        "Don't write inline styles", "I added some inline CSS"
+    )
     assert result is not None
     assert result["section"] == "Architecture Rules"
     assert "inline styles" in result["entry"].lower() or "Tailwind" in result["entry"]
@@ -283,6 +294,7 @@ def test_extract_correction_api_failure():
 # Gut check tests
 # ---------------------------------------------------------------------------
 
+
 def test_gut_check_proceed_returns_none():
     """PROCEED response means no concern."""
     mock_cls = _mock_anthropic("PROCEED")
@@ -294,7 +306,9 @@ def test_gut_check_proceed_returns_none():
 
 def test_gut_check_concern_returns_message():
     """CONCERN response returns the concern text."""
-    mock_cls = _mock_anthropic("CONCERN: Modal already exists in src/components/Modal.tsx")
+    mock_cls = _mock_anthropic(
+        "CONCERN: Modal already exists in src/components/Modal.tsx"
+    )
     with patch("tools.token_cart.Anthropic", mock_cls):
         cart = HaikuTokenCart()
     result = cart.gut_check(

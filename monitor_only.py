@@ -17,7 +17,9 @@ app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
 # Configuration
 CHANNEL = os.environ.get("MONITOR_CHANNEL", "project-dev")  # Your project channel
-BUNDLE_ID = os.environ.get("MONITOR_BUNDLE_ID", "com.example.yourapp")  # Your app bundle ID
+BUNDLE_ID = os.environ.get(
+    "MONITOR_BUNDLE_ID", "com.example.yourapp"
+)  # Your app bundle ID
 CHECK_INTERVAL = 600  # 10 minutes
 
 

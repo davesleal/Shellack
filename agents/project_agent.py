@@ -249,7 +249,8 @@ class ProjectAgent:
                         full_prompt = f"{thread_context}\n\nUser: {prompt}"
                     else:
                         history = "\n".join(
-                            f"{m['role'].title()}: {m['content']}" for m in thread_context
+                            f"{m['role'].title()}: {m['content']}"
+                            for m in thread_context
                         )
                         full_prompt = f"{history}\n\nUser: {prompt}"
                 response = quick_reply(

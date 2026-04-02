@@ -44,6 +44,7 @@ def _wait_for(condition, timeout=2.0):
 
 def test_session_posts_output_to_thread():
     from tools.slack_session import SlackSession
+
     client = _make_client()
     backend = _make_backend(chunks=["Hello world"])
     session = SlackSession("ts1", "C123", client, backend)
@@ -57,6 +58,7 @@ def test_session_posts_output_to_thread():
 
 def test_session_stop_closes_immediately():
     from tools.slack_session import SlackSession
+
     client = _make_client()
     backend = _make_backend(chunks=[])
     session = SlackSession("ts1", "C123", client, backend)
@@ -68,6 +70,7 @@ def test_session_stop_closes_immediately():
 
 def test_session_cancel_word_also_closes():
     from tools.slack_session import SlackSession
+
     client = _make_client()
     backend = _make_backend(chunks=[])
     session = SlackSession("ts1", "C123", client, backend)
@@ -79,6 +82,7 @@ def test_session_cancel_word_also_closes():
 
 def test_session_feed_input_calls_next_turn():
     from tools.slack_session import SlackSession
+
     client = _make_client()
     backend = _make_backend(chunks=["done"])
     session = SlackSession("ts1", "C123", client, backend)
@@ -92,6 +96,7 @@ def test_session_feed_input_calls_next_turn():
 
 def test_session_on_close_callback_called():
     from tools.slack_session import SlackSession
+
     client = _make_client()
     backend = _make_backend(chunks=[])
     on_close = MagicMock()
@@ -106,6 +111,7 @@ def test_session_on_close_callback_called():
 def test_post_chunk_edits_when_within_5s():
     """Calling _post_chunk twice rapidly should edit the first message."""
     from tools.slack_session import SlackSession
+
     client = _make_client()
     backend = _make_backend(chunks=[])
     session = SlackSession("ts1", "C123", client, backend)
@@ -123,6 +129,7 @@ def test_post_chunk_edits_when_within_5s():
 def test_post_chunk_posts_new_when_beyond_5s():
     """Calling _post_chunk after the edit window posts a new message."""
     from tools.slack_session import SlackSession
+
     client = _make_client()
     backend = _make_backend(chunks=[])
     session = SlackSession("ts1", "C123", client, backend)
@@ -135,18 +142,21 @@ def test_post_chunk_posts_new_when_beyond_5s():
 
 def test_session_backend_error_posts_error_message():
     from tools.slack_session import SlackSession
+
     client = _make_client()
     backend = _make_backend(error=RuntimeError("subprocess crashed"))
     session = SlackSession("ts1", "C123", client, backend)
     session.start("task")
-    assert _wait_for(lambda: any(
-        "❌" in str(c) for c in client.chat_postMessage.call_args_list
-    ), timeout=2)
+    assert _wait_for(
+        lambda: any("❌" in str(c) for c in client.chat_postMessage.call_args_list),
+        timeout=2,
+    )
     assert session._closed
 
 
 def test_session_ignores_input_when_closed():
     from tools.slack_session import SlackSession
+
     client = _make_client()
     backend = _make_backend(chunks=[])
     session = SlackSession("ts1", "C123", client, backend)

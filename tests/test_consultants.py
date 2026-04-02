@@ -1,15 +1,16 @@
 # tests/test_consultants.py
 """Unit tests for tools/consultants.py — all Anthropic calls mocked."""
+
 import pytest
 from unittest.mock import MagicMock, patch
 
 import tools.consultants as consultants_mod
 from tools.consultants import detect_triggers, consult, _get_client
 
-
 # ---------------------------------------------------------------------------
 # detect_triggers
 # ---------------------------------------------------------------------------
+
 
 def test_detect_triggers_infosec():
     """Auth/login/token keywords trigger infosec."""
@@ -41,6 +42,7 @@ def test_detect_triggers_both():
 # ---------------------------------------------------------------------------
 # consult (mocked API)
 # ---------------------------------------------------------------------------
+
 
 def _make_mock_response(text: str) -> MagicMock:
     """Build a mock Anthropic message response."""
@@ -122,6 +124,7 @@ def test_consult_unknown_role_returns_none():
 # Tester consultant
 # ---------------------------------------------------------------------------
 
+
 def test_detect_triggers_tester():
     """Test-related keywords trigger tester."""
     assert "tester" in detect_triggers("We need to add a test for the parser")
@@ -159,6 +162,7 @@ def test_consult_tester_no_issues(mock_get_client):
 # Output editor consultant
 # ---------------------------------------------------------------------------
 
+
 @patch("tools.consultants._get_client")
 def test_consult_output_editor(mock_get_client):
     """Output editor returns polished text."""
@@ -178,6 +182,7 @@ def test_consult_output_editor(mock_get_client):
 # ---------------------------------------------------------------------------
 # Visual UX consultant
 # ---------------------------------------------------------------------------
+
 
 def test_detect_triggers_visual_ux():
     """UI keywords trigger visual-ux."""
@@ -202,7 +207,9 @@ def test_consult_visual_ux_returns_finding(mock_get_client):
     mock_client.messages.create.return_value = _make_mock_response(finding)
     mock_get_client.return_value = mock_client
 
-    result = consult(role="visual-ux", response="Added a new button with light gray text")
+    result = consult(
+        role="visual-ux", response="Added a new button with light gray text"
+    )
     assert result == finding
 
 
@@ -222,6 +229,7 @@ def test_consult_visual_ux_no_issues(mock_get_client):
 # ---------------------------------------------------------------------------
 # Singleton client
 # ---------------------------------------------------------------------------
+
 
 @patch("tools.consultants.Anthropic")
 def test_singleton_client_reused(mock_anthropic_cls):

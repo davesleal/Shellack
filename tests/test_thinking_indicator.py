@@ -1,5 +1,6 @@
 # tests/test_thinking_indicator.py
 """Tests for ThinkingIndicator Slack message contract."""
+
 import pytest
 import time
 from unittest.mock import MagicMock, call, patch
@@ -16,6 +17,7 @@ def client():
 
 def _make_indicator(client):
     from tools.thinking_indicator import ThinkingIndicator
+
     return ThinkingIndicator(client, "C1", "99.0")
 
 
@@ -57,7 +59,9 @@ def test_done_with_think_block(client):
     ind._stop.set()
     ind._bg = None
 
-    ind.done(think_block="Let me check the files.\nFound 3 modules.", cost_summary="$0.01")
+    ind.done(
+        think_block="Let me check the files.\nFound 3 modules.", cost_summary="$0.01"
+    )
 
     call_kwargs = client.chat_update.call_args[1]
     body = call_kwargs["attachments"][0]["text"]
@@ -88,6 +92,7 @@ def test_done_without_think_block(client):
 def test_update_interval_is_one_second():
     """_UPDATE_INTERVAL should be 1.0, not 5.0."""
     from tools.thinking_indicator import _UPDATE_INTERVAL
+
     assert _UPDATE_INTERVAL == 1.0
 
 

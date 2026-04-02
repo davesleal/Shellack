@@ -25,7 +25,6 @@ from orchestrator_config import (
     GITHUB_ORG,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -342,10 +341,7 @@ class TestValidateConfig:
         # The real projects.yaml should be clean
         warnings = validate_config()
         # Filter to only dedicated-channel warnings (orchestrator/review may lack IDs)
-        dedicated_warnings = [
-            w for w in warnings
-            if "unknown project" in w
-        ]
+        dedicated_warnings = [w for w in warnings if "unknown project" in w]
         assert dedicated_warnings == []
 
 
@@ -387,6 +383,7 @@ class TestRobustnessWarnings:
     def test_warns_on_empty_projects_section(self, tmp_path, caplog):
         """Config with no 'projects' key logs a warning."""
         import logging
+
         cfg_path = tmp_path / "empty.yaml"
         cfg_path.write_text(yaml.dump({"channels": {}}))
         with caplog.at_level(logging.WARNING, logger="orchestrator_config"):
@@ -397,11 +394,16 @@ class TestRobustnessWarnings:
     def test_warns_on_unknown_top_level_keys(self, tmp_path, caplog):
         """Typos in top-level keys produce a warning."""
         import logging
+
         cfg_path = tmp_path / "typo.yaml"
-        cfg_path.write_text(yaml.dump({
-            "proejcts": {"alpha": {"name": "Alpha"}},
-            "channels": {},
-        }))
+        cfg_path.write_text(
+            yaml.dump(
+                {
+                    "proejcts": {"alpha": {"name": "Alpha"}},
+                    "channels": {},
+                }
+            )
+        )
         with caplog.at_level(logging.WARNING, logger="orchestrator_config"):
             result = load_config(str(cfg_path))
         assert any("unrecognized top-level keys" in r.message for r in caplog.records)

@@ -1,4 +1,5 @@
 """Tests for tools/self_improver.py — all Anthropic calls mocked."""
+
 from __future__ import annotations
 
 import json
@@ -17,6 +18,7 @@ from tools.self_improver import (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_mock_anthropic(text: str):
     """Return a mock Anthropic class whose .messages.create() returns `text`."""
@@ -41,6 +43,7 @@ def _long_response(signal_words: list[str], filler: str = "x") -> str:
 # ---------------------------------------------------------------------------
 # _detect_block tests
 # ---------------------------------------------------------------------------
+
 
 def test_no_block_signal_returns_none():
     """Clean response with zero signal words → None."""
@@ -92,9 +95,12 @@ def test_block_signal_in_final_20_percent_not_triggered():
 # _reflect tests
 # ---------------------------------------------------------------------------
 
+
 def test_reflect_succeeds():
     """Valid JSON from Haiku → dict with rule and section."""
-    payload = json.dumps({"rule": "Always validate inputs.", "section": "Watch Out For"})
+    payload = json.dumps(
+        {"rule": "Always validate inputs.", "section": "Watch Out For"}
+    )
     mock_cls = _make_mock_anthropic(payload)
     with patch("tools.self_improver.Anthropic", mock_cls):
         result = _reflect("do a thing", "error here", "fixed it")
@@ -121,7 +127,11 @@ def test_reflect_api_failure_returns_none():
 
 def test_reflect_fenced_json_strips_fences():
     """Haiku wraps output in ```json ... ``` → fences stripped, parsed successfully."""
-    payload = "```json\n" + json.dumps({"rule": "Use async/await.", "section": "Patterns"}) + "\n```"
+    payload = (
+        "```json\n"
+        + json.dumps({"rule": "Use async/await.", "section": "Patterns"})
+        + "\n```"
+    )
     mock_cls = _make_mock_anthropic(payload)
     with patch("tools.self_improver.Anthropic", mock_cls):
         result = _reflect("do a thing", "error here", "fixed it")
@@ -140,6 +150,7 @@ def test_reflect_invalid_section_falls_back_to_general():
 # ---------------------------------------------------------------------------
 # _append_to_claude_md tests
 # ---------------------------------------------------------------------------
+
 
 def test_append_to_existing_section(tmp_path):
     """Rule appended after last existing bullet in section."""
@@ -209,6 +220,7 @@ def test_duplicate_rule_both_appear(tmp_path):
 # reflect_and_update integration tests
 # ---------------------------------------------------------------------------
 
+
 def test_reflect_and_update_no_block_returns_none(tmp_path):
     """No block signal in response → returns None, CLAUDE.md unchanged."""
     claude_md = tmp_path / "CLAUDE.md"
@@ -230,11 +242,17 @@ def test_reflect_and_update_block_detected_rule_appended(tmp_path):
     claude_md.write_text("## Watch Out For\n- Existing rule\n")
 
     response = _long_response(["error: connection refused", "failed to connect"])
-    payload = json.dumps({"rule": "Always check connection before calling API.", "section": "Watch Out For"})
+    payload = json.dumps(
+        {
+            "rule": "Always check connection before calling API.",
+            "section": "Watch Out For",
+        }
+    )
     mock_cls = _make_mock_anthropic(payload)
 
-    with patch("tools.self_improver.Anthropic", mock_cls), \
-         patch.dict("os.environ", {"SELF_IMPROVER_ENABLED": "true"}):
+    with patch("tools.self_improver.Anthropic", mock_cls), patch.dict(
+        "os.environ", {"SELF_IMPROVER_ENABLED": "true"}
+    ):
         result = reflect_and_update(
             prompt="Connect to service",
             response=response,
@@ -259,8 +277,9 @@ def test_reflect_and_update_bad_json_returns_none(tmp_path):
     response = _long_response(["error: bad thing", "failed"])
     mock_cls = _make_mock_anthropic("not json")
 
-    with patch("tools.self_improver.Anthropic", mock_cls), \
-         patch.dict("os.environ", {"SELF_IMPROVER_ENABLED": "true"}):
+    with patch("tools.self_improver.Anthropic", mock_cls), patch.dict(
+        "os.environ", {"SELF_IMPROVER_ENABLED": "true"}
+    ):
         result = reflect_and_update(
             prompt="Do a thing",
             response=response,
@@ -282,8 +301,9 @@ def test_reflect_and_update_api_fails_returns_none(tmp_path):
     mock_client.messages.create.side_effect = Exception("timeout")
     mock_cls = MagicMock(return_value=mock_client)
 
-    with patch("tools.self_improver.Anthropic", mock_cls), \
-         patch.dict("os.environ", {"SELF_IMPROVER_ENABLED": "true"}):
+    with patch("tools.self_improver.Anthropic", mock_cls), patch.dict(
+        "os.environ", {"SELF_IMPROVER_ENABLED": "true"}
+    ):
         result = reflect_and_update(
             prompt="Do a thing",
             response=response,
@@ -300,8 +320,9 @@ def test_reflect_and_update_missing_claude_md_returns_none(tmp_path):
     payload = json.dumps({"rule": "A rule.", "section": "General"})
     mock_cls = _make_mock_anthropic(payload)
 
-    with patch("tools.self_improver.Anthropic", mock_cls), \
-         patch.dict("os.environ", {"SELF_IMPROVER_ENABLED": "true"}):
+    with patch("tools.self_improver.Anthropic", mock_cls), patch.dict(
+        "os.environ", {"SELF_IMPROVER_ENABLED": "true"}
+    ):
         result = reflect_and_update(
             prompt="Do a thing",
             response=response,
@@ -389,8 +410,19 @@ def test_sanitize_rejects_long_rule():
 
 
 def test_sanitize_rejects_suspicious_patterns():
-    for word in ["ignore", "override", "exfiltrate", ".env", "token", "credential", "password", "api key"]:
-        assert _sanitize_rule(f"Always {word} the settings") is None, f"should reject: {word}"
+    for word in [
+        "ignore",
+        "override",
+        "exfiltrate",
+        ".env",
+        "token",
+        "credential",
+        "password",
+        "api key",
+    ]:
+        assert (
+            _sanitize_rule(f"Always {word} the settings") is None
+        ), f"should reject: {word}"
 
 
 def test_sanitize_rejects_non_ascii():

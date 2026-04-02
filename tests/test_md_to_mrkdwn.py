@@ -1,5 +1,6 @@
 # tests/test_md_to_mrkdwn.py
 """Tests for _md_to_mrkdwn conversion and unclosed fence handling."""
+
 import pytest
 from tools.slack_session import _md_to_mrkdwn
 
@@ -82,7 +83,7 @@ def test_strip_tool_result_blocks():
 def test_strip_multiple_xml_blocks():
     text = (
         "intro\n"
-        "<function_calls>\n<invoke name=\"a\">\n</invoke>\n</function_calls>\n"
+        '<function_calls>\n<invoke name="a">\n</invoke>\n</function_calls>\n'
         "middle\n"
         "<function_results>\nresult\n</function_results>\n"
         "outro"

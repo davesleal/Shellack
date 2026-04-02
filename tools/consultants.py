@@ -1,4 +1,5 @@
 """Consultant agents — specialist reviewers invoked on trigger detection."""
+
 from __future__ import annotations
 
 import logging
@@ -31,34 +32,70 @@ def _get_client():
         )
     return _client
 
+
 # ---------------------------------------------------------------------------
 # Trigger detection (lightweight, no API call)
 # ---------------------------------------------------------------------------
 
 _INFOSEC_PATTERNS = [
-    r"\bauth\b", r"\blogin\b", r"\bsession\b", r"\btoken\b",
-    r"\bcrypto\b", r"\bpassword\b", r"\bsanitiz", r"\bvalidat",
-    r"\bcors\b", r"\bcsrf\b", r"\binjection\b", r"\bxss\b",
+    r"\bauth\b",
+    r"\blogin\b",
+    r"\bsession\b",
+    r"\btoken\b",
+    r"\bcrypto\b",
+    r"\bpassword\b",
+    r"\bsanitiz",
+    r"\bvalidat",
+    r"\bcors\b",
+    r"\bcsrf\b",
+    r"\binjection\b",
+    r"\bxss\b",
 ]
 
 _ARCHITECT_PATTERNS = [
-    r"\bnew\s+file\b", r"\bnew\s+module\b", r"\bnew\s+class\b",
-    r"\bschema\s+change\b", r"\bmigration\b", r"\bdependenc",
-    r"\brefactor\b", r"\bsplit\s+(into|the)\b",
+    r"\bnew\s+file\b",
+    r"\bnew\s+module\b",
+    r"\bnew\s+class\b",
+    r"\bschema\s+change\b",
+    r"\bmigration\b",
+    r"\bdependenc",
+    r"\brefactor\b",
+    r"\bsplit\s+(into|the)\b",
 ]
 
 _TESTER_PATTERNS = [
-    r"\btest\b", r"\bspec\b", r"\bassert\b", r"\bmock\b",
-    r"\bfixture\b", r"\bcoverage\b", r"\bpytest\b", r"\bjest\b",
+    r"\btest\b",
+    r"\bspec\b",
+    r"\bassert\b",
+    r"\bmock\b",
+    r"\bfixture\b",
+    r"\bcoverage\b",
+    r"\bpytest\b",
+    r"\bjest\b",
     r"\bxctest\b",
 ]
 
 _VISUAL_UX_PATTERNS = [
-    r"\bview\b", r"\bcomponent\b", r"\blayout\b", r"\bstyle\b",
-    r"\bcss\b", r"\btailwind\b", r"\bswiftui\b", r"\breact\b",
-    r"\bbutton\b", r"\bmodal\b", r"\bform\b", r"\bnav\b",
-    r"\bcolor\b", r"\bfont\b", r"\bspacing\b", r"\bpadding\b",
-    r"\baccessib", r"\bwcag\b", r"\ba11y\b", r"\bvoiceover\b",
+    r"\bview\b",
+    r"\bcomponent\b",
+    r"\blayout\b",
+    r"\bstyle\b",
+    r"\bcss\b",
+    r"\btailwind\b",
+    r"\bswiftui\b",
+    r"\breact\b",
+    r"\bbutton\b",
+    r"\bmodal\b",
+    r"\bform\b",
+    r"\bnav\b",
+    r"\bcolor\b",
+    r"\bfont\b",
+    r"\bspacing\b",
+    r"\bpadding\b",
+    r"\baccessib",
+    r"\bwcag\b",
+    r"\ba11y\b",
+    r"\bvoiceover\b",
 ]
 
 
@@ -182,6 +219,7 @@ _CONSULTANT_PROMPTS = {
 # ---------------------------------------------------------------------------
 # Consultant call
 # ---------------------------------------------------------------------------
+
 
 def consult(
     role: str,

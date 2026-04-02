@@ -11,7 +11,13 @@ def tmp_project(tmp_path):
 
 def test_creates_docs_journal_if_none_exists(tmp_project):
     writer = JournalWriter(tmp_project)
-    writer.append_entry("Fix crash", "User reported crash", "Investigated", "Fixed", "Guard statements matter")
+    writer.append_entry(
+        "Fix crash",
+        "User reported crash",
+        "Investigated",
+        "Fixed",
+        "Guard statements matter",
+    )
     journal = Path(tmp_project) / "docs" / "JOURNAL.md"
     assert journal.exists()
 
@@ -57,7 +63,9 @@ def test_prefers_docs_journal_over_root(tmp_project):
 
 def test_entry_includes_issue_number_when_provided(tmp_project):
     writer = JournalWriter(tmp_project)
-    writer.append_entry("Fix", "Context", "Approach", "Outcome", "Insights", issue_number=42)
+    writer.append_entry(
+        "Fix", "Context", "Approach", "Outcome", "Insights", issue_number=42
+    )
     journal = Path(tmp_project) / "docs" / "JOURNAL.md"
     assert "#42" in journal.read_text()
 

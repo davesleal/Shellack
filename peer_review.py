@@ -203,7 +203,11 @@ class StagedPeerReview:
     """Orchestrates Stage 1 (automated) + Stage 2 (cross-project) peer review."""
 
     def __init__(
-        self, app, code_review_channel_id: str, owner_user_id: str, projects: dict = None
+        self,
+        app,
+        code_review_channel_id: str,
+        owner_user_id: str,
+        projects: dict = None,
     ):
         self.app = app
         self.review_channel = code_review_channel_id

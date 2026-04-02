@@ -1,4 +1,5 @@
 """Tests for GitHub Discussions journal module."""
+
 import subprocess
 from datetime import datetime
 from unittest.mock import MagicMock, patch
@@ -16,8 +17,8 @@ from tools.github_journal import (
     post_monthly_summary,
 )
 
-
 # --- date helpers ---
+
 
 def test_monday_of_week_on_monday():
     dt = datetime(2026, 3, 30)  # Monday
@@ -41,6 +42,7 @@ def test_week_title_format():
 
 
 # --- _find_weekly_discussion ---
+
 
 @patch("tools.github_journal.subprocess.run")
 def test_find_weekly_discussion_found(mock_run):
@@ -80,11 +82,14 @@ def test_find_weekly_discussion_exception(mock_run):
 
 # --- _create_discussion ---
 
+
 @patch("tools.github_journal.subprocess.run")
 def test_create_discussion_success(mock_run):
     mock_run.side_effect = [
         MagicMock(returncode=0, stdout="journal\n"),  # category lookup
-        MagicMock(returncode=0, stdout="https://github.com/owner/repo/discussions/99\n"),
+        MagicMock(
+            returncode=0, stdout="https://github.com/owner/repo/discussions/99\n"
+        ),
     ]
     result = _create_discussion("owner/repo", "Journal", "Title", "Body")
     assert result == 99
@@ -110,6 +115,7 @@ def test_create_discussion_gh_create_fails(mock_run):
 
 # --- _comment_on_discussion ---
 
+
 @patch("tools.github_journal.subprocess.run")
 def test_comment_on_discussion_success(mock_run):
     mock_run.return_value = MagicMock(returncode=0)
@@ -129,6 +135,7 @@ def test_comment_on_discussion_exception(mock_run):
 
 
 # --- post_journal_entry ---
+
 
 @patch("tools.github_journal._comment_on_discussion", return_value=True)
 @patch("tools.github_journal._find_weekly_discussion", return_value=42)
@@ -156,11 +163,14 @@ def test_post_journal_entry_creates_discussion(mock_find, mock_create, mock_comm
 @patch("tools.github_journal._create_discussion", return_value=None)
 @patch("tools.github_journal._find_weekly_discussion", return_value=None)
 def test_post_journal_entry_gh_failure(mock_find, mock_create):
-    result = post_journal_entry("owner/repo", "Journal", "Entry.", dt=datetime(2026, 4, 2))
+    result = post_journal_entry(
+        "owner/repo", "Journal", "Entry.", dt=datetime(2026, 4, 2)
+    )
     assert result is False
 
 
 # --- monthly summary ---
+
 
 def test_monthly_title_format():
     dt = datetime(2026, 4, 15)
@@ -175,10 +185,14 @@ def test_post_monthly_summary_creates_discussion():
         # Second call: get category
         cat_result = MagicMock(returncode=0, stdout="journal\n")
         # Third call: create discussion
-        create_result = MagicMock(returncode=0, stdout="https://github.com/org/repo/discussions/5\n")
+        create_result = MagicMock(
+            returncode=0, stdout="https://github.com/org/repo/discussions/5\n"
+        )
         mock_run.side_effect = [check_result, cat_result, create_result]
 
-        result = post_monthly_summary("org/repo", "Journal", "## April Summary\nGreat month.")
+        result = post_monthly_summary(
+            "org/repo", "Journal", "## April Summary\nGreat month."
+        )
 
     assert result is True
     assert mock_run.call_count == 3

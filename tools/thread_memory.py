@@ -1,4 +1,5 @@
 """Thread memory — cross-thread persistence via .shellack/thread-memory/."""
+
 import logging
 import os
 import tempfile

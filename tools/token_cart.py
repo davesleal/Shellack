@@ -5,6 +5,7 @@ Encapsulates pre-call enrichment and post-call compaction using Haiku 4.5.
 Reduces token consumption by replacing full-history replay with structured
 handoff documents that carry forward only what matters.
 """
+
 from __future__ import annotations
 
 import logging
@@ -163,6 +164,7 @@ Rules:
 # Response parsing
 # ---------------------------------------------------------------------------
 
+
 def _parse_cart_response(text: str) -> tuple[str, str, str]:
     """Split a post-call response into (handoff, journal_draft, review)."""
     handoff = ""
@@ -192,6 +194,7 @@ def _parse_cart_response(text: str) -> tuple[str, str, str]:
 # ---------------------------------------------------------------------------
 # HaikuTokenCart
 # ---------------------------------------------------------------------------
+
 
 class HaikuTokenCart:
     """Haiku-powered context compaction layer.
@@ -235,7 +238,9 @@ class HaikuTokenCart:
             enriched = msg.content[0].text.strip()
             if enriched:
                 return enriched
-            logger.warning("Token cart pre-call returned empty response, using fallback")
+            logger.warning(
+                "Token cart pre-call returned empty response, using fallback"
+            )
         except Exception as exc:
             logger.warning(f"Token cart pre-call failed: {exc}")
 
@@ -303,7 +308,9 @@ class HaikuTokenCart:
 
     def external_handoff(self, handoff: str, journal_draft: str) -> str:
         """Produce a persistent cross-thread summary from a completed thread."""
-        user_content = f"## Final Handoff\n{handoff}\n\n## Journal Draft\n{journal_draft}"
+        user_content = (
+            f"## Final Handoff\n{handoff}\n\n## Journal Draft\n{journal_draft}"
+        )
         try:
             msg = self._client.messages.create(
                 model=self._model,
@@ -338,7 +345,7 @@ class HaikuTokenCart:
             )
             text = msg.content[0].text.strip()
             if text.startswith("CONCERN:"):
-                return text[len("CONCERN:"):].strip()
+                return text[len("CONCERN:") :].strip()
             return None  # PROCEED
         except Exception as exc:
             logger.warning(f"Gut check failed: {exc}")

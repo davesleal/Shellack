@@ -1,18 +1,24 @@
 # tests/test_agent_factory.py
 """Tests for AgentFactory channel-keyed caching and warmup."""
+
 import pytest
 from unittest.mock import MagicMock, patch
 
 
 def _make_factory():
     from agents.agent_factory import AgentFactory
+
     return AgentFactory(client=MagicMock())
 
 
 def _make_routing(channel_ids):
     """Build a minimal CHANNEL_ROUTING dict for testing."""
     return {
-        f"proj-{cid}-dev": {"mode": "dedicated", "channel_id": cid, "project": f"proj-{cid}"}
+        f"proj-{cid}-dev": {
+            "mode": "dedicated",
+            "channel_id": cid,
+            "project": f"proj-{cid}",
+        }
         for cid in channel_ids
     }
 
@@ -29,8 +35,12 @@ def test_get_agent_caches_by_channel_id(MockAgent):
     factory = _make_factory()
     MockAgent.return_value = MagicMock()
 
-    agent1 = factory.get_agent("key", {"name": "X", "path": "/"}, MagicMock(), "C1", "ts1")
-    agent2 = factory.get_agent("key", {"name": "X", "path": "/"}, MagicMock(), "C1", "ts2")
+    agent1 = factory.get_agent(
+        "key", {"name": "X", "path": "/"}, MagicMock(), "C1", "ts1"
+    )
+    agent2 = factory.get_agent(
+        "key", {"name": "X", "path": "/"}, MagicMock(), "C1", "ts2"
+    )
 
     assert agent1 is agent2
     assert MockAgent.call_count == 1  # only created once
@@ -93,8 +103,16 @@ def test_warmup_all_skips_non_dedicated_modes(MockAgent):
     MockAgent.return_value = MagicMock()
     factory = _make_factory()
     routing = {
-        "orchestrator": {"mode": "orchestrator", "channel_id": "C99", "project": "shellack"},
-        "code-review": {"mode": "peer_review", "channel_id": "C88", "project": "shellack"},
+        "orchestrator": {
+            "mode": "orchestrator",
+            "channel_id": "C99",
+            "project": "shellack",
+        },
+        "code-review": {
+            "mode": "peer_review",
+            "channel_id": "C88",
+            "project": "shellack",
+        },
     }
     projects = {"shellack": {"name": "Shellack", "path": "/tmp", "language": "python"}}
 

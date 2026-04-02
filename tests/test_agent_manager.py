@@ -1,4 +1,5 @@
 """Tests for tools/agent_manager.py — complexity classification and model selection."""
+
 from __future__ import annotations
 
 import os
@@ -7,7 +8,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from tools.agent_manager import classify_complexity, select_model, _MODEL_MAP
-
 
 # --- classify_complexity ---
 

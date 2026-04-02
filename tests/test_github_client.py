@@ -15,7 +15,10 @@ def client():
 def test_create_issue_returns_number_and_url(client):
     mock_response = MagicMock()
     mock_response.status_code = 201
-    mock_response.json.return_value = {"number": 42, "html_url": "https://github.com/test-org/Alpha/issues/42"}
+    mock_response.json.return_value = {
+        "number": 42,
+        "html_url": "https://github.com/test-org/Alpha/issues/42",
+    }
 
     with patch("tools.github_client.requests.post", return_value=mock_response):
         result = client.create_issue("alpha", "Login crash", "Details here", "crash")
@@ -43,9 +46,14 @@ def test_create_issue_returns_none_for_unknown_project(client):
 def test_create_issue_applies_correct_labels_for_crash(client):
     mock_response = MagicMock()
     mock_response.status_code = 201
-    mock_response.json.return_value = {"number": 1, "html_url": "https://github.com/x/y/issues/1"}
+    mock_response.json.return_value = {
+        "number": 1,
+        "html_url": "https://github.com/x/y/issues/1",
+    }
 
-    with patch("tools.github_client.requests.post", return_value=mock_response) as mock_post:
+    with patch(
+        "tools.github_client.requests.post", return_value=mock_response
+    ) as mock_post:
         client.create_issue("alpha", "Title", "Body", "crash")
         call_json = mock_post.call_args.kwargs["json"]
         assert "crash" in call_json["labels"]
