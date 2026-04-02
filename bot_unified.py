@@ -200,21 +200,60 @@ def handle_project_message(event, say, channel_name: str):
     # Remove bot mention
     prompt = text.split(">", 1)[1].strip() if ">" in text else text
 
-    # Handle empty prompt (e.g., voice messages, file-only messages)
+    # Handle empty prompt — try voice transcription if audio file present
     if not prompt.strip():
-        if event.get("files"):
+        audio_files = [
+            f
+            for f in event.get("files", [])
+            if f.get("subtype") == "slack_audio"
+            or "audio" in f.get("mimetype", "")
+            or f.get("filetype", "")
+            in ("mp4", "webm", "ogg", "m4a", "aac", "wav", "mp3")
+        ]
+        if audio_files:
+            try:
+                from tools.voice_transcriber import transcribe_slack_file
+
+                transcript = transcribe_slack_file(
+                    audio_files[0],
+                    os.environ.get("SLACK_BOT_TOKEN", ""),
+                )
+                if transcript:
+                    prompt = transcript
+                    app.client.chat_postMessage(
+                        channel=channel_id,
+                        thread_ts=thread_ts,
+                        text=f"\U0001f399\ufe0f *Heard:* {transcript}",
+                    )
+                else:
+                    app.client.chat_postMessage(
+                        channel=channel_id,
+                        thread_ts=thread_ts,
+                        text="\U0001f399\ufe0f Couldn't transcribe the voice message. Try again or type your message.",
+                    )
+                    return
+            except Exception as exc:
+                logger.warning(f"Voice transcription failed: {exc}")
+                app.client.chat_postMessage(
+                    channel=channel_id,
+                    thread_ts=thread_ts,
+                    text="\U0001f399\ufe0f Voice transcription isn't available. Type your message instead.",
+                )
+                return
+        elif event.get("files"):
             app.client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=thread_ts,
-                text="🎙️ Voice and file-only messages aren't supported yet — type your message or try again with text.",
+                text="\U0001f4ce File-only messages aren't supported \u2014 add some text with your file.",
             )
+            return
         else:
             app.client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=thread_ts,
-                text="❓ Empty message received. Try again with some text.",
+                text="\u2753 Empty message received. Try again with some text.",
             )
-        return
+            return
 
     # Initialise session context
     with _session_lock:
