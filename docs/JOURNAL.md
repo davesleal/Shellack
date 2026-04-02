@@ -1,5 +1,17 @@
 # Shellack Project Journal
 
+## 2026-04-02 — Haiku Token Cart architecture spec
+
+**Context:** The bot replays full conversation history on every API call — token consumption grows quadratically. By turn 10, you're re-sending turns 1-9 every time. Additionally, agents create duplicate components because they don't have a reliable inventory of what exists, and corrections made in one thread are forgotten by the next.
+
+**Approach:** Designed a multi-tier agent architecture around a persistent Haiku "Token Cart" — an always-on cheap model ($0.25/MTok) that tracks context, enriches reasoning model inputs, and maintains a living project registry. The system is bidirectional: agents consult each other freely, not in a waterfall pipeline. Key components: pre/post call enrichment, cross-thread external handoffs, auto-populated project registry (components, patterns, design tokens, architecture rules), correction feedback loop that auto-updates the registry, channel agent teams with core roles (infosec, architect, editor) and discoverable roles (tester, linter) bootstrapped from the project structure, a gut check agent for sanity checking before significant actions, an agent manager for intelligent parallel task dispatch across model tiers, and full cost observability.
+
+**Outcome:** Spec complete at `docs/superpowers/specs/2026-04-02-haiku-sidecar-design.md` — 1150 lines covering architecture, handoff format, system prompts, cost analysis, configuration, and Mermaid diagrams. All features opt-in and configurable per project. Estimated 57%+ token savings on a 10-turn thread, increasing with longer conversations. Also created davesleal/Shellack#14 tracking LLM-driven agent transitions (research from a Salesforce AI Research repo).
+
+**Insights:** The biggest design decision was making the communication model explicitly bidirectional. Early drafts had a pipeline feel — enrich → reason → compact. But the real value of cheap agents is that they can be consulted constantly, mid-turn, by anyone. "Consultation is cheap, mistakes are expensive" became the guiding principle. The project registry solves a problem that's hard to see from the code side — agents don't just need to know what files exist, they need to know what's *reusable* and what the *rules* are. A grep can find a Modal component; only the registry knows "always use this Modal, never create a custom one." Also: Slack free plan's 90-day history limit makes it unviable for persistent journaling. GitHub is the only reliable target.
+
+---
+
 ## 2026-04-01 — XML leak fix + genericization cleanup
 
 **Context:** Two loose ends from the genericization session. First, `run:` sessions via MaxBackend leaked raw `<function_calls>` XML into Slack messages — the streaming path had no filter while the single-turn path did. Second, the historical design and plan docs in `docs/superpowers/` still contained personal project names, paths, and identifiers across 9 files.
