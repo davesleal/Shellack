@@ -167,6 +167,92 @@ def test_token_cart_disabled_skips_haiku_calls():
     mock_cart.post_call.assert_not_called()
 
 
+def test_new_thread_picks_up_thread_memory():
+    """New thread with no active session reads thread memory for pre-call."""
+    import importlib
+    import bot_unified
+    importlib.reload(bot_unified)
+
+    fake_routing = {"alpha-dev": {"project": "alpha", "mode": "dedicated"}}
+    fake_projects = {"alpha": {"name": "Alpha", "path": "/tmp/alpha", "features": {}}}
+
+    mock_cart = MagicMock()
+    mock_cart.pre_call.return_value = "enriched with thread memory"
+    mock_cart.post_call.return_value = {"handoff": "## New Handoff", "journal_draft": "Entry"}
+
+    with patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
+         patch("bot_unified.is_orchestrator_channel", return_value=False), \
+         patch("bot_unified.is_peer_review_channel", return_value=False), \
+         patch.dict(bot_unified.CHANNEL_ROUTING, fake_routing, clear=True), \
+         patch.dict(bot_unified.PROJECTS, fake_projects, clear=True), \
+         patch("bot_unified.token_cart", mock_cart), \
+         patch("bot_unified.agent_factory") as mock_factory, \
+         patch("bot_unified.ThinkingIndicator") as MockIndicator, \
+         patch("bot_unified.app") as mock_app, \
+         patch("tools.thread_memory.read_thread_memory", return_value="## Prior Thread Context") as mock_read, \
+         patch("tools.thread_memory.write_thread_memory", return_value=True) as mock_write:
+
+        mock_agent = MagicMock()
+        mock_agent.handle.return_value = ("response", "Alpha")
+        mock_factory.get_agent.return_value = mock_agent
+        MockIndicator.return_value = MagicMock()
+        mock_app.client.reactions_add = MagicMock()
+        mock_app.client.reactions_remove = MagicMock()
+
+        event = _make_event("<@BOT> start fresh", channel="C123")
+        bot_unified.handle_mention(event, say=MagicMock())
+
+    # pre_call should receive the thread memory as handoff (new thread, no session handoff)
+    mock_cart.pre_call.assert_called_once()
+    assert mock_cart.pre_call.call_args[1]["handoff"] == "## Prior Thread Context"
+
+    # write_thread_memory should be called with the new handoff
+    mock_write.assert_called_once_with("/tmp/alpha", "alpha", "## New Handoff")
+
+
+def test_external_handoff_disabled_skips_thread_memory():
+    """When external-handoff feature is disabled, thread memory is not read or written."""
+    import importlib
+    import bot_unified
+    importlib.reload(bot_unified)
+
+    fake_routing = {"alpha-dev": {"project": "alpha", "mode": "dedicated"}}
+    fake_projects = {"alpha": {
+        "name": "Alpha",
+        "path": "/tmp/alpha",
+        "features": {"external-handoff": False},
+    }}
+
+    mock_cart = MagicMock()
+    mock_cart.pre_call.return_value = "enriched"
+    mock_cart.post_call.return_value = {"handoff": "## H", "journal_draft": "J"}
+
+    with patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
+         patch("bot_unified.is_orchestrator_channel", return_value=False), \
+         patch("bot_unified.is_peer_review_channel", return_value=False), \
+         patch.dict(bot_unified.CHANNEL_ROUTING, fake_routing, clear=True), \
+         patch.dict(bot_unified.PROJECTS, fake_projects, clear=True), \
+         patch("bot_unified.token_cart", mock_cart), \
+         patch("bot_unified.agent_factory") as mock_factory, \
+         patch("bot_unified.ThinkingIndicator") as MockIndicator, \
+         patch("bot_unified.app") as mock_app, \
+         patch("tools.thread_memory.read_thread_memory") as mock_read, \
+         patch("tools.thread_memory.write_thread_memory") as mock_write:
+
+        mock_agent = MagicMock()
+        mock_agent.handle.return_value = ("response", "Alpha")
+        mock_factory.get_agent.return_value = mock_agent
+        MockIndicator.return_value = MagicMock()
+        mock_app.client.reactions_add = MagicMock()
+        mock_app.client.reactions_remove = MagicMock()
+
+        event = _make_event("<@BOT> do stuff", channel="C123")
+        bot_unified.handle_mention(event, say=MagicMock())
+
+    mock_read.assert_not_called()
+    mock_write.assert_not_called()
+
+
 def test_token_cart_enabled_by_default():
     """When no features config, token cart is enabled by default."""
     import importlib

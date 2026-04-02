@@ -183,15 +183,28 @@ def handle_project_message(event, say, channel_name: str):
 
     # Pre-call: enrich context via Token Cart (skip if feature-gated off)
     use_token_cart = project.get("features", {}).get("token-cart", True)
+    use_external_handoff = project.get("features", {}).get("external-handoff", True)
     if use_token_cart:
         # Read project registry for context enrichment (feature-gated)
         registry_content = None
         if project.get("features", {}).get("registry", True):
             from tools.registry import read_registry
             registry_content = read_registry(project.get("path", ""))
+
+        # Cross-thread persistence: load prior thread memory for new threads
+        effective_handoff = session["handoff"]
+        if use_external_handoff and not effective_handoff:
+            try:
+                from tools.thread_memory import read_thread_memory
+                effective_handoff = read_thread_memory(
+                    project.get("path", ""), project_key
+                )
+            except Exception:
+                pass
+
         try:
             enriched_context = token_cart.pre_call(
-                handoff=session["handoff"],
+                handoff=effective_handoff,
                 prompt=prompt,
                 registry=registry_content,
             )
@@ -244,6 +257,16 @@ def handle_project_message(event, say, channel_name: str):
             session["handoff"] = cart_result["handoff"]
             session["journal_draft"] = cart_result["journal_draft"]
             session["turn_count"] += 1
+
+            # Cross-thread persistence: save latest handoff for future threads
+            if use_external_handoff and cart_result["handoff"]:
+                try:
+                    from tools.thread_memory import write_thread_memory
+                    write_thread_memory(
+                        project.get("path", ""), project_key, cart_result["handoff"]
+                    )
+                except Exception:
+                    pass  # never block on persistence
         except Exception as exc:
             logger.warning(f"Token cart post-call failed: {exc}")
 

@@ -34,6 +34,36 @@ Rules:
 - Output the enriched context as a concise markdown block
 - If a registry is provided, include relevant entries that the reasoning model should know about"""
 
+_EXTERNAL_HANDOFF_SYSTEM = """You are a cross-thread memory agent. Given a thread's final handoff and journal, produce a persistent context summary for future threads on this project.
+
+Extract ONLY what should persist:
+- Decisions that affect future work
+- Patterns discovered or established
+- Corrections the operator made
+- Unfinished work or open items
+- Project state changes
+
+Drop:
+- Turn-specific details that won't matter next time
+- Resolved questions
+- Intermediate reasoning
+
+Output format:
+## Persistent Context
+**Last updated:** {date}
+
+### Recent Decisions
+- {decisions that affect future work}
+
+### Learned Corrections
+- {corrections the operator made}
+
+### Open Items
+- {unfinished work}
+
+### Project State
+- {current state, recent changes}"""
+
 _POST_CALL_SYSTEM = """You are a conversation compaction agent. Given the previous handoff (if any), the user's prompt, and the model's response, produce TWO sections separated by markers.
 
 Output format (you MUST use these exact markers):
@@ -172,3 +202,18 @@ class HaikuTokenCart:
 
         # Fallback: preserve prior handoff
         return {"handoff": handoff or "", "journal_draft": ""}
+
+    def external_handoff(self, handoff: str, journal_draft: str) -> str:
+        """Produce a persistent cross-thread summary from a completed thread."""
+        user_content = f"## Final Handoff\n{handoff}\n\n## Journal Draft\n{journal_draft}"
+        try:
+            msg = self._client.messages.create(
+                model=self._model,
+                max_tokens=_MAX_TOKENS,
+                system=_EXTERNAL_HANDOFF_SYSTEM,
+                messages=[{"role": "user", "content": user_content}],
+            )
+            return msg.content[0].text.strip()
+        except Exception as exc:
+            logger.warning(f"Token cart external handoff failed: {exc}")
+            return ""

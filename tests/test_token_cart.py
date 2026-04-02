@@ -176,3 +176,34 @@ def test_parse_response_no_markers():
     handoff, journal = _parse_cart_response(text)
     assert handoff == "some raw text without markers"
     assert journal == ""
+
+
+# ---------------------------------------------------------------------------
+# external_handoff tests
+# ---------------------------------------------------------------------------
+
+def test_external_handoff_produces_summary():
+    """external_handoff calls Haiku and returns the summary."""
+    summary = "## Persistent Context\n### Recent Decisions\n- Use OAuth2"
+    mock_cls = _mock_anthropic(summary)
+    with patch("tools.token_cart.Anthropic", mock_cls):
+        cart = HaikuTokenCart()
+    result = cart.external_handoff(
+        handoff="## Handoff\n**Task:** auth system",
+        journal_draft="Discussed auth approach.",
+    )
+    assert result == summary
+    cart._client.messages.create.assert_called_once()
+
+
+def test_external_handoff_failure_returns_empty():
+    """API failure returns empty string."""
+    mock_cls = _mock_anthropic("")
+    with patch("tools.token_cart.Anthropic", mock_cls):
+        cart = HaikuTokenCart()
+    cart._client.messages.create.side_effect = Exception("API down")
+    result = cart.external_handoff(
+        handoff="## Handoff",
+        journal_draft="entry",
+    )
+    assert result == ""
