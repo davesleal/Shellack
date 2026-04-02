@@ -181,14 +181,18 @@ def handle_project_message(event, say, channel_name: str):
     indicator = ThinkingIndicator(app.client, channel_id, thread_ts)
     indicator.start(input_tokens=estimated_tokens)
 
-    # Pre-call: enrich context via Token Cart
-    try:
-        enriched_context = token_cart.pre_call(
-            handoff=session["handoff"],
-            prompt=prompt,
-        )
-    except Exception as exc:
-        logger.warning(f"Token cart pre-call failed: {exc}")
+    # Pre-call: enrich context via Token Cart (skip if feature-gated off)
+    use_token_cart = project.get("features", {}).get("token-cart", True)
+    if use_token_cart:
+        try:
+            enriched_context = token_cart.pre_call(
+                handoff=session["handoff"],
+                prompt=prompt,
+            )
+        except Exception as exc:
+            logger.warning(f"Token cart pre-call failed: {exc}")
+            enriched_context = prompt
+    else:
         enriched_context = prompt
 
     # 7. Run the agent
@@ -223,18 +227,19 @@ def handle_project_message(event, say, channel_name: str):
     except Exception:
         pass
 
-    # Post-call: compact via Token Cart
-    try:
-        cart_result = token_cart.post_call(
-            handoff=session["handoff"],
-            prompt=prompt,
-            response=response,
-        )
-        session["handoff"] = cart_result["handoff"]
-        session["journal_draft"] = cart_result["journal_draft"]
-        session["turn_count"] += 1
-    except Exception as exc:
-        logger.warning(f"Token cart post-call failed: {exc}")
+    # Post-call: compact via Token Cart (skip if feature-gated off)
+    if use_token_cart:
+        try:
+            cart_result = token_cart.post_call(
+                handoff=session["handoff"],
+                prompt=prompt,
+                response=response,
+            )
+            session["handoff"] = cart_result["handoff"]
+            session["journal_draft"] = cart_result["journal_draft"]
+            session["turn_count"] += 1
+        except Exception as exc:
+            logger.warning(f"Token cart post-call failed: {exc}")
 
     usage_tracker.record_mention(backend_mode, model)
 

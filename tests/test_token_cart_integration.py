@@ -126,3 +126,79 @@ def test_token_cart_failure_does_not_block_agent():
         bot_unified.handle_mention(event, say=MagicMock())
 
     mock_factory.get_agent.return_value.handle.assert_called_once()
+
+
+def test_token_cart_disabled_skips_haiku_calls():
+    """When token-cart feature is disabled, no Haiku calls are made."""
+    import importlib
+    import bot_unified
+    importlib.reload(bot_unified)
+
+    fake_routing = {"alpha-dev": {"project": "alpha", "mode": "dedicated"}}
+    fake_projects = {"alpha": {
+        "name": "Alpha",
+        "path": "/tmp/alpha",
+        "features": {"token-cart": False},
+    }}
+
+    mock_cart = MagicMock()
+
+    with patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
+         patch("bot_unified.is_orchestrator_channel", return_value=False), \
+         patch("bot_unified.is_peer_review_channel", return_value=False), \
+         patch.dict(bot_unified.CHANNEL_ROUTING, fake_routing, clear=True), \
+         patch.dict(bot_unified.PROJECTS, fake_projects, clear=True), \
+         patch("bot_unified.token_cart", mock_cart), \
+         patch("bot_unified.agent_factory") as mock_factory, \
+         patch("bot_unified.ThinkingIndicator") as MockIndicator, \
+         patch("bot_unified.app") as mock_app:
+
+        mock_agent = MagicMock()
+        mock_agent.handle.return_value = ("response", "Alpha")
+        mock_factory.get_agent.return_value = mock_agent
+        MockIndicator.return_value = MagicMock()
+        mock_app.client.reactions_add = MagicMock()
+        mock_app.client.reactions_remove = MagicMock()
+
+        event = _make_event("<@BOT> do stuff", channel="C123")
+        bot_unified.handle_mention(event, say=MagicMock())
+
+    mock_cart.pre_call.assert_not_called()
+    mock_cart.post_call.assert_not_called()
+
+
+def test_token_cart_enabled_by_default():
+    """When no features config, token cart is enabled by default."""
+    import importlib
+    import bot_unified
+    importlib.reload(bot_unified)
+
+    fake_routing = {"alpha-dev": {"project": "alpha", "mode": "dedicated"}}
+    fake_projects = {"alpha": {"name": "Alpha", "path": "/tmp/alpha"}}  # no features key
+
+    mock_cart = MagicMock()
+    mock_cart.pre_call.return_value = "enriched"
+    mock_cart.post_call.return_value = {"handoff": "h", "journal_draft": "j"}
+
+    with patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
+         patch("bot_unified.is_orchestrator_channel", return_value=False), \
+         patch("bot_unified.is_peer_review_channel", return_value=False), \
+         patch.dict(bot_unified.CHANNEL_ROUTING, fake_routing, clear=True), \
+         patch.dict(bot_unified.PROJECTS, fake_projects, clear=True), \
+         patch("bot_unified.token_cart", mock_cart), \
+         patch("bot_unified.agent_factory") as mock_factory, \
+         patch("bot_unified.ThinkingIndicator") as MockIndicator, \
+         patch("bot_unified.app") as mock_app:
+
+        mock_agent = MagicMock()
+        mock_agent.handle.return_value = ("response", "Alpha")
+        mock_factory.get_agent.return_value = mock_agent
+        MockIndicator.return_value = MagicMock()
+        mock_app.client.reactions_add = MagicMock()
+        mock_app.client.reactions_remove = MagicMock()
+
+        event = _make_event("<@BOT> do stuff", channel="C123")
+        bot_unified.handle_mention(event, say=MagicMock())
+
+    mock_cart.pre_call.assert_called_once()
+    mock_cart.post_call.assert_called_once()
