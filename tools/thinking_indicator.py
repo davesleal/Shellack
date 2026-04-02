@@ -36,7 +36,7 @@ _VERBS = [
 
 _CLAY = "#C17F4E"
 _GRAY = "#888888"
-_UPDATE_INTERVAL = 5.0  # seconds between verb rotations
+_UPDATE_INTERVAL = 1.0  # seconds between verb rotations
 
 
 def _fmt_tokens(n: int) -> str:
@@ -115,8 +115,8 @@ class ThinkingIndicator:
             except Exception as exc:
                 logger.warning(f"ThinkingIndicator: update failed: {exc}")
 
-    def done(self, response: str = "", cost_summary: str = "") -> None:
-        """Stop cycling and replace the message with the churned summary + response."""
+    def done(self, think_block: str = "", cost_summary: str = "") -> None:
+        """Stop cycling and show churned summary + optional collapsible think block."""
         self._stop.set()
         if self._bg:
             self._bg.join(timeout=2.0)
@@ -126,7 +126,12 @@ class ThinkingIndicator:
         header = f"✻ Churned for {_fmt_elapsed(elapsed)}"
         if cost_summary:
             header += f" · {cost_summary}"
-        body = f"{header}\n\n{response}" if response else header
+
+        if think_block:
+            body = f"{header}\n\n💭 Reasoning\n```\n{think_block}\n```"
+        else:
+            body = header
+
         try:
             self._client.chat_update(
                 channel=self._channel_id,
@@ -136,7 +141,6 @@ class ThinkingIndicator:
             )
         except Exception as exc:
             logger.warning(f"ThinkingIndicator: done update failed: {exc}")
-            # Fallback: stamp the indicator as done, post response separately
             try:
                 self._client.chat_update(
                     channel=self._channel_id,
@@ -146,12 +150,3 @@ class ThinkingIndicator:
                 )
             except Exception:
                 pass
-            if response:
-                try:
-                    self._client.chat_postMessage(
-                        channel=self._channel_id,
-                        thread_ts=self._thread_ts,
-                        text=response,
-                    )
-                except Exception:
-                    pass

@@ -1,6 +1,7 @@
 # tests/test_thinking_indicator.py
 """Tests for ThinkingIndicator Slack message contract."""
 import pytest
+import time
 from unittest.mock import MagicMock, call, patch
 import threading
 
@@ -41,33 +42,64 @@ def test_done_updates_with_empty_text(client):
     with patch("tools.thinking_indicator.threading.Thread"):
         ind.start()
     ind._stop.set()
-    ind.done(response="All done.")
+    ind.done(think_block="Some reasoning.")
     _, kwargs = client.chat_update.call_args
     assert kwargs["text"] == ""
     assert kwargs["attachments"][0]["color"] == "#888888"
 
 
-def test_done_folds_response_into_attachment(client):
+def test_done_with_think_block(client):
+    """done() renders think block as collapsible code fence."""
     ind = _make_indicator(client)
-    with patch("tools.thinking_indicator.threading.Thread"):
-        ind.start()
+    ind._ts = "1.0"
+    ind._start = time.monotonic() - 5
+    ind._stop = threading.Event()
     ind._stop.set()
-    ind.done(response="Here is the answer.")
-    att = client.chat_update.call_args[1]["attachments"][0]
-    assert "Here is the answer." in att["text"]
-    assert "✻ Churned" in att["text"]
+    ind._bg = None
+
+    ind.done(think_block="Let me check the files.\nFound 3 modules.", cost_summary="$0.01")
+
+    call_kwargs = client.chat_update.call_args[1]
+    body = call_kwargs["attachments"][0]["text"]
+    assert "Churned for" in body
+    assert "$0.01" in body
+    assert "\U0001f4ad Reasoning" in body
+    assert "Let me check the files" in body
+    assert "```" in body  # collapsible code fence
+
+
+def test_done_without_think_block(client):
+    """done() with no think block shows only churned header."""
+    ind = _make_indicator(client)
+    ind._ts = "1.0"
+    ind._start = time.monotonic() - 5
+    ind._stop = threading.Event()
+    ind._stop.set()
+    ind._bg = None
+
+    ind.done(think_block="", cost_summary="$0.01")
+
+    call_kwargs = client.chat_update.call_args[1]
+    body = call_kwargs["attachments"][0]["text"]
+    assert "Churned for" in body
+    assert "\U0001f4ad" not in body
+
+
+def test_update_interval_is_one_second():
+    """_UPDATE_INTERVAL should be 1.0, not 5.0."""
+    from tools.thinking_indicator import _UPDATE_INTERVAL
+    assert _UPDATE_INTERVAL == 1.0
 
 
 def test_done_without_ts_is_noop(client):
     ind = _make_indicator(client)
     # Never called start(), so _ts is None
-    ind.done(response="something")
+    ind.done(think_block="something")
     client.chat_update.assert_not_called()
 
 
-def test_done_fallback_posts_response_separately_on_update_failure(client):
-    """If chat_update fails with response text, fallback posts response as separate message."""
-    import time
+def test_done_fallback_on_update_failure(client):
+    """If chat_update fails, fallback updates header only (no separate message post)."""
     ind = _make_indicator(client)
     ind._ts = "1.0"
     ind._start = time.monotonic() - 5
@@ -78,17 +110,16 @@ def test_done_fallback_posts_response_separately_on_update_failure(client):
     # First chat_update (the done call) raises, fallback header update succeeds
     client.chat_update.side_effect = [Exception("update failed"), None]
 
-    ind.done(response="The answer is 42")
+    ind.done(think_block="Some reasoning")
 
-    # Should have tried to post response separately
-    post_calls = [c for c in client.chat_postMessage.call_args_list
-                  if c.kwargs.get("text") == "The answer is 42"]
-    assert len(post_calls) == 1
+    # Should have called chat_update twice (original + fallback)
+    assert client.chat_update.call_count == 2
+    # Should NOT have posted a separate message (old behavior removed)
+    client.chat_postMessage.assert_not_called()
 
 
 def test_done_with_cost_summary(client):
     """Cost summary appears in the churned header line."""
-    import time
     ind = _make_indicator(client)
     ind._ts = "1.0"
     ind._start = time.monotonic() - 5
@@ -96,16 +127,14 @@ def test_done_with_cost_summary(client):
     ind._stop.set()
     ind._bg = None
 
-    ind.done(response="Answer here.", cost_summary="$0.0140 (2.1k in · 890 out)")
+    ind.done(think_block="", cost_summary="$0.0140 (2.1k in \u00b7 890 out)")
     att = client.chat_update.call_args[1]["attachments"][0]
     assert "$0.0140" in att["text"]
     assert "Churned" in att["text"]
-    assert "Answer here." in att["text"]
 
 
 def test_done_without_cost_summary_no_dot(client):
     """When no cost_summary, the header should not contain a dot separator."""
-    import time
     ind = _make_indicator(client)
     ind._ts = "1.0"
     ind._start = time.monotonic() - 5
@@ -113,15 +142,14 @@ def test_done_without_cost_summary_no_dot(client):
     ind._stop.set()
     ind._bg = None
 
-    ind.done(response="Answer.")
+    ind.done()
     att = client.chat_update.call_args[1]["attachments"][0]
     header_line = att["text"].split("\n")[0]
-    assert "·" not in header_line
+    assert "\u00b7" not in header_line
 
 
 def test_done_total_failure_does_not_crash(client):
     """If everything fails, done() must not raise."""
-    import time
     ind = _make_indicator(client)
     ind._ts = "1.0"
     ind._start = time.monotonic() - 5
@@ -130,8 +158,6 @@ def test_done_total_failure_does_not_crash(client):
     ind._bg = None
 
     client.chat_update.side_effect = Exception("total failure")
-    # Reset postMessage to also fail (after the initial fixture setup)
-    client.chat_postMessage.side_effect = Exception("post also fails")
 
     # Must not raise
-    ind.done(response="some text")
+    ind.done(think_block="some text")
