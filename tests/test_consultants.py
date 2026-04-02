@@ -175,6 +175,54 @@ def test_consult_output_editor(mock_get_client):
 # Singleton client
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Visual UX consultant
+# ---------------------------------------------------------------------------
+
+def test_detect_triggers_visual_ux():
+    """UI keywords trigger visual-ux."""
+    assert "visual-ux" in detect_triggers("Updated the button component styles")
+    assert "visual-ux" in detect_triggers("Changed the layout and padding")
+    assert "visual-ux" in detect_triggers("New SwiftUI view for settings")
+    assert "visual-ux" in detect_triggers("Added a modal with custom color tokens")
+
+
+def test_detect_triggers_visual_ux_accessibility():
+    """Accessibility keywords trigger visual-ux."""
+    assert "visual-ux" in detect_triggers("Check WCAG compliance on the form")
+    assert "visual-ux" in detect_triggers("Added a11y labels to all icons")
+    assert "visual-ux" in detect_triggers("VoiceOver reads the wrong element")
+
+
+@patch("tools.consultants._get_client")
+def test_consult_visual_ux_returns_finding(mock_get_client):
+    """Visual UX consultant returns a finding about contrast."""
+    finding = "\U0001f3a8 UX/A11Y: Button text contrast is 3.1:1 — needs 4.5:1 minimum"
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = _make_mock_response(finding)
+    mock_get_client.return_value = mock_client
+
+    result = consult(role="visual-ux", response="Added a new button with light gray text")
+    assert result == finding
+
+
+@patch("tools.consultants._get_client")
+def test_consult_visual_ux_no_issues(mock_get_client):
+    """When visual-ux says UI looks accessible, returns None."""
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = _make_mock_response(
+        "\u2705 UI looks accessible and consistent."
+    )
+    mock_get_client.return_value = mock_client
+
+    result = consult(role="visual-ux", response="Updated button colors")
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Singleton client
+# ---------------------------------------------------------------------------
+
 @patch("tools.consultants.Anthropic")
 def test_singleton_client_reused(mock_anthropic_cls):
     """_get_client() returns the same instance on repeated calls."""

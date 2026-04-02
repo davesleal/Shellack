@@ -53,6 +53,14 @@ _TESTER_PATTERNS = [
     r"\bxctest\b",
 ]
 
+_VISUAL_UX_PATTERNS = [
+    r"\bview\b", r"\bcomponent\b", r"\blayout\b", r"\bstyle\b",
+    r"\bcss\b", r"\btailwind\b", r"\bswiftui\b", r"\breact\b",
+    r"\bbutton\b", r"\bmodal\b", r"\bform\b", r"\bnav\b",
+    r"\bcolor\b", r"\bfont\b", r"\bspacing\b", r"\bpadding\b",
+    r"\baccessib", r"\bwcag\b", r"\ba11y\b", r"\bvoiceover\b",
+]
+
 
 def detect_triggers(response: str) -> list[str]:
     """Detect which consultant roles should be invoked based on response content.
@@ -67,6 +75,8 @@ def detect_triggers(response: str) -> list[str]:
         roles.append("architect")
     if any(re.search(p, lower) for p in _TESTER_PATTERNS):
         roles.append("tester")
+    if any(re.search(p, lower) for p in _VISUAL_UX_PATTERNS):
+        roles.append("visual-ux")
     return roles
 
 
@@ -131,11 +141,41 @@ Check for:
 
 Respond with the polished version of the text. If no changes needed, return the text unchanged."""
 
+_VISUAL_UX_SYSTEM = """You are a visual UX and accessibility consultant reviewing UI code changes.
+
+Check against WCAG 2.x:
+- Color contrast ratios (4.5:1 text, 3:1 large text)
+- Touch/click target sizes (44x44pt iOS, 48x48dp Android, 44x44px web)
+- Text alternatives for images and icons
+- Keyboard/VoiceOver navigability and focus indicators
+- Dynamic type / font scaling support
+- Reduced motion preference respected
+
+Check UX best practices:
+- Fitts's Law: interactive targets large enough and well-positioned
+- Hick's Law: choices not overwhelming
+- Miller's Law: information grouped in digestible chunks
+- Jakob's Law: follows platform conventions
+- Law of Proximity: related elements grouped visually
+
+Check design system compliance:
+- Uses registered components from the Project Registry (if provided)
+- Uses design tokens, not hardcoded values
+- No inline styles when a design system exists
+- Components are reusable, not one-off implementations
+
+Respond concisely:
+- If no issues: "\u2705 UI looks accessible and consistent."
+- If issues: "\ud83c\udfa8 UX/A11Y: {one-line per issue}"
+
+Max 4 issues. Be specific \u2014 name the component/element and the fix."""
+
 _CONSULTANT_PROMPTS = {
     "infosec": _INFOSEC_SYSTEM,
     "architect": _ARCHITECT_SYSTEM,
     "tester": _TESTER_SYSTEM,
     "output_editor": _OUTPUT_EDITOR_SYSTEM,
+    "visual-ux": _VISUAL_UX_SYSTEM,
 }
 
 
@@ -176,6 +216,7 @@ def consult(
             "no security concerns",
             "architecture looks sound",
             "test coverage looks good",
+            "ui looks accessible and consistent",
         ]
         if any(phrase in text.lower() for phrase in _no_issue_phrases):
             return None
