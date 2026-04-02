@@ -86,6 +86,39 @@ def test_done_fallback_posts_response_separately_on_update_failure(client):
     assert len(post_calls) == 1
 
 
+def test_done_with_cost_summary(client):
+    """Cost summary appears in the churned header line."""
+    import time
+    ind = _make_indicator(client)
+    ind._ts = "1.0"
+    ind._start = time.monotonic() - 5
+    ind._stop = threading.Event()
+    ind._stop.set()
+    ind._bg = None
+
+    ind.done(response="Answer here.", cost_summary="$0.0140 (2.1k in · 890 out)")
+    att = client.chat_update.call_args[1]["attachments"][0]
+    assert "$0.0140" in att["text"]
+    assert "Churned" in att["text"]
+    assert "Answer here." in att["text"]
+
+
+def test_done_without_cost_summary_no_dot(client):
+    """When no cost_summary, the header should not contain a dot separator."""
+    import time
+    ind = _make_indicator(client)
+    ind._ts = "1.0"
+    ind._start = time.monotonic() - 5
+    ind._stop = threading.Event()
+    ind._stop.set()
+    ind._bg = None
+
+    ind.done(response="Answer.")
+    att = client.chat_update.call_args[1]["attachments"][0]
+    header_line = att["text"].split("\n")[0]
+    assert "·" not in header_line
+
+
 def test_done_total_failure_does_not_crash(client):
     """If everything fails, done() must not raise."""
     import time

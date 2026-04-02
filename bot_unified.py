@@ -17,6 +17,8 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
+from tools.cost_tracker import TurnCost, ThreadCost
+
 # Import our modules
 from orchestrator_config import (
     get_project_for_channel,
@@ -158,6 +160,7 @@ def handle_project_message(event, say, channel_name: str):
             "journal_draft": "",
             "turn_count": 0,
             "project_key": project_key,
+            "cost": ThreadCost(),
         }
     session = active_sessions[thread_ts]
 
@@ -234,11 +237,28 @@ def handle_project_message(event, say, channel_name: str):
             pass
         return
 
-    # 8. Stop indicator — updates the single clay message to gray with the answer inline
+    # 8. Estimate turn cost
+    if project.get("features", {}).get("cost-observability", True):
+        model_used = model or os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
+        est_input = (len(prompt) + len(enriched_context if isinstance(enriched_context, str) else "")) // 4
+        est_output = len(response) // 4
+        turn_cost = TurnCost(input_tokens=est_input, output_tokens=est_output, model=model_used)
+        if "cost" not in session:
+            session["cost"] = ThreadCost()
+        session["cost"].add_turn(turn_cost)
+
+    # 9. Stop indicator — updates the single clay message to gray with the answer inline
     from tools.slack_session import _md_to_mrkdwn
     header = f"🤖 *{agent_label}*\n" if agent_label != project["name"] else ""
     formatted = _md_to_mrkdwn(f"{header}{response}") if response else ""
-    indicator.done(response=formatted)
+
+    cost_str = ""
+    if project.get("features", {}).get("cost-observability", True) and session.get("cost"):
+        last_turn = session["cost"].turns[-1] if session["cost"].turns else None
+        if last_turn:
+            cost_str = session["cost"].format_turn_summary(last_turn)
+
+    indicator.done(response=formatted, cost_summary=cost_str)
 
     # 10. Remove :claude: reaction — we're done
     try:

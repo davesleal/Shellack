@@ -115,7 +115,7 @@ class ThinkingIndicator:
             except Exception as exc:
                 logger.warning(f"ThinkingIndicator: update failed: {exc}")
 
-    def done(self, response: str = "") -> None:
+    def done(self, response: str = "", cost_summary: str = "") -> None:
         """Stop cycling and replace the message with the churned summary + response."""
         self._stop.set()
         if self._bg:
@@ -124,6 +124,8 @@ class ThinkingIndicator:
             return
         elapsed = time.monotonic() - self._start
         header = f"✻ Churned for {_fmt_elapsed(elapsed)}"
+        if cost_summary:
+            header += f" · {cost_summary}"
         body = f"{header}\n\n{response}" if response else header
         try:
             self._client.chat_update(
