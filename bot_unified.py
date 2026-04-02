@@ -340,18 +340,35 @@ def handle_project_message(event, say, channel_name: str):
         except Exception:
             pass  # never block on consultants
 
-    # 9. Stop indicator — updates the single clay message to gray with the answer inline
+    # 9. Parse response tags and render
+    from tools.response_parser import parse_response, split_message
     from tools.slack_session import _md_to_mrkdwn
-    header = f"🤖 *{agent_label}*\n" if agent_label != project["name"] else ""
-    formatted = _md_to_mrkdwn(f"{header}{response}") if response else ""
 
+    parsed = parse_response(response)
+
+    # Cost string for the churned block
     cost_str = ""
     if project.get("features", {}).get("cost-observability", True) and session.get("cost"):
         last_turn = session["cost"].turns[-1] if session["cost"].turns else None
         if last_turn:
             cost_str = session["cost"].format_turn_summary(last_turn)
 
-    indicator.done(response=formatted, cost_summary=cost_str)
+    # Stop indicator — gray block with churned header + collapsible think block
+    indicator.done(think_block=parsed.think, cost_summary=cost_str)
+
+    # Post [reply] as separate message(s)
+    if parsed.reply:
+        formatted_reply = _md_to_mrkdwn(parsed.reply)
+        chunks = split_message(formatted_reply, max_chars=3500)
+        for chunk in chunks:
+            try:
+                app.client.chat_postMessage(
+                    channel=channel_id,
+                    thread_ts=thread_ts,
+                    text=chunk,
+                )
+            except Exception:
+                pass  # never crash on posting
 
     # 10. Remove :claude: reaction — we're done
     try:

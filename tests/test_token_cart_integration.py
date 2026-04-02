@@ -288,3 +288,47 @@ def test_token_cart_enabled_by_default():
 
     mock_cart.pre_call.assert_called_once()
     mock_cart.post_call.assert_called_once()
+
+
+def test_reply_posted_as_separate_message():
+    """[reply] content is posted as a separate Slack message, not in the indicator."""
+    import importlib
+    import bot_unified
+    importlib.reload(bot_unified)
+
+    fake_routing = {"alpha-dev": {"project": "alpha", "mode": "dedicated"}}
+    fake_projects = {"alpha": {"name": "Alpha", "path": "/tmp/alpha", "features": {"token-cart": False}}}
+
+    with patch("bot_unified.get_channel_name", return_value="alpha-dev"), \
+         patch("bot_unified.is_orchestrator_channel", return_value=False), \
+         patch("bot_unified.is_peer_review_channel", return_value=False), \
+         patch.dict(bot_unified.CHANNEL_ROUTING, fake_routing, clear=True), \
+         patch.dict(bot_unified.PROJECTS, fake_projects, clear=True), \
+         patch("bot_unified.agent_factory") as mock_factory, \
+         patch("bot_unified.ThinkingIndicator") as MockIndicator, \
+         patch("bot_unified.app") as mock_app:
+
+        mock_agent = MagicMock()
+        mock_agent.handle.return_value = ("[think] Checking files.\n[reply] The answer is 42.", "Alpha")
+        mock_factory.get_agent.return_value = mock_agent
+
+        mock_indicator = MagicMock()
+        MockIndicator.return_value = mock_indicator
+        mock_app.client.reactions_add = MagicMock()
+        mock_app.client.reactions_remove = MagicMock()
+        mock_app.client.chat_postMessage = MagicMock(return_value={"ts": "200.0"})
+
+        event = {"text": "<@BOT> question", "channel": "C123", "ts": "100.0", "user": "U_USER"}
+        bot_unified.handle_mention(event, say=MagicMock())
+
+    # Indicator should get think block, not the full response
+    mock_indicator.done.assert_called_once()
+    done_kwargs = mock_indicator.done.call_args[1]
+    assert "Checking files" in done_kwargs.get("think_block", "")
+    # "The answer is 42" should NOT be in the indicator
+    assert "42" not in str(done_kwargs.get("think_block", ""))
+
+    # Reply should be posted as a separate message via chat_postMessage
+    post_calls = mock_app.client.chat_postMessage.call_args_list
+    reply_texts = [str(c) for c in post_calls]
+    assert any("42" in t for t in reply_texts), f"Reply '42' not found in posted messages: {reply_texts}"
