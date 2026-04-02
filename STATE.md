@@ -1,6 +1,6 @@
 # Shellack Current State
-**Last Updated:** 2026-04-01
-**Status:** Production-ready, genericized for open-source — 263 tests green
+**Last Updated:** 2026-04-02
+**Status:** Production-ready — Token Cart multi-agent system implemented, 373 tests green
 
 ---
 
@@ -73,8 +73,19 @@ Loaded from `projects.yaml` at startup. Validated with `validate_config()`.
 
 - [x] Strip tool XML from SlackSession streaming chunks
 - [x] Follow-ups from genericization (davesleal/Shellack#13 — closed)
-- [x] Haiku Token Cart Core — implemented (pre/post enrichment, handoff store, feature gate, 282 tests)
-- [ ] Message UX redesign — tag system `[think]/[action]/[reply]`, rendering flow, message splitting (spec pending, depends on Token Cart)
+- [x] Haiku Token Cart — full system implemented (373 tests):
+  - Token Cart Core (pre/post enrichment, handoff store)
+  - Project Registry (.shellack/registry.md)
+  - Cross-Thread Persistence (external handoffs)
+  - Correction Feedback Loop (auto-update registry)
+  - Cost Observability (per-turn spend in Churned block)
+  - Gut Check Agent (sanity check before posting)
+  - Channel Agent Teams (infosec + architect consultants)
+  - Agent Manager (complexity-based model selection)
+  - Feature Configuration (runtime toggles)
+  - GitHub Discussions Journal + Sonnet polisher (modules ready, not yet wired to session lifecycle)
+- [ ] Message UX redesign — tag system `[think]/[action]/[reply]`, rendering flow, message splitting
+- [ ] Wire journal posting to session end detection
 - [ ] LLM-driven agent transitions — mid-conversation routing (davesleal/Shellack#14, low priority)
 
 ---
@@ -93,6 +104,14 @@ Shellack/
 │   ├── project_agent.py
 │   └── sub_agents.py
 ├── tools/
+│   ├── token_cart.py            # Haiku-powered context compaction
+│   ├── registry.py              # .shellack/registry.md management
+│   ├── thread_memory.py         # cross-thread persistence
+│   ├── cost_tracker.py          # per-turn/thread cost tracking
+│   ├── consultants.py           # infosec + architect consultants
+│   ├── agent_manager.py         # complexity-based model selection
+│   ├── github_journal.py        # GitHub Discussions journal posting
+│   ├── journal_polisher.py      # Sonnet journal polish
 │   ├── thinking_indicator.py
 │   ├── slack_session.py
 │   ├── session_backend.py

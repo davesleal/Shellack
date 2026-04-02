@@ -1,5 +1,17 @@
 # Shellack Project Journal
 
+## 2026-04-02 — Token Cart multi-agent system: spec to implementation in one session
+
+**Context:** The bot replayed full conversation history on every API call — token consumption grew quadratically. Agents created duplicate components because they had no inventory of what existed. Corrections in one thread were forgotten by the next. The operator wanted a multi-tier agent system where cheap models handle structured work (compaction, review, classification) and expensive models focus on reasoning.
+
+**Approach:** Designed and implemented a complete multi-agent system in a single session using subagent-driven development. Wrote the architecture spec first (1150 lines, Mermaid diagrams), then an implementation plan, then dispatched fresh implementer agents per subsystem with an observer agent reviewing quality between tasks. Nine subsystems built: Token Cart Core (Haiku pre/post enrichment replacing full-history replay), Project Registry (auto-populated `.shellack/registry.md`), Cross-Thread Persistence (handoffs survive thread death), Correction Feedback Loop (operator corrections auto-update registry), Cost Observability (per-turn spend in Churned block), Gut Check Agent (sanity check before posting), Channel Agent Teams (infosec + architect Sonnet consultants), Agent Manager (Haiku classifies complexity → selects Haiku/Sonnet/Opus per task), and Feature Configuration (runtime toggles via `@Shellack config`). Also built GitHub Discussions journal modules and Sonnet polisher (not yet wired to session lifecycle).
+
+**Outcome:** 373 tests (up from 263), all passing. Every feature is opt-in and configurable per project via `projects.yaml` or runtime `@Shellack config` commands. Estimated 57%+ token savings on 10-turn threads. All Haiku/Sonnet API calls wrapped in try/except with graceful fallbacks — failures never block the main agent. Three-tier model hierarchy operational: Haiku ($0.25/MTok) for structured work, Sonnet ($3/MTok) for consultants and polish, Opus ($15/MTok) for reasoning.
+
+**Insights:** The subagent-driven development pattern worked well for this — each subsystem was independent enough to dispatch as a self-contained task. The observer agent caught three issues the implementers missed (unused import, missing warning log, type hint mismatch). The correction feedback loop is deceptively powerful: a single "don't create custom CSS" from the operator propagates to every future thread via the registry. The key architectural decision was making everything bidirectional — agents consult each other freely, not in a pipeline. The gut check alone would have caught dozens of "agent creates a Modal when one exists" incidents from past sessions.
+
+---
+
 ## 2026-04-02 — Haiku Token Cart architecture spec
 
 **Context:** The bot replays full conversation history on every API call — token consumption grows quadratically. By turn 10, you're re-sending turns 1-9 every time. Additionally, agents create duplicate components because they don't have a reliable inventory of what exists, and corrections made in one thread are forgotten by the next.
