@@ -51,7 +51,7 @@ def test_done_updates_with_empty_text(client):
 
 
 def test_done_with_think_block(client):
-    """done() renders think block as collapsible code fence."""
+    """done() posts think block as separate message, not in the attachment."""
     ind = _make_indicator(client)
     ind._ts = "1.0"
     ind._start = time.monotonic() - 5
@@ -63,13 +63,18 @@ def test_done_with_think_block(client):
         think_block="Let me check the files.\nFound 3 modules.", cost_summary="$0.01"
     )
 
+    # Attachment should be JUST the header — no reasoning
     call_kwargs = client.chat_update.call_args[1]
     body = call_kwargs["attachments"][0]["text"]
     assert "Churned for" in body
     assert "$0.01" in body
-    assert "\U0001f4ad Reasoning" in body
-    assert "Let me check the files" in body
-    assert "```" in body  # collapsible code fence
+    assert "Let me check the files" not in body
+
+    # Reasoning posted as separate message
+    client.chat_postMessage.assert_called_once()
+    post_text = client.chat_postMessage.call_args[1]["text"]
+    assert "💭 Reasoning" in post_text
+    assert "Let me check the files" in post_text
 
 
 def test_done_without_think_block(client):
@@ -104,7 +109,7 @@ def test_done_without_ts_is_noop(client):
 
 
 def test_done_fallback_on_update_failure(client):
-    """If chat_update fails, fallback updates header only (no separate message post)."""
+    """If chat_update fails, reasoning still posts as separate message."""
     ind = _make_indicator(client)
     ind._ts = "1.0"
     ind._start = time.monotonic() - 5
@@ -112,15 +117,13 @@ def test_done_fallback_on_update_failure(client):
     ind._stop.set()
     ind._bg = None
 
-    # First chat_update (the done call) raises, fallback header update succeeds
-    client.chat_update.side_effect = [Exception("update failed"), None]
+    client.chat_update.side_effect = Exception("update failed")
 
     ind.done(think_block="Some reasoning")
 
-    # Should have called chat_update twice (original + fallback)
-    assert client.chat_update.call_count == 2
-    # Should NOT have posted a separate message (old behavior removed)
-    client.chat_postMessage.assert_not_called()
+    # chat_update failed but reasoning should still post
+    assert client.chat_update.call_count == 1
+    client.chat_postMessage.assert_called_once()
 
 
 def test_done_with_cost_summary(client):

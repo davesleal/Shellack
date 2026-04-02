@@ -68,8 +68,11 @@ class ThreadCost:
         self.turns.append(turn)
 
     def format_turn_summary(self, turn: TurnCost) -> str:
-        """Format cost for display in the Churned block."""
-        return f"${turn.cost_usd:.4f} ({_fmt_tokens(turn.input_tokens)} in · {_fmt_tokens(turn.output_tokens)} out)"
+        """Format cost for display in the Churned block. Suppresses cost below $0.01."""
+        tokens = f"↑{_fmt_tokens(turn.input_tokens)} ↓{_fmt_tokens(turn.output_tokens)}"
+        if turn.cost_usd >= 0.01:
+            return f"${turn.cost_usd:.2f} ({tokens})"
+        return tokens  # just show token counts for tiny costs
 
     def format_thread_summary(self) -> str:
         """Format total thread cost."""

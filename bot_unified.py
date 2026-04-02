@@ -200,6 +200,12 @@ def handle_project_message(event, say, channel_name: str):
     # Remove bot mention
     prompt = text.split(">", 1)[1].strip() if ">" in text else text
 
+    # React :claude: IMMEDIATELY — before any processing
+    try:
+        app.client.reactions_add(channel=channel_id, name="claude", timestamp=msg_ts)
+    except Exception:
+        pass
+
     # Handle empty prompt — try voice transcription if audio file present
     if not prompt.strip():
         audio_files = [
@@ -269,13 +275,7 @@ def handle_project_message(event, say, channel_name: str):
         session = active_sessions[thread_ts]
         session["last_active"] = time.time()
 
-    # 1. React :claude: on the user's message — visible immediately
-    try:
-        app.client.reactions_add(channel=channel_id, name="claude", timestamp=msg_ts)
-    except Exception:
-        pass
-
-    # 2. Estimate input token count for the indicator
+    # Estimate input token count for the indicator
     handoff_chars = len(session.get("handoff") or "")
     estimated_tokens = (len(prompt) + handoff_chars) // 3
 

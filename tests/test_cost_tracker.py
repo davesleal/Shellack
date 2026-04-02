@@ -80,8 +80,8 @@ class TestThreadCost:
         thread.add_turn(turn)
         summary = thread.format_turn_summary(turn)
         assert "$" in summary
-        assert "2.1k in" in summary
-        assert "890 out" in summary
+        assert "↑2.1k" in summary
+        assert "↓890" in summary
 
     def test_format_thread_summary(self):
         thread = ThreadCost()

@@ -201,26 +201,26 @@ class ThinkingIndicator:
         if cost_summary:
             header += f" · {cost_summary}"
 
-        if think_block:
-            body = f"{header}\n\n💭 Reasoning\n```\n{think_block}\n```"
-        else:
-            body = header
-
+        # Churned block is JUST the status line — clean and minimal
         try:
             self._client.chat_update(
                 channel=self._channel_id,
                 ts=self._ts,
                 text="",
-                attachments=[{"color": _GRAY, "text": body, "fallback": header}],
+                attachments=[{"color": _GRAY, "text": header, "fallback": header}],
             )
         except Exception as exc:
             logger.warning(f"ThinkingIndicator: done update failed: {exc}")
+
+        # Post reasoning as a separate collapsible reply (not inside the attachment)
+        if think_block:
             try:
-                self._client.chat_update(
+                self._client.chat_postMessage(
                     channel=self._channel_id,
-                    ts=self._ts,
-                    text="",
-                    attachments=[{"color": _GRAY, "text": header, "fallback": header}],
+                    thread_ts=self._thread_ts,
+                    text=f"💭 Reasoning\n```\n{think_block}\n```",
                 )
             except Exception:
-                pass
+                pass  # never crash on reasoning post
+
+        # Legacy fallback removed — response posting handled by bot_unified.py
