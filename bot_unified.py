@@ -35,6 +35,7 @@ from tools.usage_tracker import UsageTracker
 from tools.config_writer import set_env_var
 from tools.plugin_manager import PluginManager
 from tools.thinking_indicator import ThinkingIndicator
+from tools.token_cart import HaikuTokenCart
 
 # Load environment
 load_dotenv()
@@ -53,6 +54,7 @@ agent_factory = AgentFactory(anthropic_client)
 
 # Session management
 active_sessions: Dict[str, dict] = {}
+token_cart = HaikuTokenCart()
 
 # run: session registry — keyed by thread_ts, cleaned up when session closes
 RUN_SESSIONS: dict = {}
@@ -179,12 +181,22 @@ def handle_project_message(event, say, channel_name: str):
     indicator = ThinkingIndicator(app.client, channel_id, thread_ts)
     indicator.start(input_tokens=estimated_tokens)
 
+    # Pre-call: enrich context via Token Cart
+    try:
+        enriched_context = token_cart.pre_call(
+            handoff=session["handoff"],
+            prompt=prompt,
+        )
+    except Exception as exc:
+        logger.warning(f"Token cart pre-call failed: {exc}")
+        enriched_context = prompt
+
     # 7. Run the agent
     try:
         agent = agent_factory.get_agent(
             project_key, project, app, channel_id, thread_ts
         )
-        response, agent_label = agent.handle(prompt, None, model=model)
+        response, agent_label = agent.handle(prompt, enriched_context, model=model)
     except Exception as exc:
         indicator.done()
         logger.exception(f"Agent error in {channel_name}")
@@ -210,6 +222,19 @@ def handle_project_message(event, say, channel_name: str):
         app.client.reactions_remove(channel=channel_id, name="claude", timestamp=msg_ts)
     except Exception:
         pass
+
+    # Post-call: compact via Token Cart
+    try:
+        cart_result = token_cart.post_call(
+            handoff=session["handoff"],
+            prompt=prompt,
+            response=response,
+        )
+        session["handoff"] = cart_result["handoff"]
+        session["journal_draft"] = cart_result["journal_draft"]
+        session["turn_count"] += 1
+    except Exception as exc:
+        logger.warning(f"Token cart post-call failed: {exc}")
 
     usage_tracker.record_mention(backend_mode, model)
 

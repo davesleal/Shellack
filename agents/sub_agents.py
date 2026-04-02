@@ -20,10 +20,13 @@ class BaseSubAgent:
         # Prepend thread context as plain text so both Max and API backends see it
         full_prompt = prompt
         if thread_context:
-            history = "\n".join(
-                f"{m['role'].title()}: {m['content']}" for m in thread_context
-            )
-            full_prompt = f"{history}\n\nUser: {prompt}"
+            if isinstance(thread_context, str):
+                full_prompt = f"{thread_context}\n\nUser: {prompt}"
+            else:
+                history = "\n".join(
+                    f"{m['role'].title()}: {m['content']}" for m in thread_context
+                )
+                full_prompt = f"{history}\n\nUser: {prompt}"
         return quick_reply(
             full_prompt,
             system_prompt=self.system_prompt(),
