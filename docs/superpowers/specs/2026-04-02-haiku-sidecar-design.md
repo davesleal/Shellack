@@ -278,17 +278,78 @@ Rules:
 
 Slack free plan has a 90-day message history limit and no canvas support. Journals must not depend on Slack for persistence.
 
-**Primary:** `docs/JOURNAL.md` in the project repo — committed to git, permanent, searchable, version-controlled.
-
-**Secondary (optional):** GitHub Discussions on the project repo — for richer threading and discoverability beyond the repo.
-
 **Slack:** Thread responses only (ephemeral). The "Churned" block and conversation live in Slack, but nothing in Slack is treated as a persistent record. If Slack history expires, nothing is lost.
 
-Flow:
-1. Haiku maintains a running journal draft in memory throughout the thread
-2. On session end, Sonnet polishes the draft
-3. Polished entry is committed to `docs/JOURNAL.md` via git
-4. Optionally posted to GitHub Discussions if configured
+### Journal Architecture: Weekly Discussions + Monthly Rollups
+
+Journals live in **GitHub Discussions** under a "Journal" category in each project repo. Organized as weekly threads with daily entries, rolling up into monthly summaries.
+
+#### Structure
+
+```
+GitHub Discussions → "Journal" category
+
+📅 Week of 2026-03-31
+  ├── Mon 03/31 — Genericized for open source (14 commits, 218 tests)
+  ├── Tue 04/01 — XML leak fix, security hardening (263 tests)
+  └── Wed 04/02 — Token Cart architecture spec
+
+📅 Week of 2026-04-07
+  ├── Mon 04/07 — Token Cart implementation started
+  ├── Wed 04/09 — Agent Manager dispatching sub-agents
+  └── Fri 04/11 — Registry auto-population working
+
+📊 April 2026 — Monthly Summary
+  Links to: Week of 03/31, Week of 04/07, Week of 04/14, Week of 04/21
+  Highlights: Token Cart shipped, 3 security fixes, 2 new projects onboarded
+```
+
+#### Daily Entry Flow
+
+1. **Haiku** maintains a running journal draft in memory throughout each session
+2. On session end, **Sonnet** polishes the draft into a clean daily entry
+3. Sonnet posts the entry as a **comment** on the current week's Discussion thread
+4. If no weekly Discussion exists for the current week, Sonnet creates one titled `📅 Week of {monday_date}`
+
+#### Weekly Thread Lifecycle
+
+- **Created:** automatically on the first session of the week (Monday date as anchor)
+- **Accumulates:** daily entries as comments throughout the week
+- **Closed:** no action needed — next week starts a new thread
+
+#### Monthly Summary
+
+At the end of each month (or on the first session of the new month):
+1. Haiku scans the 4-5 weekly threads from the past month
+2. Sonnet produces a monthly summary Discussion: highlights, key decisions, metrics
+3. Monthly summary links back to each weekly thread
+4. Titled: `📊 {Month Year} — Monthly Summary`
+
+#### Why Discussions, Not Issues or Files
+
+| Option | Pros | Cons |
+|---|---|---|
+| `docs/JOURNAL.md` | Version-controlled, in-repo | One giant file, commit noise, hard to browse |
+| GitHub Issues | Searchable, labelable | Pollutes issue tracker, wrong semantic |
+| **GitHub Discussions** | Threaded, categorized, searchable, no commit noise, commentable | Requires Discussions enabled on repo |
+| Slack Canvases | Rich formatting | Requires Slack Pro, 90-day limit on free |
+
+Discussions are purpose-built for this: categorized threads with comments, no impact on issues/PRs, full markdown + reactions, permanent.
+
+#### Configuration
+
+```yaml
+projects:
+  alpha:
+    name: Alpha
+    journal:
+      target: discussions        # "discussions" | "file" | "both"
+      category: Journal          # Discussion category name
+      weekly: true               # group by week
+      monthly-summary: true      # auto-generate monthly rollups
+```
+
+Fallback: if Discussions aren't enabled on the repo, fall back to `docs/JOURNAL.md` (file mode). Shellack logs a warning suggesting Discussions be enabled.
 
 ## Storage
 
