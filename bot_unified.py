@@ -35,7 +35,7 @@ from tools.usage_tracker import UsageTracker
 from tools.config_writer import set_env_var
 from tools.plugin_manager import PluginManager
 from tools.thinking_indicator import ThinkingIndicator
-from tools.token_cart import HaikuTokenCart
+from tools.token_cart import HaikuTokenCart, detect_correction
 
 # Load environment
 load_dotenv()
@@ -269,6 +269,22 @@ def handle_project_message(event, say, channel_name: str):
                     pass  # never block on persistence
         except Exception as exc:
             logger.warning(f"Token cart post-call failed: {exc}")
+
+    # Correction feedback: detect and update registry
+    if use_token_cart and project.get("features", {}).get("registry", True):
+        if detect_correction(prompt):
+            try:
+                correction = token_cart.extract_correction(prompt, response)
+                if correction:
+                    from tools.registry import append_to_registry
+                    append_to_registry(
+                        project.get("path", ""),
+                        correction["section"],
+                        correction["entry"],
+                    )
+                    logger.info(f"Registry updated with correction: {correction['section']}")
+            except Exception:
+                pass  # never block on correction processing
 
     usage_tracker.record_mention(backend_mode, model)
 

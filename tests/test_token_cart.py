@@ -207,3 +207,54 @@ def test_external_handoff_failure_returns_empty():
         journal_draft="entry",
     )
     assert result == ""
+
+
+# ---------------------------------------------------------------------------
+# Correction detection tests
+# ---------------------------------------------------------------------------
+from tools.token_cart import detect_correction
+
+
+def test_detect_correction_positive():
+    assert detect_correction("No, use the existing Modal component") is True
+    assert detect_correction("Don't create custom CSS") is True
+    assert detect_correction("We already have an API client") is True
+    assert detect_correction("Instead, use SWR for data fetching") is True
+    assert detect_correction("Always use the shared Button") is True
+    assert detect_correction("Never write inline styles") is True
+    assert detect_correction("Stop creating new components") is True
+
+
+def test_detect_correction_negative():
+    assert detect_correction("Explain the auth system") is False
+    assert detect_correction("How does the API work?") is False
+    assert detect_correction("Add a new endpoint for users") is False
+    assert detect_correction("What files are in the settings module?") is False
+
+
+def test_extract_correction_returns_rule():
+    response_text = "---SECTION---\nArchitecture Rules\n---RULE---\n| No inline styles | All components | Use Tailwind utilities |"
+    mock_cls = _mock_anthropic(response_text)
+    with patch("tools.token_cart.Anthropic", mock_cls):
+        cart = HaikuTokenCart()
+    result = cart.extract_correction("Don't write inline styles", "I added some inline CSS")
+    assert result is not None
+    assert result["section"] == "Architecture Rules"
+    assert "inline styles" in result["entry"].lower() or "Tailwind" in result["entry"]
+
+
+def test_extract_correction_none_when_no_rule():
+    mock_cls = _mock_anthropic("---NONE---")
+    with patch("tools.token_cart.Anthropic", mock_cls):
+        cart = HaikuTokenCart()
+    result = cart.extract_correction("That looks good", "Here's the code")
+    assert result is None
+
+
+def test_extract_correction_api_failure():
+    mock_cls = _mock_anthropic("")
+    with patch("tools.token_cart.Anthropic", mock_cls):
+        cart = HaikuTokenCart()
+    cart._client.messages.create.side_effect = Exception("timeout")
+    result = cart.extract_correction("Don't do that", "response")
+    assert result is None

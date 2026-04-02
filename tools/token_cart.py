@@ -8,6 +8,7 @@ handoff documents that carry forward only what matters.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Optional
 
 import httpx
@@ -63,6 +64,43 @@ Output format:
 
 ### Project State
 - {current state, recent changes}"""
+
+_CORRECTION_PATTERNS = [
+    r"\bno[,.]?\s+(use|try|do)\b",
+    r"\bdon'?t\b",
+    r"\bstop\s+(doing|using|creating)\b",
+    r"\binstead[,.]?\s+(use|try)\b",
+    r"\bwe\s+(already|have)\b",
+    r"\bthere'?s\s+already\b",
+    r"\bthat'?s\s+not\s+how\b",
+    r"\bthe\s+pattern\s+is\b",
+    r"\balways\s+use\b",
+    r"\bnever\s+(use|create|write|add)\b",
+]
+
+_CORRECTION_SYSTEM = """You are a correction extraction agent. The operator corrected the AI agent. Extract the correction as a registry rule.
+
+Output format (exactly):
+---SECTION---
+{section name: one of "Architecture Rules", "UI Components", "Shared Utilities", "API Patterns", "Design Tokens", "Data Models"}
+---RULE---
+| {rule/component} | {scope/path} | {rationale/notes} |
+
+If you cannot extract a clear rule, output:
+---NONE---
+
+Rules:
+- Extract ONLY what the operator explicitly stated
+- Do not infer or expand
+- Keep the rule concise (one table row)
+- Choose the most specific section that fits"""
+
+
+def detect_correction(prompt: str) -> bool:
+    """Check if the user's message contains a correction pattern."""
+    lower = prompt.lower()
+    return any(re.search(p, lower) for p in _CORRECTION_PATTERNS)
+
 
 _POST_CALL_SYSTEM = """You are a conversation compaction agent. Given the previous handoff (if any), the user's prompt, and the model's response, produce TWO sections separated by markers.
 
@@ -202,6 +240,31 @@ class HaikuTokenCart:
 
         # Fallback: preserve prior handoff
         return {"handoff": handoff or "", "journal_draft": ""}
+
+    def extract_correction(self, prompt: str, response: str) -> dict | None:
+        """Extract a registry correction from the operator's message.
+
+        Returns {"section": str, "entry": str} or None.
+        """
+        user_content = f"## Operator's correction\n{prompt}\n\n## Agent's prior response\n{response}"
+        try:
+            msg = self._client.messages.create(
+                model=self._model,
+                max_tokens=256,
+                system=_CORRECTION_SYSTEM,
+                messages=[{"role": "user", "content": user_content}],
+            )
+            text = msg.content[0].text.strip()
+            if "---NONE---" in text:
+                return None
+            if "---SECTION---" in text and "---RULE---" in text:
+                section = text.split("---SECTION---")[1].split("---RULE---")[0].strip()
+                entry = text.split("---RULE---")[1].strip()
+                if section and entry:
+                    return {"section": section, "entry": entry}
+        except Exception as exc:
+            logger.warning(f"Token cart correction extraction failed: {exc}")
+        return None
 
     def external_handoff(self, handoff: str, journal_draft: str) -> str:
         """Produce a persistent cross-thread summary from a completed thread."""
