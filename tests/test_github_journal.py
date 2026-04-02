@@ -8,10 +8,12 @@ import pytest
 from tools.github_journal import (
     _monday_of_week,
     _week_title,
+    _monthly_title,
     _find_weekly_discussion,
     _create_discussion,
     _comment_on_discussion,
     post_journal_entry,
+    post_monthly_summary,
 )
 
 
@@ -156,3 +158,43 @@ def test_post_journal_entry_creates_discussion(mock_find, mock_create, mock_comm
 def test_post_journal_entry_gh_failure(mock_find, mock_create):
     result = post_journal_entry("owner/repo", "Journal", "Entry.", dt=datetime(2026, 4, 2))
     assert result is False
+
+
+# --- monthly summary ---
+
+def test_monthly_title_format():
+    dt = datetime(2026, 4, 15)
+    assert _monthly_title(dt) == "📊 April 2026 — Monthly Summary"
+
+
+def test_post_monthly_summary_creates_discussion():
+    """Monthly summary creates a new discussion."""
+    with patch("tools.github_journal.subprocess.run") as mock_run:
+        # First call: check existing → not found
+        check_result = MagicMock(returncode=0, stdout="null\n")
+        # Second call: get category
+        cat_result = MagicMock(returncode=0, stdout="journal\n")
+        # Third call: create discussion
+        create_result = MagicMock(returncode=0, stdout="https://github.com/org/repo/discussions/5\n")
+        mock_run.side_effect = [check_result, cat_result, create_result]
+
+        result = post_monthly_summary("org/repo", "Journal", "## April Summary\nGreat month.")
+
+    assert result is True
+    assert mock_run.call_count == 3
+
+
+def test_post_monthly_summary_appends_if_exists():
+    """If monthly summary exists, append as comment."""
+    with patch("tools.github_journal.subprocess.run") as mock_run:
+        # First call: check existing → found at #10
+        check_result = MagicMock(returncode=0, stdout="10\n")
+        # Second call: comment on existing
+        comment_result = MagicMock(returncode=0)
+        mock_run.side_effect = [check_result, comment_result]
+
+        result = post_monthly_summary("org/repo", "Journal", "Updated summary.")
+
+    assert result is True
+    # Should have commented, not created
+    assert mock_run.call_count == 2

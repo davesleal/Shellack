@@ -89,6 +89,43 @@ def _comment_on_discussion(repo: str, number: int, body: str) -> bool:
         return False
 
 
+def _monthly_title(dt: datetime) -> str:
+    """Monthly summary discussion title."""
+    return f"📊 {dt.strftime('%B %Y')} — Monthly Summary"
+
+
+def post_monthly_summary(
+    repo: str,
+    category: str,
+    summary: str,
+    dt: datetime | None = None,
+) -> bool:
+    """Post a monthly summary discussion linking back to weekly threads.
+
+    Creates a new discussion with the summary content.
+    Returns True if successful.
+    """
+    dt = dt or datetime.now()
+    title = _monthly_title(dt)
+
+    # Check if monthly summary already exists
+    try:
+        result = subprocess.run(
+            ["gh", "api", f"repos/{repo}/discussions",
+             "--jq", f'[.[] | select(.title == "{title}")] | .[0].number'],
+            capture_output=True, text=True, timeout=15,
+        )
+        if result.returncode == 0 and result.stdout.strip() and result.stdout.strip() != "null":
+            # Already exists — add as comment instead
+            number = int(result.stdout.strip())
+            return _comment_on_discussion(repo, number, summary)
+    except Exception as exc:
+        logger.warning(f"Failed to check for existing monthly summary: {exc}")
+
+    # Create new monthly summary discussion
+    return _create_discussion(repo, category, title, summary) is not None
+
+
 def post_journal_entry(
     repo: str,
     category: str,
