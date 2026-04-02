@@ -16,6 +16,22 @@ _TIMEOUT = 15.0
 _MAX_TOKENS = 1024
 
 # ---------------------------------------------------------------------------
+# Singleton Anthropic client (lazy)
+# ---------------------------------------------------------------------------
+
+_client = None
+
+
+def _get_client():
+    global _client
+    if _client is None:
+        _client = Anthropic(
+            http_client=httpx.Client(timeout=httpx.Timeout(_TIMEOUT)),
+            max_retries=1,
+        )
+    return _client
+
+# ---------------------------------------------------------------------------
 # Trigger detection (lightweight, no API call)
 # ---------------------------------------------------------------------------
 
@@ -31,11 +47,17 @@ _ARCHITECT_PATTERNS = [
     r"\brefactor\b", r"\bsplit\s+(into|the)\b",
 ]
 
+_TESTER_PATTERNS = [
+    r"\btest\b", r"\bspec\b", r"\bassert\b", r"\bmock\b",
+    r"\bfixture\b", r"\bcoverage\b", r"\bpytest\b", r"\bjest\b",
+    r"\bxctest\b",
+]
+
 
 def detect_triggers(response: str) -> list[str]:
     """Detect which consultant roles should be invoked based on response content.
 
-    Returns list of role names: ["infosec", "architect"]
+    Returns list of role names: ["infosec", "architect", "tester"]
     """
     lower = response.lower()
     roles = []
@@ -43,6 +65,8 @@ def detect_triggers(response: str) -> list[str]:
         roles.append("infosec")
     if any(re.search(p, lower) for p in _ARCHITECT_PATTERNS):
         roles.append("architect")
+    if any(re.search(p, lower) for p in _TESTER_PATTERNS):
+        roles.append("tester")
     return roles
 
 
@@ -81,9 +105,37 @@ Respond concisely:
 
 Max 3 concerns. Be constructive."""
 
+_TESTER_SYSTEM = """You are a testing consultant reviewing code changes for test adequacy.
+
+Check for:
+- Missing test coverage for new/changed code
+- Test quality (meaningful assertions, not just "runs without error")
+- Edge cases not covered
+- Test isolation (no shared state between tests)
+- Appropriate use of mocks vs integration tests
+
+Respond concisely:
+- If adequate: "\u2705 Test coverage looks good."
+- If gaps: "\ud83e\uddea TESTING: {one-line per gap}"
+
+Max 3 items. Be specific about what needs testing."""
+
+_OUTPUT_EDITOR_SYSTEM = """You are an output editor polishing text for external publication (GitHub issues, PRs, documentation).
+
+Check for:
+- Clear, professional language
+- Proper markdown formatting
+- Accurate technical details
+- Appropriate level of detail (not too verbose, not too terse)
+- Follows conventional format for the output type
+
+Respond with the polished version of the text. If no changes needed, return the text unchanged."""
+
 _CONSULTANT_PROMPTS = {
     "infosec": _INFOSEC_SYSTEM,
     "architect": _ARCHITECT_SYSTEM,
+    "tester": _TESTER_SYSTEM,
+    "output_editor": _OUTPUT_EDITOR_SYSTEM,
 }
 
 
@@ -111,10 +163,7 @@ def consult(
         user_content += f"\n\n## Project Registry\n{registry[:1000]}"
 
     try:
-        client = Anthropic(
-            http_client=httpx.Client(timeout=httpx.Timeout(_TIMEOUT)),
-            max_retries=1,
-        )
+        client = _get_client()
         msg = client.messages.create(
             model=model,
             max_tokens=_MAX_TOKENS,
@@ -123,7 +172,12 @@ def consult(
         )
         text = msg.content[0].text.strip()
         # Only return if there are actual findings (not "no issues")
-        if "no security concerns" in text.lower() or "architecture looks sound" in text.lower():
+        _no_issue_phrases = [
+            "no security concerns",
+            "architecture looks sound",
+            "test coverage looks good",
+        ]
+        if any(phrase in text.lower() for phrase in _no_issue_phrases):
             return None
         return text
     except Exception as exc:

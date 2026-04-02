@@ -3,7 +3,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from tools.consultants import detect_triggers, consult
+import tools.consultants as consultants_mod
+from tools.consultants import detect_triggers, consult, _get_client
 
 
 # ---------------------------------------------------------------------------
@@ -50,62 +51,62 @@ def _make_mock_response(text: str) -> MagicMock:
     return msg
 
 
-@patch("tools.consultants.Anthropic")
-def test_consult_infosec_returns_finding(mock_anthropic_cls):
+@patch("tools.consultants._get_client")
+def test_consult_infosec_returns_finding(mock_get_client):
     """Infosec consultant returns a finding string."""
     finding = "\ud83d\udd34 SECURITY: Input not sanitized in parse_query()"
     mock_client = MagicMock()
     mock_client.messages.create.return_value = _make_mock_response(finding)
-    mock_anthropic_cls.return_value = mock_client
+    mock_get_client.return_value = mock_client
 
     result = consult(role="infosec", response="We added a new login endpoint")
     assert result == finding
 
 
-@patch("tools.consultants.Anthropic")
-def test_consult_infosec_no_issues_returns_none(mock_anthropic_cls):
+@patch("tools.consultants._get_client")
+def test_consult_infosec_no_issues_returns_none(mock_get_client):
     """When consultant says no issues, returns None."""
     mock_client = MagicMock()
     mock_client.messages.create.return_value = _make_mock_response(
         "\u2705 No security concerns."
     )
-    mock_anthropic_cls.return_value = mock_client
+    mock_get_client.return_value = mock_client
 
     result = consult(role="infosec", response="We added a new login endpoint")
     assert result is None
 
 
-@patch("tools.consultants.Anthropic")
-def test_consult_architect_returns_finding(mock_anthropic_cls):
+@patch("tools.consultants._get_client")
+def test_consult_architect_returns_finding(mock_get_client):
     """Architect consultant returns a concern string."""
     concern = "\ud83d\udcd0 ARCHITECTURE: Handler is mixing persistence and routing"
     mock_client = MagicMock()
     mock_client.messages.create.return_value = _make_mock_response(concern)
-    mock_anthropic_cls.return_value = mock_client
+    mock_get_client.return_value = mock_client
 
     result = consult(role="architect", response="Created a new module for payments")
     assert result == concern
 
 
-@patch("tools.consultants.Anthropic")
-def test_consult_architect_no_issues_returns_none(mock_anthropic_cls):
+@patch("tools.consultants._get_client")
+def test_consult_architect_no_issues_returns_none(mock_get_client):
     """When architect says no issues, returns None."""
     mock_client = MagicMock()
     mock_client.messages.create.return_value = _make_mock_response(
         "\u2705 Architecture looks sound."
     )
-    mock_anthropic_cls.return_value = mock_client
+    mock_get_client.return_value = mock_client
 
     result = consult(role="architect", response="Created a new module")
     assert result is None
 
 
-@patch("tools.consultants.Anthropic")
-def test_consult_api_failure_returns_none(mock_anthropic_cls):
+@patch("tools.consultants._get_client")
+def test_consult_api_failure_returns_none(mock_get_client):
     """API exception returns None (never blocks)."""
     mock_client = MagicMock()
     mock_client.messages.create.side_effect = Exception("timeout")
-    mock_anthropic_cls.return_value = mock_client
+    mock_get_client.return_value = mock_client
 
     result = consult(role="infosec", response="Check auth token")
     assert result is None
@@ -115,3 +116,77 @@ def test_consult_unknown_role_returns_none():
     """Unknown role returns None without calling API."""
     result = consult(role="unicorn", response="anything")
     assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Tester consultant
+# ---------------------------------------------------------------------------
+
+def test_detect_triggers_tester():
+    """Test-related keywords trigger tester."""
+    assert "tester" in detect_triggers("We need to add a test for the parser")
+    assert "tester" in detect_triggers("Run pytest with coverage enabled")
+    assert "tester" in detect_triggers("Add a mock for the HTTP client")
+    assert "tester" in detect_triggers("The fixture needs updating")
+
+
+@patch("tools.consultants._get_client")
+def test_consult_tester_returns_finding(mock_get_client):
+    """Tester consultant returns a gap finding."""
+    finding = "\ud83e\uddea TESTING: No edge-case tests for empty input"
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = _make_mock_response(finding)
+    mock_get_client.return_value = mock_client
+
+    result = consult(role="tester", response="Added parse_query() function")
+    assert result == finding
+
+
+@patch("tools.consultants._get_client")
+def test_consult_tester_no_issues(mock_get_client):
+    """When tester says coverage is good, returns None."""
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = _make_mock_response(
+        "\u2705 Test coverage looks good."
+    )
+    mock_get_client.return_value = mock_client
+
+    result = consult(role="tester", response="Added tests for parse_query()")
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Output editor consultant
+# ---------------------------------------------------------------------------
+
+@patch("tools.consultants._get_client")
+def test_consult_output_editor(mock_get_client):
+    """Output editor returns polished text."""
+    polished = "## Bug Report\n\nThe login endpoint returns 500 on invalid input."
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = _make_mock_response(polished)
+    mock_get_client.return_value = mock_client
+
+    result = consult(role="output_editor", response="login endpoint 500 bad input")
+    assert result == polished
+
+
+# ---------------------------------------------------------------------------
+# Singleton client
+# ---------------------------------------------------------------------------
+
+@patch("tools.consultants.Anthropic")
+def test_singleton_client_reused(mock_anthropic_cls):
+    """_get_client() returns the same instance on repeated calls."""
+    # Reset module-level singleton
+    consultants_mod._client = None
+    mock_anthropic_cls.return_value = MagicMock()
+
+    try:
+        c1 = _get_client()
+        c2 = _get_client()
+        assert c1 is c2
+        assert mock_anthropic_cls.call_count == 1
+    finally:
+        # Clean up so other tests aren't affected
+        consultants_mod._client = None
