@@ -30,6 +30,23 @@ projects:
       watch_out:
         - "Don't expose raw SQL in API routes"
         - "Always validate user input at API boundaries"
+    # Optional: Token Cart feature flags (all default to true except agent-manager)
+    # features:
+    #   token-cart: true           # context compaction between turns
+    #   internal-handoff: true     # within-thread context tracking
+    #   external-handoff: true     # cross-thread persistence
+    #   agent-manager: false       # intelligent task dispatch (default: off)
+    #   gut-check: true            # sanity check before significant actions
+    #   code-review: true          # inline self-healing review
+    #   consultants: true          # specialist agents (infosec, architect)
+    #   registry: true             # auto-maintained pattern index
+    #   cost-observability: true   # token spend tracking
+    #
+    # Optional: Model overrides for agent team
+    # team:
+    #   primary: opus-4-6
+    #   token-cart: haiku-4-5
+    #   gut-check: haiku-4-5
 
   mobile:
     name: "Mobile App"

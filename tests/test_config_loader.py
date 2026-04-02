@@ -151,6 +151,69 @@ class TestLoadConfig:
         cfg = load_config(str(p))
         assert cfg["PROJECTS"]["app"]["context"]["description"] == "A test app"
 
+    def test_features_config_loaded(self, tmp_path):
+        """projects.yaml with features block loads into project config."""
+        yaml_content = textwrap.dedent("""\
+            github_org: test-org
+            projects:
+              alpha:
+                name: Alpha
+                primary_channel: alpha-dev
+                language: python
+                platform: server
+                github_repo: test-org/Alpha
+                path: /tmp/alpha
+                features:
+                  token-cart: true
+                  gut-check: true
+                  agent-manager: false
+        """)
+        config_file = tmp_path / "projects.yaml"
+        config_file.write_text(yaml_content)
+        cfg = load_config(str(config_file))
+        assert cfg["PROJECTS"]["alpha"]["features"]["token-cart"] is True
+        assert cfg["PROJECTS"]["alpha"]["features"]["agent-manager"] is False
+
+    def test_team_config_loaded(self, tmp_path):
+        """projects.yaml with team block loads into project config."""
+        yaml_content = textwrap.dedent("""\
+            github_org: test-org
+            projects:
+              alpha:
+                name: Alpha
+                primary_channel: alpha-dev
+                language: python
+                platform: server
+                github_repo: test-org/Alpha
+                path: /tmp/alpha
+                team:
+                  primary: opus-4-6
+                  token-cart: haiku-4-5
+        """)
+        config_file = tmp_path / "projects.yaml"
+        config_file.write_text(yaml_content)
+        cfg = load_config(str(config_file))
+        assert cfg["PROJECTS"]["alpha"]["team"]["primary"] == "opus-4-6"
+
+    def test_missing_features_defaults_to_empty_dict(self, tmp_path):
+        """Project without features block gets empty dict."""
+        yaml_content = textwrap.dedent("""\
+            github_org: test-org
+            projects:
+              alpha:
+                name: Alpha
+                primary_channel: alpha-dev
+                language: python
+                platform: server
+                github_repo: test-org/Alpha
+                path: /tmp/alpha
+        """)
+        config_file = tmp_path / "projects.yaml"
+        config_file.write_text(yaml_content)
+        cfg = load_config(str(config_file))
+        assert cfg["PROJECTS"]["alpha"]["features"] == {}
+        assert cfg["PROJECTS"]["alpha"]["team"] == {}
+
 
 # ---------------------------------------------------------------------------
 # Env var overrides

@@ -80,6 +80,15 @@ def _build_projects(raw: dict, github_org: str) -> Dict[str, dict]:
         # Carry through optional context block for agent prompts
         if "context" in proj:
             projects[key]["context"] = proj["context"]
+        # Token Cart feature flags and model overrides
+        if "features" in proj:
+            projects[key]["features"] = proj["features"]
+        else:
+            projects[key]["features"] = {}
+        if "team" in proj:
+            projects[key]["team"] = proj["team"]
+        else:
+            projects[key]["team"] = {}
 
     return projects
 
