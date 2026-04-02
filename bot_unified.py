@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import threading
+import time
 import uuid
 from typing import Dict, Optional
 from slack_bolt import App
@@ -38,6 +39,8 @@ from tools.config_writer import set_env_var
 from tools.plugin_manager import PluginManager
 from tools.thinking_indicator import ThinkingIndicator
 from tools.token_cart import HaikuTokenCart, detect_correction
+from tools.journal_polisher import polish_journal
+from tools.github_journal import post_journal_entry
 
 # Load environment
 load_dotenv()
@@ -57,6 +60,49 @@ agent_factory = AgentFactory(anthropic_client)
 # Session management
 active_sessions: Dict[str, dict] = {}
 token_cart = HaikuTokenCart()
+
+_SESSION_IDLE_TIMEOUT = int(os.environ.get("SESSION_IDLE_TIMEOUT", 600))  # 10 minutes
+_SESSION_CHECK_INTERVAL = 60  # check every minute
+
+
+def _finalize_journal(session: dict):
+    """Polish journal draft and post to GitHub Discussions."""
+    try:
+        project_key = session.get("project_key", "")
+        project = PROJECTS.get(project_key, {})
+        draft = session.get("journal_draft", "")
+
+        if not draft or not project:
+            return
+
+        polished = polish_journal(draft, project.get("name", ""))
+        if not polished:
+            polished = draft  # fallback to raw draft
+
+        repo = project.get("github_repo", "")
+        if repo:
+            post_journal_entry(repo, "Journal", polished)
+            logger.info(f"Journal posted for {project_key}")
+    except Exception as exc:
+        logger.warning(f"Journal finalization failed: {exc}")
+
+
+def _session_cleanup_loop():
+    """Background thread: finalize and remove idle sessions."""
+    while True:
+        time.sleep(_SESSION_CHECK_INTERVAL)
+        now = time.time()
+        stale = []
+        for thread_ts, session in list(active_sessions.items()):
+            last_active = session.get("last_active", 0)
+            if last_active and (now - last_active) > _SESSION_IDLE_TIMEOUT:
+                stale.append(thread_ts)
+
+        for thread_ts in stale:
+            session = active_sessions.pop(thread_ts, None)
+            if session and session.get("journal_draft"):
+                _finalize_journal(session)
+
 
 # run: session registry — keyed by thread_ts, cleaned up when session closes
 RUN_SESSIONS: dict = {}
@@ -161,8 +207,10 @@ def handle_project_message(event, say, channel_name: str):
             "turn_count": 0,
             "project_key": project_key,
             "cost": ThreadCost(),
+            "last_active": time.time(),
         }
     session = active_sessions[thread_ts]
+    session["last_active"] = time.time()
 
     # 1. React :claude: on the user's message — visible immediately
     try:
@@ -1302,6 +1350,9 @@ if __name__ == "__main__":
     agent_factory.warmup_all(PROJECTS, CHANNEL_ROUTING, app)
     print(f"  ✅ {len(agent_factory.list_agents())} agents ready")
     print()
+
+    # Start session cleanup thread (journal finalization on idle)
+    threading.Thread(target=_session_cleanup_loop, daemon=True).start()
 
     # Start App Store Connect monitoring
     start_app_store_connect_monitoring()
