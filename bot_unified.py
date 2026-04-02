@@ -52,7 +52,7 @@ peer_review = PeerReviewCoordinator()
 agent_factory = AgentFactory(anthropic_client)
 
 # Session management
-active_sessions: Dict[str, list] = {}
+active_sessions: Dict[str, dict] = {}
 
 # run: session registry — keyed by thread_ts, cleaned up when session closes
 RUN_SESSIONS: dict = {}
@@ -149,10 +149,15 @@ def handle_project_message(event, say, channel_name: str):
     # Remove bot mention
     prompt = text.split(">", 1)[1].strip() if ">" in text else text
 
-    # Initialise session context (do NOT append yet — complex path skips this)
+    # Initialise session context
     if thread_ts not in active_sessions:
-        active_sessions[thread_ts] = []
-    context = list(active_sessions[thread_ts])
+        active_sessions[thread_ts] = {
+            "handoff": None,
+            "journal_draft": "",
+            "turn_count": 0,
+            "project_key": project_key,
+        }
+    session = active_sessions[thread_ts]
 
     # 1. React :claude: on the user's message — visible immediately
     try:
@@ -160,14 +165,13 @@ def handle_project_message(event, say, channel_name: str):
     except Exception:
         pass
 
-    # 2. Estimate input token count for the indicator (prompt + prior context)
-    ctx_chars = sum(len(m.get("content", "")) for m in context)
-    estimated_tokens = (len(prompt) + ctx_chars) // 3
+    # 2. Estimate input token count for the indicator
+    handoff_chars = len(session.get("handoff") or "")
+    estimated_tokens = (len(prompt) + handoff_chars) // 3
 
     backend_mode = os.environ.get("SESSION_BACKEND", "api")
 
     # 4. Single-turn path
-    active_sessions[thread_ts].append({"role": "user", "content": prompt})
 
     model = os.environ.get("SESSION_MODEL", "claude-sonnet-4-6")
 
@@ -180,7 +184,7 @@ def handle_project_message(event, say, channel_name: str):
         agent = agent_factory.get_agent(
             project_key, project, app, channel_id, thread_ts
         )
-        response, agent_label = agent.handle(prompt, context, model=model)
+        response, agent_label = agent.handle(prompt, None, model=model)
     except Exception as exc:
         indicator.done()
         logger.exception(f"Agent error in {channel_name}")
@@ -194,8 +198,6 @@ def handle_project_message(event, say, channel_name: str):
         except Exception:
             pass
         return
-
-    active_sessions[thread_ts].append({"role": "assistant", "content": response})
 
     # 8. Stop indicator — updates the single clay message to gray with the answer inline
     from tools.slack_session import _md_to_mrkdwn
