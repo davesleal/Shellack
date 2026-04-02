@@ -414,10 +414,12 @@ def handle_project_message(event, say, channel_name: str):
 
     parsed = parse_response(response)
 
-    # Cost string for the churned block
+    # Cost string for the churned block (API mode only — Max is $0)
     cost_str = ""
-    if project.get("features", {}).get("cost-observability", True) and session.get(
-        "cost"
+    if (
+        backend_mode == "api"
+        and project.get("features", {}).get("cost-observability", True)
+        and session.get("cost")
     ):
         last_turn = session["cost"].turns[-1] if session["cost"].turns else None
         if last_turn:
