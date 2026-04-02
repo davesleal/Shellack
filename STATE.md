@@ -73,7 +73,7 @@ Loaded from `projects.yaml` at startup. Validated with `validate_config()`.
 
 - [x] Strip tool XML from SlackSession streaming chunks
 - [x] Follow-ups from genericization (davesleal/Shellack#13 — closed)
-- [ ] Haiku Token Cart — spec complete (`docs/superpowers/specs/2026-04-02-haiku-sidecar-design.md`), awaiting implementation plan
+- [x] Haiku Token Cart Core — implemented (pre/post enrichment, handoff store, feature gate, 282 tests)
 - [ ] Message UX redesign — tag system `[think]/[action]/[reply]`, rendering flow, message splitting (spec pending, depends on Token Cart)
 - [ ] LLM-driven agent transitions — mid-conversation routing (davesleal/Shellack#14, low priority)
 

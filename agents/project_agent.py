@@ -197,7 +197,7 @@ class ProjectAgent:
     def handle(
         self,
         prompt: str,
-        thread_context: list = None,
+        thread_context: str | list | None = None,
         model: str | None = None,  # triage-selected model; None = use SESSION_MODEL
     ) -> tuple[str, str]:
         # Refresh lifecycle notifier with current thread (channel_id/thread_ts may have

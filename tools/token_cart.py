@@ -135,6 +135,7 @@ class HaikuTokenCart:
             enriched = msg.content[0].text.strip()
             if enriched:
                 return enriched
+            logger.warning("Token cart pre-call returned empty response, using fallback")
         except Exception as exc:
             logger.warning(f"Token cart pre-call failed: {exc}")
 

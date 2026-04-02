@@ -16,7 +16,7 @@ class BaseSubAgent:
         )
         self.project = project_context
 
-    def run(self, prompt: str, thread_context: list = None) -> str:
+    def run(self, prompt: str, thread_context: str | list | None = None) -> str:
         # Prepend thread context as plain text so both Max and API backends see it
         full_prompt = prompt
         if thread_context:
