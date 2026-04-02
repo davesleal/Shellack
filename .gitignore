@@ -51,3 +51,4 @@ extensions/
 
 # Usage tracking
 usage.json
+.claude/worktrees/
