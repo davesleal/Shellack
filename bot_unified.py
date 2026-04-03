@@ -297,9 +297,9 @@ def handle_project_message(event, say, channel_name: str):
     if use_token_cart:
         # Read project registry for context enrichment (feature-gated)
         if project.get("features", {}).get("registry", True):
-            from tools.registry import read_registry
+            from tools.registry import ensure_registry
 
-            registry_content = read_registry(project.get("path", ""))
+            registry_content = ensure_registry(project.get("path", ""))
 
         # Cross-thread persistence: load prior thread memory for new threads
         effective_handoff = session["handoff"]

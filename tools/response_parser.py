@@ -16,6 +16,9 @@ class ParsedResponse:
 
 
 _TAG_RE = re.compile(r"^\s*\[(think|action|reply)\]\s*", re.IGNORECASE | re.MULTILINE)
+_CLOSING_TAG_RE = re.compile(
+    r"\s*\[/(think|action|reply)\]\s*", re.IGNORECASE | re.MULTILINE
+)
 
 
 def parse_response(text: str) -> ParsedResponse:
@@ -38,7 +41,7 @@ def parse_response(text: str) -> ParsedResponse:
         tag = match.group(1).lower()
         start = match.end()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        content = text[start:end].strip()
+        content = _CLOSING_TAG_RE.sub("", text[start:end]).strip()
 
         if tag == "think":
             result.think = content

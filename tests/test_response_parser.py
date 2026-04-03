@@ -69,6 +69,16 @@ def test_tags_with_leading_whitespace():
     assert result.reply == "answer"
 
 
+def test_closing_tags_stripped():
+    """[/think] and [/reply] closing tags are stripped from content."""
+    text = "[think] Let me check.\n[/think]\n[reply] The answer.\n[/reply]"
+    result = parse_response(text)
+    assert "[/think]" not in result.think
+    assert "[/reply]" not in result.reply
+    assert result.think == "Let me check."
+    assert result.reply == "The answer."
+
+
 def test_empty_string():
     """Empty input — empty result."""
     result = parse_response("")
