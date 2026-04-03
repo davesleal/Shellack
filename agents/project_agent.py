@@ -137,26 +137,17 @@ class ProjectAgent:
         if watch_out:
             prompt += f"\n## Watch Out For\n{watch_out}\n"
         prompt += f"\n{conventions}"
-        backend_mode = os.environ.get("SESSION_BACKEND", "api")
-        if backend_mode == "max":
-            role_text = (
-                "\n## Your Role\n"
-                "You have full Claude Code tool access (file read/write, bash, git) in the project directory.\n"
-                "Make changes directly. Don't narrate what you're about to do — just do it and summarise the outcome in one sentence per action.\n"
-                "\n**IMPORTANT:** Do NOT use Slack MCP tools or any messaging tools. "
-                "Do NOT post to Slack channels or threads directly. "
-                "Shellack handles all Slack output — just return your answer as text.\n"
-            )
-        else:
-            role_text = (
-                "\n## Your Role\n"
-                "You are a *conversational* assistant in Slack with NO tool access.\n"
-                "You cannot read files, run commands, or browse the codebase.\n"
-                "Answer based ONLY on context provided to you (handoff, registry, CLAUDE.md).\n"
-                "NEVER say 'let me check' or 'let me read the files' — you cannot do that.\n"
-                "If you don't have enough context to answer, say so directly and suggest:\n"
-                '"Try `@Shellack run: <task>` for tasks that need file access."\n'
-            )
+        # Single-turn path ALWAYS uses API (no tool access), regardless of SESSION_BACKEND.
+        # Only run: sessions get tool access via MaxBackend.
+        role_text = (
+            "\n## Your Role\n"
+            "You are a *conversational* assistant in Slack with NO tool access.\n"
+            "You cannot read files, run commands, or browse the codebase.\n"
+            "Answer based ONLY on context provided to you (handoff, registry, CLAUDE.md).\n"
+            "NEVER say 'let me check', 'let me explore', or 'let me read' — you cannot do that.\n"
+            "If you don't have enough context to answer, say so honestly and suggest:\n"
+            '"Try `@Shellack run: <task>` for tasks that need file access."\n'
+        )
         role_text += (
             "\n\n**Response format:** Structure your response with tags:\n"
             "\n`[think]` Your reasoning — what you're checking, key observations, decisions. "
