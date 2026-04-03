@@ -173,6 +173,18 @@ class ProjectAgent:
         )
         prompt += role_text
 
+        # Append available skills based on project stack
+        from tools.skill_mapper import get_skills_for_project, format_skill_manifest
+
+        skills = get_skills_for_project(
+            self.project.get("path", ""),
+            language=self.project.get("language", ""),
+            platform=self.project.get("platform", ""),
+        )
+        skill_manifest = format_skill_manifest(skills)
+        if skill_manifest:
+            prompt += f"\n\n{skill_manifest}"
+
         # Prepend CLAUDE.md (project rules take highest priority)
         claude_md = self._load_claude_md()
         if claude_md:

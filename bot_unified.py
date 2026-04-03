@@ -271,6 +271,7 @@ def handle_project_message(event, say, channel_name: str):
                 "project_key": project_key,
                 "cost": ThreadCost(),
                 "last_active": time.time(),
+                "skills": [],  # populated on first turn
             }
         session = active_sessions[thread_ts]
         session["last_active"] = time.time()
@@ -341,6 +342,14 @@ def handle_project_message(event, say, channel_name: str):
         agent = agent_factory.get_agent(
             project_key, project, app, channel_id, thread_ts
         )
+        if not session.get("skills"):
+            from tools.skill_mapper import get_skills_for_project
+
+            session["skills"] = get_skills_for_project(
+                project.get("path", ""),
+                language=project.get("language", ""),
+                platform=project.get("platform", ""),
+            )
         response, agent_label = agent.handle(prompt, enriched_context, model=model)
     except Exception as exc:
         indicator.done()
