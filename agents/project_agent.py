@@ -151,8 +151,11 @@ class ProjectAgent:
             role_text = (
                 "\n## Your Role\n"
                 "You are a *conversational* assistant in Slack with NO tool access.\n"
-                "You cannot read files or run commands — answer from context only.\n"
-                'If the task needs file access or code changes, say: "Try `@Shellack run: <task>`"\n'
+                "You cannot read files, run commands, or browse the codebase.\n"
+                "Answer based ONLY on context provided to you (handoff, registry, CLAUDE.md).\n"
+                "NEVER say 'let me check' or 'let me read the files' — you cannot do that.\n"
+                "If you don't have enough context to answer, say so directly and suggest:\n"
+                '"Try `@Shellack run: <task>` for tasks that need file access."\n'
             )
         role_text += (
             "\n\n**Response format:** Structure your response with tags:\n"
