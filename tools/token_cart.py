@@ -81,6 +81,8 @@ _CORRECTION_PATTERNS = [
 
 _GUT_CHECK_SYSTEM = """You are a sanity check agent. Review the reasoning model's planned response against the project registry and handoff context.
 
+IMPORTANT: If the response is conversational, informational, or just answering a question (not proposing code changes, file creation, or architectural decisions), respond PROCEED. Only flag concerns for responses that propose concrete actions like creating files, writing code, adding dependencies, or modifying architecture.
+
 Check for:
 - Registry compliance: Is the response about to create something that already exists in the registry?
 - Scope creep: Is the response doing more than what was asked?
