@@ -231,6 +231,14 @@ def test_consult_visual_ux_no_issues(mock_get_client):
 # ---------------------------------------------------------------------------
 
 
+def test_detect_triggers_returns_max_two():
+    """At most 2 consultants triggered per response to limit latency."""
+    text = "I'll refactor the auth module with new tests and update the CSS layout"
+    # This could trigger infosec (auth), architect (refactor), tester (tests), visual-ux (CSS)
+    result = detect_triggers(text)
+    assert len(result) <= 2
+
+
 @patch("tools.consultants.Anthropic")
 def test_singleton_client_reused(mock_anthropic_cls):
     """_get_client() returns the same instance on repeated calls."""

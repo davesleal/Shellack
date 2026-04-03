@@ -169,18 +169,13 @@ def get_skills_for_project(
 def _get_installed_skills() -> set[str]:
     """Get the set of installed skill names."""
     installed = set()
+    # Use the project root, not cwd
+    root = Path(__file__).resolve().parent.parent
 
-    # Check .claude/skills/
-    skills_dir = Path(".claude/skills")
-    if skills_dir.exists():
-        for item in skills_dir.iterdir():
-            installed.add(item.name)
-
-    # Check .agents/skills/
-    agents_dir = Path(".agents/skills")
-    if agents_dir.exists():
-        for item in agents_dir.iterdir():
-            installed.add(item.name)
+    for skills_dir in [root / ".claude" / "skills", root / ".agents" / "skills"]:
+        if skills_dir.exists():
+            for item in skills_dir.iterdir():
+                installed.add(item.name)
 
     return installed
 

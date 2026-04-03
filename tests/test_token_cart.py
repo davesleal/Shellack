@@ -260,6 +260,13 @@ def test_detect_correction_negative():
     assert detect_correction("What files are in the settings module?") is False
 
 
+def test_detect_correction_false_positive_dont_worry():
+    """'Don't worry' should NOT trigger correction detection."""
+    assert detect_correction("Don't worry about it") is False
+    assert detect_correction("I don't think that's an issue") is False
+    assert detect_correction("You don't need to change anything") is False
+
+
 def test_extract_correction_returns_rule():
     response_text = "---SECTION---\nArchitecture Rules\n---RULE---\n| No inline styles | All components | Use Tailwind utilities |"
     mock_cls = _mock_anthropic(response_text)

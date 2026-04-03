@@ -114,3 +114,18 @@ def test_format_skill_manifest():
 
 def test_format_skill_manifest_empty():
     assert format_skill_manifest([]) == ""
+
+
+def test_get_installed_skills_handles_missing_dirs():
+    """No crash when .claude/skills/ and .agents/skills/ don't exist."""
+    import os
+
+    original_cwd = os.getcwd()
+    try:
+        os.chdir("/tmp")
+        from tools.skill_mapper import _get_installed_skills
+
+        result = _get_installed_skills()
+        assert isinstance(result, set)
+    finally:
+        os.chdir(original_cwd)

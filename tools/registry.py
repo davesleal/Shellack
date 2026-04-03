@@ -83,7 +83,10 @@ def ensure_registry(project_path: str) -> str:
     content = read_registry(project_path)
     if content:
         return content
-    write_registry(project_path, _INITIAL_TEMPLATE)
+    try:
+        write_registry(project_path, _INITIAL_TEMPLATE)
+    except Exception:
+        pass  # can't write, but still return template for in-memory use
     return _INITIAL_TEMPLATE
 
 

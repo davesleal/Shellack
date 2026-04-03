@@ -68,8 +68,8 @@ Output format:
 
 _CORRECTION_PATTERNS = [
     r"\bno[,.]?\s+(use|try|do)\b",
-    r"\bdon'?t\b",
-    r"\bstop\s+(doing|using|creating)\b",
+    r"\bdon'?t\s+(use|create|write|add|make|build|do)\b",
+    r"\bstop\s+(doing|using|creating|writing|adding|building)\b",
     r"\binstead[,.]?\s+(use|try)\b",
     r"\bwe\s+(already|have)\b",
     r"\bthere'?s\s+already\b",

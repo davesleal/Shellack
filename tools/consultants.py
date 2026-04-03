@@ -114,7 +114,7 @@ def detect_triggers(response: str) -> list[str]:
         roles.append("tester")
     if any(re.search(p, lower) for p in _VISUAL_UX_PATTERNS):
         roles.append("visual-ux")
-    return roles
+    return roles[:2]  # cap at 2 to limit latency
 
 
 # ---------------------------------------------------------------------------

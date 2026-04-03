@@ -423,3 +423,63 @@ def test_reply_posted_as_separate_message():
     assert any(
         "42" in t for t in reply_texts
     ), f"Reply '42' not found in posted messages: {reply_texts}"
+
+
+def test_think_only_falls_back_to_reply():
+    """If agent outputs [think] but no [reply], think content is posted as reply."""
+    import importlib
+    import bot_unified
+
+    importlib.reload(bot_unified)
+
+    fake_routing = {"alpha-dev": {"project": "alpha", "mode": "dedicated"}}
+    fake_projects = {
+        "alpha": {
+            "name": "Alpha",
+            "path": "/tmp/alpha",
+            "features": {"token-cart": False},
+        }
+    }
+
+    with patch("bot_unified.get_channel_name", return_value="alpha-dev"), patch(
+        "bot_unified.is_orchestrator_channel", return_value=False
+    ), patch("bot_unified.is_peer_review_channel", return_value=False), patch.dict(
+        bot_unified.CHANNEL_ROUTING, fake_routing, clear=True
+    ), patch.dict(
+        bot_unified.PROJECTS, fake_projects, clear=True
+    ), patch(
+        "bot_unified.agent_factory"
+    ) as mock_factory, patch(
+        "bot_unified.ThinkingIndicator"
+    ) as MockIndicator, patch(
+        "bot_unified.app"
+    ) as mock_app:
+
+        mock_agent = MagicMock()
+        # Agent returns [think] only — no [reply] tag
+        mock_agent.handle.return_value = (
+            "[think] The answer is 42.",
+            "Alpha",
+        )
+        mock_factory.get_agent.return_value = mock_agent
+
+        mock_indicator = MagicMock()
+        MockIndicator.return_value = mock_indicator
+        mock_app.client.reactions_add = MagicMock()
+        mock_app.client.reactions_remove = MagicMock()
+        mock_app.client.chat_postMessage = MagicMock(return_value={"ts": "200.0"})
+
+        event = {
+            "text": "<@BOT> question",
+            "channel": "C123",
+            "ts": "100.0",
+            "user": "U_USER",
+        }
+        bot_unified.handle_mention(event, say=MagicMock())
+
+    # The think content should be posted as the reply (fallback)
+    post_calls = mock_app.client.chat_postMessage.call_args_list
+    reply_texts = [str(c) for c in post_calls]
+    assert any(
+        "42" in t for t in reply_texts
+    ), f"Think-as-reply '42' not found in posted messages: {reply_texts}"

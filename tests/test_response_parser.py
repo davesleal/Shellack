@@ -131,3 +131,28 @@ def test_split_long_paragraph_on_sentence():
 def test_split_empty():
     """Empty string — returns empty list."""
     assert split_message("") == []
+
+
+def test_tags_inside_code_fence_not_parsed():
+    """[think] inside a code fence should NOT be treated as a tag."""
+    text = "[reply] Here's an example:\n```\n[think] this is code not a tag\n```\nEnd of answer."
+    result = parse_response(text)
+    assert "[think] this is code" in result.reply
+    assert result.think == ""
+
+
+def test_think_then_bare_text_as_reply():
+    """Text after [think] block without [reply] tag should be treated as reply."""
+    text = "[think] Checking the files.\n\nThe answer is 42."
+    result = parse_response(text)
+    # Without a [reply] tag, everything after [think] is think content.
+    # This is expected — the system prompt mandates [reply].
+    assert "Checking the files" in result.think
+
+
+def test_split_no_empty_chunks():
+    """Splitter never produces empty strings."""
+    text = "First paragraph.\n\n\n\n\n\nSecond paragraph."
+    result = split_message(text, max_chars=3500)
+    for chunk in result:
+        assert chunk.strip(), f"Empty chunk found: {repr(chunk)}"

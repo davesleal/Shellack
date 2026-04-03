@@ -16,7 +16,9 @@ def test_download_slack_file_success():
     mock_resp.raise_for_status = MagicMock()
 
     with patch("tools.voice_transcriber.requests.get", return_value=mock_resp):
-        path = download_slack_file("https://files.slack.com/audio.ogg", "test-fake-token")
+        path = download_slack_file(
+            "https://files.slack.com/audio.ogg", "test-fake-token"
+        )
 
     assert path is not None
     assert os.path.exists(path)
@@ -30,7 +32,9 @@ def test_download_slack_file_failure():
     with patch(
         "tools.voice_transcriber.requests.get", side_effect=Exception("timeout")
     ):
-        path = download_slack_file("https://files.slack.com/audio.ogg", "test-fake-token")
+        path = download_slack_file(
+            "https://files.slack.com/audio.ogg", "test-fake-token"
+        )
     assert path is None
 
 
@@ -82,4 +86,13 @@ def test_transcribe_slack_file_transcription_fails():
     ), patch("tools.voice_transcriber.transcribe", return_value=None):
         result = transcribe_slack_file(file_info, "test-fake-token")
 
+    assert result is None
+
+
+def test_transcribe_model_not_available():
+    """If faster-whisper is not installed, transcribe returns None gracefully."""
+    from tools.voice_transcriber import transcribe
+
+    with patch("tools.voice_transcriber._get_transcriber", return_value=None):
+        result = transcribe("/tmp/fake.ogg")
     assert result is None

@@ -26,12 +26,19 @@ def parse_response(text: str) -> ParsedResponse:
 
     Tags: [think], [action], [reply] — case insensitive, at start of line.
     If no tags found, entire text is treated as reply (backward compatible).
+    Tags inside code fences are ignored (not treated as real tags).
     """
     if not text or not text.strip():
         return ParsedResponse()
 
-    # Find all tag positions
-    matches = list(_TAG_RE.finditer(text))
+    # Identify code fence ranges — tags inside these are NOT real tags
+    protected = [(m.start(), m.end()) for m in _CODE_FENCE_RE_FULL.finditer(text)]
+
+    def _in_fence(pos):
+        return any(s <= pos < e for s, e in protected)
+
+    # Find all tag positions, excluding those inside code fences
+    matches = [m for m in _TAG_RE.finditer(text) if not _in_fence(m.start())]
 
     if not matches:
         return ParsedResponse(reply=text.strip())
@@ -100,7 +107,7 @@ def split_message(text: str, max_chars: int = 3500) -> list[str]:
     if current.strip():
         chunks.append(current.strip())
 
-    return chunks
+    return [c for c in chunks if c.strip()]
 
 
 def _split_on_sentences(text: str, max_chars: int) -> list[str]:

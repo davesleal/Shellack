@@ -423,6 +423,11 @@ def handle_project_message(event, say, channel_name: str):
 
     parsed = parse_response(response)
 
+    # Fallback: if no [reply] tag but [think] has content, post think as reply
+    if not parsed.reply and parsed.think:
+        parsed.reply = parsed.think
+        parsed.think = ""  # don't show in churned block since it's the reply now
+
     # Cost string for the churned block (API mode only — Max is $0)
     cost_str = ""
     if (

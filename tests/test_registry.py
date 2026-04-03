@@ -100,3 +100,10 @@ def test_append_preserves_other_sections(tmp_path):
         "## Architecture Rules",
     ]:
         assert section in content, f"Missing section: {section}"
+
+
+def test_ensure_registry_nonexistent_path_no_crash():
+    """ensure_registry on a path that doesn't exist returns template without crashing."""
+    result = ensure_registry("/nonexistent/path/that/doesnt/exist")
+    # Should return the template (even if write fails) or handle gracefully
+    assert result is not None
