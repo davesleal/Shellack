@@ -3,6 +3,7 @@
 import logging
 import os
 import tempfile
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -11,11 +12,17 @@ logger = logging.getLogger(__name__)
 _MEMORY_DIR = ".shellack/thread-memory"
 
 
-def read_thread_memory(project_path: str, project_key: str) -> Optional[str]:
-    """Read persistent thread memory for a project."""
+def read_thread_memory(project_path: str, project_key: str, ttl_hours: int = 24) -> Optional[str]:
+    """Read persistent thread memory. Returns None if missing or expired."""
     mem_path = Path(project_path) / _MEMORY_DIR / f"{project_key}.md"
     if mem_path.exists():
         try:
+            # Check TTL — expire stale memory
+            age_hours = (time.time() - mem_path.stat().st_mtime) / 3600
+            if age_hours > ttl_hours:
+                logger.info(f"Thread memory expired ({age_hours:.1f}h old), discarding: {mem_path}")
+                mem_path.unlink()
+                return None
             return mem_path.read_text()
         except Exception as exc:
             logger.warning(f"Failed to read thread memory: {exc}")

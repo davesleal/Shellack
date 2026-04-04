@@ -48,3 +48,25 @@ def test_read_invalid_path_returns_none():
 def test_write_invalid_path_returns_false():
     """Write to an invalid path returns False gracefully."""
     assert write_thread_memory("/proc/0/invalid", "proj", "data") is False
+
+
+def test_expired_memory_returns_none(tmp_path):
+    """Thread memory older than TTL returns None and is deleted."""
+    import os, time
+    from tools.thread_memory import write_thread_memory, read_thread_memory
+    write_thread_memory(str(tmp_path), "alpha", "old context")
+    # Backdate the file
+    mem_path = tmp_path / ".shellack" / "thread-memory" / "alpha.md"
+    old_time = time.time() - (25 * 3600)  # 25 hours ago
+    os.utime(str(mem_path), (old_time, old_time))
+    result = read_thread_memory(str(tmp_path), "alpha", ttl_hours=24)
+    assert result is None
+    assert not mem_path.exists()
+
+
+def test_fresh_memory_returns_content(tmp_path):
+    """Thread memory within TTL returns content."""
+    from tools.thread_memory import write_thread_memory, read_thread_memory
+    write_thread_memory(str(tmp_path), "alpha", "fresh context")
+    result = read_thread_memory(str(tmp_path), "alpha", ttl_hours=24)
+    assert result == "fresh context"
