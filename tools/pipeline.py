@@ -157,6 +157,22 @@ def _register_default_phases() -> None:
     except ImportError:
         pass
 
+    try:
+        from tools.personas.learner import Learner
+        from tools.personas.coach import Coach
+        from tools.personas.output_editor import OutputEditor
+
+        register_phase(Phase(
+            name="synthesis",
+            emoji="\U0001f9e0",
+            personas=[Learner(), Coach(), OutputEditor()],
+        ))
+
+        # Synthesis runs post-hoc on complex only
+        _POST_HOC_PHASES["complex"].append("synthesis")
+    except ImportError:
+        pass
+
 
 _register_default_phases()
 
@@ -196,11 +212,12 @@ def run_phase(
             log.debug("%s %s skipped (should_activate=False)", persona.emoji, persona.name)
             continue
 
-        # Gather declared input slots
-        inputs: dict[str, dict] = {}
-        for slot_name in persona.reads:
-            if slot_name in ctx:
-                inputs[slot_name] = ctx[slot_name]
+        # Gather declared input slots.
+        # Empty reads list means "read everything" (special case for synthesis personas).
+        if persona.reads:
+            inputs: dict[str, dict] = {slot: ctx[slot] for slot in persona.reads if slot in ctx}
+        else:
+            inputs = dict(ctx)
 
         # Call the persona
         try:
