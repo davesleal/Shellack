@@ -123,6 +123,40 @@ def _register_default_phases() -> None:
     except ImportError:
         pass
 
+    try:
+        from tools.personas.rogue import Rogue
+        from tools.personas.hacker import Hacker
+        from tools.personas.infosec import Infosec
+
+        register_phase(Phase(
+            name="security",
+            emoji="\U0001f6e1\ufe0f",
+            personas=[Rogue(), Hacker(), Infosec()],
+            micro_loop={"from": "infosec", "to": "architect", "trigger_field": "verdict", "trigger_value": "blocker"},
+        ))
+
+        # Security runs on complex only; moderate gets it via security_override in run_pipeline
+        _TIER_PHASES["complex"].append("security")
+    except ImportError:
+        pass
+
+    try:
+        from tools.personas.inspector import Inspector
+        from tools.personas.tester import Tester
+        from tools.personas.visual_ux import VisualUX
+
+        register_phase(Phase(
+            name="quality",
+            emoji="\u2705",
+            personas=[Inspector(), Tester(), VisualUX()],
+        ))
+
+        # Quality runs on moderate and complex
+        _TIER_PHASES["complex"].append("quality")
+        _POST_HOC_PHASES["moderate"].append("quality")
+    except ImportError:
+        pass
+
 
 _register_default_phases()
 
