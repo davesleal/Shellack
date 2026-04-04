@@ -198,12 +198,28 @@ _register_default_phases()
 def _summarize_slot(name: str, slot: object) -> str:
     """One-line summary of a slot value for the discussion log."""
     if isinstance(slot, dict):
+        # Show verdict if present (most useful signal)
+        if "verdict" in slot:
+            return f"{slot['verdict']}"
+        # Show raw content preview instead of just "{raw}"
+        if "raw" in slot:
+            preview = str(slot["raw"])[:60].replace("\n", " ")
+            return f"{preview}"
+        # Show error
+        if "error" in slot:
+            return f"error: {slot['error'][:50]}"
+        # Fallback: show first meaningful value
+        for key in ("summary", "proposal", "vision", "recommendation", "polished_output"):
+            if key in slot:
+                preview = str(slot[key])[:60].replace("\n", " ")
+                return f"{preview}"
+        # Last resort: show key names
         keys = list(slot.keys())[:3]
-        return f"{name}: {{{', '.join(keys)}{'...' if len(slot) > 3 else ''}}}"
+        return f"{{{', '.join(keys)}}}"
     if isinstance(slot, str):
         preview = slot[:60].replace("\n", " ")
-        return f"{name}: \"{preview}{'...' if len(slot) > 60 else ''}\""
-    return f"{name}: {slot!r}"
+        return f"{preview}"
+    return f"{slot!r}"
 
 
 def run_phase(
