@@ -52,14 +52,12 @@ _TIER_PHASES: dict[str, list[str]] = {
     "simple": [],
     "moderate": [],
     "complex": [],
-    "deep": [],
 }
 
 _POST_HOC_PHASES: dict[str, list[str]] = {
     "simple": [],
     "moderate": [],
     "complex": [],
-    "deep": [],
 }
 
 
@@ -381,25 +379,29 @@ def run_pipeline(
     ctx: TurnContext,
     complexity: str,
     pre_hoc: bool = True,
-) -> tuple[list[str], list[TurnCostEntry]]:
+) -> tuple[list[tuple[str, list[str]]], list[TurnCostEntry]]:
     """
     Route to the correct phases based on complexity tier.
 
     Args:
         ctx: shared turn state
-        complexity: one of "simple" | "moderate" | "complex" | "deep"
+        complexity: one of "simple" | "moderate" | "complex"
         pre_hoc: if True, run cognitive phases; if False, run post-hoc phases
 
     Returns:
-        (discussion, costs) aggregated across all phases
+        (phase_results, costs) where phase_results is [(phase_name, entries)]
     """
-    # Security override: always run security phase if flagged
-    security_flagged = ctx.get("security_flagged", False)
+    # Security override: check agent_manager slot
+    security_override = ctx.get("agent_manager", {}).get("security_override", False)
 
     routing = _TIER_PHASES if pre_hoc else _POST_HOC_PHASES
-    phase_names = routing.get(complexity, [])
+    phase_names = list(routing.get(complexity, []))
 
-    all_discussion: list[str] = []
+    # Security override: if flagged on moderate, add security phase
+    if security_override and "security" in PHASES and "security" not in phase_names:
+        phase_names.append("security")
+
+    phase_results: list[tuple[str, list[str]]] = []
     all_costs: list[TurnCostEntry] = []
 
     for phase_name in phase_names:
@@ -408,13 +410,8 @@ def run_pipeline(
             continue
         phase = PHASES[phase_name]
         disc, costs = run_phase_with_micro_loop(phase, ctx, complexity)
-        all_discussion.extend(disc)
+        if disc:
+            phase_results.append((phase_name, disc))
         all_costs.extend(costs)
 
-    # Security override: if flagged, ensure security phase runs (if registered)
-    if security_flagged and "security" in PHASES and "security" not in phase_names:
-        disc, costs = run_phase_with_micro_loop(PHASES["security"], ctx, complexity)
-        all_discussion.extend(disc)
-        all_costs.extend(costs)
-
-    return all_discussion, all_costs
+    return phase_results, all_costs

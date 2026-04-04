@@ -532,8 +532,32 @@ def handle_project_message(event, say, channel_name: str):
                     if summary:
                         response += f"\n\n{summary}"
 
-        except Exception:
-            pass  # never block on pipeline
+            # Wire Learner persistence (Feedback Loops 5-7)
+            learner_output = turn_ctx.get("learner")
+            if learner_output and isinstance(learner_output, dict):
+                for lesson in learner_output.get("lessons", []):
+                    persistence = lesson.get("persistence", "thread")
+                    insight = lesson.get("insight", "")
+                    if not insight:
+                        continue
+                    try:
+                        if persistence == "thread":
+                            from tools.thread_memory import write_thread_memory
+                            # Append lesson to thread memory
+                            existing = session.get("handoff", "") or ""
+                            updated = f"{existing}\n\n### Learned\n- {insight}" if existing else f"### Learned\n- {insight}"
+                            write_thread_memory(project.get("path", ""), project_key, updated)
+                        elif persistence == "project":
+                            from tools.registry import append_to_registry
+                            append_to_registry(project.get("path", ""), "Architecture Rules", f"| {insight[:50]} | learned | auto-extracted |")
+                        elif persistence == "permanent":
+                            from tools.self_improver import reflect_and_update
+                            reflect_and_update(prompt=insight, response="", project_path=project.get("path", "."))
+                    except Exception:
+                        pass  # best-effort persistence
+
+        except Exception as exc:
+            logger.warning(f"Pipeline failed: {exc}")  # log but never block
     elif use_token_cart:
         # Fallback: legacy gut check + consultant dispatch
         use_gut_check = project.get("features", {}).get("gut-check", True)
