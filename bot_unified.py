@@ -1117,13 +1117,32 @@ def handle_message(event, say):
         # Session closed but not yet popped — clean up and fall through
         RUN_SESSIONS.pop(thread_ts, None)
 
-    # Continue an active quick-reply thread — but ONLY for messages without a
-    # bot @mention (those are already handled by the app_mention event handler,
-    # routing them here again causes duplicate processing).
-    if thread_ts and thread_ts in active_sessions:
+    # Continue conversation in any thread where the bot has previously replied —
+    # ONLY for messages without a bot @mention (those are handled by app_mention).
+    if thread_ts:
         raw_text = event.get("text", "")
         if not re.search(r"<@[A-Z0-9]+>", raw_text):
-            handle_mention(event, say)
+            # Check if this is a thread the bot participated in
+            if thread_ts in active_sessions:
+                handle_mention(event, say)
+            else:
+                # Session expired — recreate it and continue
+                channel_id = event.get("channel", "")
+                channel_name = get_channel_name(channel_id)
+                if channel_name and channel_name in CHANNEL_ROUTING:
+                    routing = CHANNEL_ROUTING[channel_name]
+                    project_key = routing.get("project")
+                    if project_key:
+                        with _session_lock:
+                            active_sessions[thread_ts] = {
+                                "handoff": None,
+                                "journal_draft": "",
+                                "turn_count": 0,
+                                "project_key": project_key,
+                                "cost": ThreadCost(),
+                                "last_active": time.time(),
+                            }
+                        handle_mention(event, say)
 
 
 # ============================================================================
