@@ -1,6 +1,6 @@
 # Shellack Current State
 **Last Updated:** 2026-04-04
-**Status:** Production-ready — 21-persona cognitive agent system, 467 tests green
+**Status:** Production-ready — 25-persona phased cognitive pipeline, 549 tests green
 
 ---
 
@@ -96,7 +96,7 @@ Loaded from `projects.yaml` at startup. Validated with `validate_config()`.
 - [x] Startup context scan — STATE.md, git log, file structure, configs loaded on warmup
 - [x] Thread continuation without @mention
 - [x] TTL-based thread memory expiry (24h)
-- [ ] 22-persona cognitive model — spec complete, 11 implemented, 11 to implement
+- [x] 25-persona cognitive pipeline — 9 phases, 3-tier activation, micro-loop revision (549 tests)
 - [ ] Self-research capability — auto-dispatch run: for context gaps (#22)
 - [ ] Memory calibration agent (#21)
 - [ ] Action buttons trigger run: sessions (#20)
@@ -122,19 +122,31 @@ Shellack/
 │   ├── project_agent.py
 │   └── sub_agents.py
 ├── tools/
+│   ├── pipeline.py              # TurnContext, Phase, run_pipeline orchestration
+│   ├── personas/                # 25 cognitive personas (one file each)
+│   │   ├── __init__.py          # Persona base class + registry
+│   │   ├── strategist.py        # Phase 3: task decomposition
+│   │   ├── historian.py         # Phase 3: prior decisions
+│   │   ├── architect.py         # Phase 4: structural proposals
+│   │   ├── skeptic.py           # Phase 6: assumption challenge
+│   │   ├── infosec.py           # Phase 7: defensive security
+│   │   ├── inspector.py         # Phase 8: completeness check
+│   │   ├── learner.py           # Phase 9: lesson extraction
+│   │   └── ... (25 total)
 │   ├── token_cart.py            # Haiku-powered context compaction
 │   ├── registry.py              # .shellack/registry.md management
 │   ├── thread_memory.py         # cross-thread persistence
 │   ├── cost_tracker.py          # per-turn/thread cost tracking
-│   ├── consultants.py           # infosec + architect consultants
+│   ├── consultants.py           # legacy consultants (replaced by pipeline)
 │   ├── agent_manager.py         # complexity-based model selection
+│   ├── agent_discussion.py      # phase-grouped discussion log
 │   ├── github_journal.py        # GitHub Discussions journal posting
 │   ├── journal_polisher.py      # Sonnet journal polish
 │   ├── thinking_indicator.py
 │   ├── slack_session.py
 │   ├── session_backend.py
 │   └── lifecycle.py
-├── tests/                       # 218 tests
+├── tests/                       # 549 tests
 └── .env                         # credentials (SECRET)
 ```
 
