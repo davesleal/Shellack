@@ -160,6 +160,33 @@ class ProjectAgent:
             except Exception:
                 pass
 
+        # Project file structure scan
+        try:
+            from tools.file_fetcher import scan_project_structure
+
+            structure = scan_project_structure(str(project_path))
+            if structure:
+                context_parts.append(
+                    f"## Project File Structure\n```\n{structure}\n```"
+                )
+        except Exception:
+            pass
+
+        # Key config files (package.json, CHANGELOG, etc.)
+        for config_name in [
+            "package.json",
+            "CHANGELOG.md",
+            "docs/CHANGELOG.md",
+        ]:
+            config_path = project_path / config_name
+            if config_path.exists():
+                try:
+                    content = config_path.read_text()[:1500]
+                    context_parts.append(f"## {config_name}\n```\n{content}\n```")
+                    break  # only load one changelog
+                except Exception:
+                    pass
+
         return "\n\n".join(context_parts)
 
     def _load_claude_md(self) -> str:
