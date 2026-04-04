@@ -1,5 +1,21 @@
 # Shellack Project Journal
 
+## 2026-04-04 — Phased Orchestrator: 25 Personas Across 9 Phases
+
+**Context:** The flat consultant model (infosec, architect, tester, visual-ux, output-editor) fired post-hoc after every response — no ability to shape the response before it shipped, no inter-persona communication, no revision loops. The 22-persona cognitive spec was complete but only 11 were implemented.
+
+**Approach:** Designed a phased pipeline where personas are pure functions: `(declared_input_slots) → named_output_slot`. A shared typed dict (`TurnContext`) carries state between personas. Three-tier activation — simple tasks (greetings, renames) skip cognitive phases entirely (~$0.002). Moderate tasks (bug fixes, features) get lightweight Plan + Design pre-hoc and Challenge + Quality post-hoc (~$0.005). Complex tasks (architecture, refactors) get the full 9-phase pipeline with micro-loop revision where the Skeptic can send the Architect back to revise within the same turn (~$0.008-0.014).
+
+The key insight was that micro-loops — not persona count — are the cost lever. Moderate gets the same personas as complex but in advisory mode (post-hoc, no revision loops). Complex enables pre-hoc revision where assumptions get challenged before the response ships.
+
+Built via subagent-driven development: one fresh agent per task, spec compliance review + code quality review after each. 10 implementation commits, 25 persona files, pipeline core, and bot_unified integration.
+
+**Outcome:** 549 tests (up from 467). 25 cognitive personas + 4 infrastructure agents across 9 phases. Seven self-healing feedback loops from immediate intra-turn revision to permanent CLAUDE.md rules. The pipeline is feature-gated (`pipeline: true` in projects.yaml) with the old consultant code as fallback. Full roster: Strategist, Historian, Researcher, Architect, Specialist, Data Scientist, Empathizer, Connector, Reuser, Dreamer, Insights, Growth Coach, Skeptic, Devil's Advocate, Simplifier, Prioritizer, Rogue, Hacker, Infosec, Inspector, Tester, Visual UX, Learner, Coach, Output Editor.
+
+**Insights:** The communication model debate (message bus vs. event bus vs. pipeline) resolved cleanly: a for-loop with a dict beats pub/sub when phase ordering is already defined and max active personas per phase is 4-6. The operator's insight — "personas don't talk, they write 80-200 token JSON into named slots" — eliminated prose overhead and made the system debuggable. The Discussion Log in Slack now shows phase-grouped persona output, which is dramatically more readable than the flat list.
+
+---
+
 ## 2026-04-02 — Token Cart complete: 393 tests, full agent team, journal wiring
 
 **Context:** After the core Token Cart implementation (9 subsystems, 373 tests), three gaps remained from observer review: missing consultant roles, journal draft never consumed, and the visual UX story. Also needed to address inline code review in the post-call prompt, monthly Discussion rollups, and consultant client performance.
