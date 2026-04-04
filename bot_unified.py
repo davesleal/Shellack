@@ -454,6 +454,22 @@ def handle_project_message(event, say, channel_name: str):
             except Exception:
                 pass  # never crash on posting
 
+        # Post action buttons if reply contains numbered options
+        from tools.action_buttons import detect_options, format_buttons
+
+        options = detect_options(parsed.reply)
+        if options:
+            blocks = format_buttons(options, thread_ts)
+            try:
+                app.client.chat_postMessage(
+                    channel=channel_id,
+                    thread_ts=thread_ts,
+                    text="Pick an option:",
+                    blocks=blocks,
+                )
+            except Exception:
+                pass
+
     # Now update indicator to churned (reply is already visible)
     indicator.done(think_block=parsed.think, cost_summary=cost_str)
 
@@ -1357,6 +1373,48 @@ def handle_onboarding_model_select(ack, body, action, client):
             text=text,
             blocks=[{"type": "section", "text": {"type": "mrkdwn", "text": text}}],
         )
+
+
+# ============================================================================
+# ACTION BUTTON HANDLER — numbered option buttons
+# ============================================================================
+
+
+@app.action(re.compile(r"shellack_option_\d+"))
+def handle_option_click(ack, body, client):
+    """Handle option button clicks — send selection as thread reply."""
+    ack()
+    action = body["actions"][0]
+    value = action["value"]  # "thread_ts|number|label"
+    parts = value.split("|", 2)
+    if len(parts) < 3:
+        return
+
+    thread_ts = parts[0]
+    label = parts[2]
+    channel_id = body["channel"]["id"]
+
+    # Post the selection as a message in the thread
+    try:
+        client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            text=f"Let's go with: {label}",
+        )
+    except Exception:
+        pass
+
+    # Remove the buttons (update the message to remove blocks)
+    try:
+        msg_ts = body["message"]["ts"]
+        client.chat_update(
+            channel=channel_id,
+            ts=msg_ts,
+            text=f"Selected: {label}",
+            blocks=[],
+        )
+    except Exception:
+        pass
 
 
 # ============================================================================
