@@ -161,6 +161,7 @@ class ProjectAgent:
                 pass
 
         # Project file structure scan
+        structure = ""
         try:
             from tools.file_fetcher import scan_project_structure
 
@@ -169,6 +170,20 @@ class ProjectAgent:
                 context_parts.append(
                     f"## Project File Structure\n```\n{structure}\n```"
                 )
+        except Exception:
+            pass
+
+        # Build/update context manifest
+        try:
+            from tools.context_manifest import build_manifest
+
+            state_summary = context_parts[0] if context_parts else ""
+            build_manifest(
+                str(project_path),
+                self.project.get("name", ""),
+                structure or "",
+                state_summary[:1000],
+            )
         except Exception:
             pass
 

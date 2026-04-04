@@ -42,6 +42,7 @@ from tools.token_cart import HaikuTokenCart, detect_correction
 from tools.journal_polisher import polish_journal
 from tools.github_journal import post_journal_entry
 from tools.thread_observer import ThreadObserver
+from tools.agent_discussion import DiscussionLog
 
 # Load environment
 load_dotenv()
@@ -279,15 +280,20 @@ def handle_project_message(event, say, channel_name: str):
         session = active_sessions[thread_ts]
         session["last_active"] = time.time()
 
+    # Create discussion log for this turn
+    discussion = DiscussionLog()
+
     # Thread observer: append user message
     observer = session.get("observer")
     if observer is None:
         observer = ThreadObserver()
         session["observer"] = observer
     observer.observe("user", prompt)
+    discussion.add("observer", f"User: {prompt[:80]}")
 
     # File fetcher: identify and read needed files
     file_context = ""
+    needed_files = []
     use_token_cart = project.get("features", {}).get("token-cart", True)
     if use_token_cart:
         try:
@@ -310,6 +316,7 @@ def handle_project_message(event, say, channel_name: str):
                     project.get("path", ""), needed_files
                 )
                 logger.info(f"File fetcher loaded: {needed_files}")
+                discussion.add("file_fetcher", f"Loaded {', '.join(needed_files)}")
         except Exception:
             pass
 
@@ -367,6 +374,11 @@ def handle_project_message(event, say, channel_name: str):
         except Exception as exc:
             logger.warning(f"Token cart pre-call failed: {exc}")
             enriched_context = prompt
+        discussion.add(
+            "token_cart",
+            "Context enriched"
+            + (f" with {len(needed_files)} files" if needed_files else ""),
+        )
     else:
         enriched_context = prompt
 
@@ -443,6 +455,9 @@ def handle_project_message(event, say, channel_name: str):
             if concern:
                 response += f"\n\n⚠️ *Gut check:* {concern}"
                 logger.info(f"Gut check flagged: {concern}")
+                discussion.add("gut_check", f"CONCERN: {concern}")
+            else:
+                discussion.add("gut_check", "PROCEED")
         except Exception:
             pass  # never block on gut check
 
@@ -463,6 +478,7 @@ def handle_project_message(event, say, channel_name: str):
                 if feedback:
                     response += f"\n\n{feedback}"
                     logger.info(f"Consultant {role} flagged findings")
+                    discussion.add(role, f"Flagged: {feedback[:60]}")
         except Exception:
             pass  # never block on consultants
 
@@ -488,9 +504,20 @@ def handle_project_message(event, say, channel_name: str):
         if last_turn:
             cost_str = session["cost"].format_turn_summary(last_turn)
 
-    # Order: churned+reasoning → reply → buttons → remove emoji
+    # Order: churned+reasoning → discussion → reply → buttons → remove emoji
     # 1. Update indicator to churned (with reasoning)
     indicator.done(think_block=parsed.think, cost_summary=cost_str)
+
+    # 1b. Post agent discussion log
+    if not discussion.is_empty():
+        try:
+            app.client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=thread_ts,
+                text=discussion.format(),
+            )
+        except Exception:
+            pass
 
     # 2. Post [reply] as separate message(s)
     if parsed.reply:
@@ -565,6 +592,18 @@ def handle_project_message(event, say, channel_name: str):
                         )
                     except Exception:
                         pass  # never block on persistence
+
+                # Append key learnings to context manifest
+                if observer and observer.context:
+                    try:
+                        from tools.context_manifest import append_learned
+
+                        # Extract decisions from observer context
+                        for line in observer.context.split("\n"):
+                            if "DECIDED:" in line or "FACT:" in line:
+                                append_learned(project.get("path", ""), line.strip())
+                    except Exception:
+                        pass
             except Exception as exc:
                 logger.warning(f"Token cart post-call failed: {exc}")
 
