@@ -111,8 +111,10 @@ class ProjectAgent:
 
         context_parts = []
 
-        # STATE.md
+        # STATE.md — check root, then docs/
         state_path = project_path / "STATE.md"
+        if not state_path.exists():
+            state_path = project_path / "docs" / "STATE.md"
         if state_path.exists():
             try:
                 state = state_path.read_text()[:3000]
