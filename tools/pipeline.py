@@ -64,6 +64,21 @@ _POST_HOC_PHASES: dict[str, list[str]] = {
 def _register_default_phases() -> None:
     """Register built-in phases. Called on import."""
     try:
+        from tools.personas.toolkeeper import Toolkeeper
+
+        register_phase(Phase(
+            name="toolkeeper",
+            emoji="\U0001f527",  # 🔧
+            personas=[Toolkeeper()],
+        ))
+
+        # Toolkeeper runs before plan on moderate+ (gathers context)
+        _TIER_PHASES["moderate"].insert(0, "toolkeeper")
+        _TIER_PHASES["complex"].insert(0, "toolkeeper")
+    except ImportError:
+        pass
+
+    try:
         from tools.personas.strategist import Strategist
         from tools.personas.historian import Historian
         from tools.personas.researcher import Researcher

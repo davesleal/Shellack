@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 # Agent emoji personas
 AGENT_EMOJI = {
     # Infrastructure (always active)
+    "toolkeeper": "\U0001f527",            # 🔧
     "observer": "\U0001f441\ufe0f",       # 👁️
     "file_fetcher": "\U0001f4c2",          # 📂
     "token_cart": "\U0001f6d2",            # 🛒

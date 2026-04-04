@@ -422,6 +422,57 @@ def handle_project_message(event, say, channel_name: str):
         except Exception:
             pass  # fall through to default model
 
+    # 6b. Pre-hoc Toolkeeper: auto-execute safe commands to gather context
+    use_pipeline = project.get("features", {}).get("pipeline", True)
+    if use_pipeline and use_token_cart:
+        current_complexity = complexity if use_agent_manager else "moderate"
+        if current_complexity != "simple":
+            try:
+                from tools.pipeline import TurnContext, run_pipeline
+
+                pre_ctx = TurnContext()
+                pre_ctx["agent_manager"] = {
+                    "complexity": current_complexity,
+                    "model": model,
+                    "security_override": _has_security_keywords(prompt),
+                }
+                pre_ctx["observer"] = {
+                    "summary": observer.context if observer else prompt[:200],
+                    "turn": session.get("turn_count", 1),
+                }
+                pre_ctx["token_cart"] = {
+                    "enriched_prompt": enriched_context if isinstance(enriched_context, str) else prompt,
+                    "handoff": session.get("handoff", "") or "",
+                    "registry": registry_content or "",
+                    "file_context": file_context or "",
+                }
+                pre_ctx["_project_path"] = project.get("path", ".")
+
+                # Run pre-hoc phases (toolkeeper + plan + design on complex)
+                pre_results, _ = run_pipeline(pre_ctx, current_complexity, pre_hoc=True)
+
+                for phase_name, entries in pre_results:
+                    phase_emoji = {
+                        "toolkeeper": "🔧",
+                        "plan": "🎯",
+                        "design": "📐",
+                        "vision": "🔮",
+                        "challenge": "🤨",
+                        "security": "🛡️",
+                        "quality": "✅",
+                    }.get(phase_name, "📋")
+                    discussion.add_phase_entries(phase_name, phase_emoji, entries)
+
+                # If Toolkeeper gathered context, inject it into the enriched prompt
+                toolkeeper_output = pre_ctx.get("toolkeeper", {})
+                if toolkeeper_output.get("needs_tools") and toolkeeper_output.get("output"):
+                    tool_context = toolkeeper_output["output"]
+                    enriched_context = f"{enriched_context}\n\n## Auto-Fetched Context\n{tool_context}"
+                    logger.info(f"Toolkeeper injected {len(tool_context)} chars of context")
+
+            except Exception as exc:
+                logger.warning(f"Pre-hoc pipeline failed: {exc}")
+
     # 7. Run the agent
     try:
         agent = agent_factory.get_agent(
