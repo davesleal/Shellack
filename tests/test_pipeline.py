@@ -11,6 +11,7 @@ from tools.pipeline import (
     Phase,
     TurnCostEntry,
     run_phase,
+    run_phase_with_micro_loop,
     run_pipeline,
 )
 
@@ -168,3 +169,191 @@ def test_run_pipeline_simple_runs_no_phases():
 
     assert discussion == []
     assert costs == []
+
+
+# ---------------------------------------------------------------------------
+# run_phase_with_micro_loop tests
+# ---------------------------------------------------------------------------
+
+def _make_micro_loop_personas():
+    """Create MockArchitect and MockSkeptic personas with controlled call sequences."""
+
+    # Shared call counter
+    call_log = {"architect": 0, "skeptic": 0}
+
+    architect_outputs = [
+        {"proposal": "v1"},
+        {"proposal": "v2"},
+    ]
+    skeptic_outputs = [
+        {"verdict": "reconsider", "revision_target": "architect"},
+        {"verdict": "proceed"},
+    ]
+
+    class MockArchitect(Persona):
+        name = "mock_architect"
+        emoji = "🏗"
+        model = "haiku"
+        reads = ["observer"]
+        system_prompt = "Architect."
+        max_tokens = 64
+
+        def should_activate(self, complexity, turn_context):
+            return True
+
+        def _build_user_content(self, inputs):
+            return "build"
+
+        def run(self, inputs):
+            idx = call_log["architect"]
+            call_log["architect"] += 1
+            return architect_outputs[min(idx, len(architect_outputs) - 1)]
+
+    class MockSkeptic(Persona):
+        name = "mock_skeptic"
+        emoji = "🤨"
+        model = "haiku"
+        reads = ["mock_architect"]
+        system_prompt = "Skeptic."
+        max_tokens = 64
+
+        def should_activate(self, complexity, turn_context):
+            return True
+
+        def _build_user_content(self, inputs):
+            return "challenge"
+
+        def run(self, inputs):
+            idx = call_log["skeptic"]
+            call_log["skeptic"] += 1
+            return skeptic_outputs[min(idx, len(skeptic_outputs) - 1)]
+
+    return MockArchitect(), MockSkeptic(), call_log
+
+
+def test_micro_loop_triggers_revision():
+    """Skeptic returns 'reconsider'; architect re-runs (v2), skeptic re-runs and returns 'proceed'."""
+    architect, skeptic, call_log = _make_micro_loop_personas()
+
+    phase = Phase(
+        name="test_challenge",
+        emoji="🔥",
+        personas=[architect, skeptic],
+        micro_loop={
+            "from": "mock_skeptic",
+            "to": "mock_architect",
+            "trigger_field": "verdict",
+            "trigger_value": "reconsider",
+        },
+    )
+
+    ctx = TurnContext()
+    ctx["observer"] = {"summary": "some input"}
+
+    discussion, costs = run_phase_with_micro_loop(phase, ctx, "complex")
+
+    # Architect was re-run -> v2 in ctx
+    assert ctx["mock_architect"] == {"proposal": "v2"}
+    # Skeptic re-run -> proceed
+    assert ctx["mock_skeptic"] == {"verdict": "proceed"}
+    # 4 total calls: architect(1), skeptic(1), architect-revised(2), skeptic-re-run(2)
+    assert call_log["architect"] == 2
+    assert call_log["skeptic"] == 2
+    # Discussion log has 4 entries: normal run (2) + revised + re-eval
+    assert len(discussion) == 4
+    assert any("revised" in e for e in discussion)
+    assert any("re-eval" in e for e in discussion)
+
+
+def test_micro_loop_does_not_trigger_on_moderate():
+    """Micro-loop config is ignored for non-complex tiers."""
+    architect, skeptic, call_log = _make_micro_loop_personas()
+
+    phase = Phase(
+        name="test_challenge_moderate",
+        emoji="🔥",
+        personas=[architect, skeptic],
+        micro_loop={
+            "from": "mock_skeptic",
+            "to": "mock_architect",
+            "trigger_field": "verdict",
+            "trigger_value": "reconsider",
+        },
+    )
+
+    ctx = TurnContext()
+    ctx["observer"] = {"summary": "some input"}
+
+    discussion, costs = run_phase_with_micro_loop(phase, ctx, "moderate")
+
+    # Skeptic fired once with "reconsider" but architect was NOT re-run
+    assert ctx["mock_architect"] == {"proposal": "v1"}
+    assert ctx["mock_skeptic"] == {"verdict": "reconsider", "revision_target": "architect"}
+    assert call_log["architect"] == 1
+    assert call_log["skeptic"] == 1
+    assert len(discussion) == 2
+
+
+def test_micro_loop_no_trigger_when_proceed():
+    """Skeptic returns 'proceed' — no micro-loop fires, only 2 API calls total."""
+
+    call_log = {"architect": 0, "skeptic": 0}
+
+    class ProceedArchitect(Persona):
+        name = "proceed_architect"
+        emoji = "🏗"
+        model = "haiku"
+        reads = ["observer"]
+        system_prompt = "Architect."
+        max_tokens = 64
+
+        def should_activate(self, complexity, turn_context):
+            return True
+
+        def _build_user_content(self, inputs):
+            return "build"
+
+        def run(self, inputs):
+            call_log["architect"] += 1
+            return {"proposal": "v1"}
+
+    class ProceedSkeptic(Persona):
+        name = "proceed_skeptic"
+        emoji = "🤨"
+        model = "haiku"
+        reads = ["proceed_architect"]
+        system_prompt = "Skeptic."
+        max_tokens = 64
+
+        def should_activate(self, complexity, turn_context):
+            return True
+
+        def _build_user_content(self, inputs):
+            return "challenge"
+
+        def run(self, inputs):
+            call_log["skeptic"] += 1
+            return {"verdict": "proceed"}
+
+    phase = Phase(
+        name="test_no_trigger",
+        emoji="✅",
+        personas=[ProceedArchitect(), ProceedSkeptic()],
+        micro_loop={
+            "from": "proceed_skeptic",
+            "to": "proceed_architect",
+            "trigger_field": "verdict",
+            "trigger_value": "reconsider",
+        },
+    )
+
+    ctx = TurnContext()
+    ctx["observer"] = {"summary": "some input"}
+
+    discussion, costs = run_phase_with_micro_loop(phase, ctx, "complex")
+
+    assert call_log["architect"] == 1
+    assert call_log["skeptic"] == 1
+    assert len(discussion) == 2
+    assert ctx["proceed_skeptic"] == {"verdict": "proceed"}
+    assert not any("revised" in e for e in discussion)

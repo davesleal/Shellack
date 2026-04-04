@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
-from tools.personas import Persona
+from tools.personas import Persona, PERSONA_REGISTRY
 
 log = logging.getLogger(__name__)
 
@@ -263,6 +263,117 @@ def run_phase(
 
 
 # ---------------------------------------------------------------------------
+# Micro-loop phase runner
+# ---------------------------------------------------------------------------
+
+def run_phase_with_micro_loop(
+    phase: Phase,
+    ctx: TurnContext,
+    complexity: str,
+) -> tuple[list[str], list[TurnCostEntry]]:
+    """Execute a phase with optional micro-loop revision.
+
+    If complexity is "complex" and phase has a micro_loop defined:
+    1. Run all personas normally via run_phase()
+    2. Check if the "from" persona's output triggers the loop
+    3. If triggered, re-run the "to" persona with the flagging slot injected
+    4. Re-run the "from" persona to re-evaluate
+    5. Max 1 retry
+
+    For non-complex tiers, identical to run_phase().
+    """
+    discussion, costs = run_phase(phase, ctx, complexity)
+
+    if complexity != "complex" or not phase.micro_loop:
+        return discussion, costs
+
+    ml = phase.micro_loop
+    from_slot = ml["from"]
+    to_slot = ml["to"]
+    trigger_field = ml["trigger_field"]
+    trigger_value = ml.get("trigger_value")  # None means "non-empty check"
+
+    # Check if trigger fires
+    from_output = ctx.get(from_slot)
+    if from_output is None:
+        return discussion, costs
+
+    field_value = from_output.get(trigger_field)
+    if trigger_value is None:
+        # Non-empty check (e.g. conflicts list has items)
+        triggered = bool(field_value)
+    else:
+        triggered = field_value == trigger_value
+
+    if not triggered:
+        return discussion, costs
+
+    # Look up target persona from registry (may be in a different phase)
+    if to_slot not in PERSONA_REGISTRY:
+        log.warning("micro_loop target '%s' not found in PERSONA_REGISTRY", to_slot)
+        return discussion, costs
+
+    target_persona = PERSONA_REGISTRY[to_slot]
+
+    # Re-run target persona with flagging slot injected
+    if target_persona.reads:
+        target_inputs: dict = {slot: ctx[slot] for slot in target_persona.reads if slot in ctx}
+    else:
+        target_inputs = dict(ctx)
+    # Inject the flagging persona's output as extra context
+    target_inputs[from_slot] = from_output
+
+    try:
+        target_result = target_persona.run(target_inputs)
+    except Exception as exc:
+        log.warning("%s %s (revised) raised %s: %s", target_persona.emoji, target_persona.name, type(exc).__name__, exc)
+        target_result = {"error": str(exc)}
+
+    ctx[target_persona.writes] = target_result
+    entry = f"{target_persona.emoji} {target_persona.name} (revised): {_summarize_slot(target_persona.writes, target_result)}"
+    discussion.append(entry)
+    costs.append(TurnCostEntry(
+        persona=f"{target_persona.name} (revised)",
+        input_tokens=0,
+        output_tokens=0,
+        model=target_persona.model,
+    ))
+
+    # Re-run the "from" persona to re-evaluate
+    source_persona: Persona | None = None
+    for p in phase.personas:
+        if p.name == from_slot:
+            source_persona = p
+            break
+    if source_persona is None and from_slot in PERSONA_REGISTRY:
+        source_persona = PERSONA_REGISTRY[from_slot]
+
+    if source_persona is not None:
+        if source_persona.reads:
+            source_inputs: dict = {slot: ctx[slot] for slot in source_persona.reads if slot in ctx}
+        else:
+            source_inputs = dict(ctx)
+
+        try:
+            source_result = source_persona.run(source_inputs)
+        except Exception as exc:
+            log.warning("%s %s (re-eval) raised %s: %s", source_persona.emoji, source_persona.name, type(exc).__name__, exc)
+            source_result = {"error": str(exc)}
+
+        ctx[source_persona.writes] = source_result
+        entry = f"{source_persona.emoji} {source_persona.name} (re-eval): {_summarize_slot(source_persona.writes, source_result)}"
+        discussion.append(entry)
+        costs.append(TurnCostEntry(
+            persona=f"{source_persona.name} (re-eval)",
+            input_tokens=0,
+            output_tokens=0,
+            model=source_persona.model,
+        ))
+
+    return discussion, costs
+
+
+# ---------------------------------------------------------------------------
 # Pipeline runner
 # ---------------------------------------------------------------------------
 
@@ -296,13 +407,13 @@ def run_pipeline(
             log.warning("Phase '%s' referenced in routing but not registered", phase_name)
             continue
         phase = PHASES[phase_name]
-        disc, costs = run_phase(phase, ctx, complexity)
+        disc, costs = run_phase_with_micro_loop(phase, ctx, complexity)
         all_discussion.extend(disc)
         all_costs.extend(costs)
 
     # Security override: if flagged, ensure security phase runs (if registered)
     if security_flagged and "security" in PHASES and "security" not in phase_names:
-        disc, costs = run_phase(PHASES["security"], ctx, complexity)
+        disc, costs = run_phase_with_micro_loop(PHASES["security"], ctx, complexity)
         all_discussion.extend(disc)
         all_costs.extend(costs)
 
