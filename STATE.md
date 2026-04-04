@@ -1,6 +1,6 @@
 # Shellack Current State
-**Last Updated:** 2026-04-02
-**Status:** Production-ready — Token Cart multi-agent system complete, 393 tests green
+**Last Updated:** 2026-04-04
+**Status:** Production-ready — 21-persona cognitive agent system, 467 tests green
 
 ---
 
@@ -86,9 +86,24 @@ Loaded from `projects.yaml` at startup. Validated with `validate_config()`.
   - Feature Configuration (runtime toggles via `@Shellack config`)
   - GitHub Discussions Journal — Sonnet polish + weekly threads, wired to session idle timeout
   - Session cleanup — 10min idle → journal finalized, session purged
-- [ ] Message UX redesign — `[think]/[action]/[reply]` tag system, collapsible reasoning, message splitting
+- [x] Message UX redesign — `[think]/[reply]` tags, reasoning before reply, action buttons
+- [x] Voice transcription — faster-whisper local transcription
+- [x] Skill-aware agents — auto-detect stack, load relevant skills
+- [x] File Fetcher + Thread Observer — agents read files and maintain thread context
+- [x] Agent Discussion transparency — inter-agent chatter visible with emoji personas
+- [x] Context Manifest — persistent `.shellack/context.md` that grows over time
+- [x] Action buttons — numbered options as clickable Slack buttons
+- [x] Startup context scan — STATE.md, git log, file structure, configs loaded on warmup
+- [x] Thread continuation without @mention
+- [x] TTL-based thread memory expiry (24h)
+- [ ] 22-persona cognitive model — spec complete, 11 implemented, 11 to implement
+- [ ] Self-research capability — auto-dispatch run: for context gaps (#22)
+- [ ] Memory calibration agent (#21)
+- [ ] Action buttons trigger run: sessions (#20)
 - [ ] XML leak fix for cross-chunk boundaries in streaming
 - [ ] Computer Use (#15), Visual UX screenshots (#16), Log Access (#17)
+- [ ] Anthropic client consolidation (single global instance)
+- [ ] Landing page: shellack.dev deployed on Cloudflare Workers
 - [ ] LLM-driven agent transitions — mid-conversation routing (davesleal/Shellack#14, low priority)
 
 ---
