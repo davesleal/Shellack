@@ -83,6 +83,27 @@ def _register_default_phases() -> None:
     except ImportError:
         pass
 
+    try:
+        from tools.personas.architect import Architect
+        from tools.personas.specialist import Specialist
+        from tools.personas.data_scientist import DataScientist
+        from tools.personas.empathizer import Empathizer
+        from tools.personas.connector import Connector
+        from tools.personas.reuser import Reuser
+
+        register_phase(Phase(
+            name="design",
+            emoji="\U0001f4d0",
+            personas=[Architect(), Specialist(), DataScientist(), Empathizer(), Connector(), Reuser()],
+            micro_loop={"from": "reuser", "to": "architect", "trigger_field": "verdict", "trigger_value": "duplicate"},
+        ))
+
+        # Wire design phase into tier routing
+        _TIER_PHASES["moderate"].append("design")
+        _TIER_PHASES["complex"].append("design")
+    except ImportError:
+        pass
+
 
 _register_default_phases()
 
