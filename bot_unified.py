@@ -41,6 +41,7 @@ from tools.thinking_indicator import ThinkingIndicator
 from tools.token_cart import HaikuTokenCart, detect_correction
 from tools.journal_polisher import polish_journal
 from tools.github_journal import post_journal_entry
+from tools.thread_observer import ThreadObserver
 
 # Load environment
 load_dotenv()
@@ -272,9 +273,45 @@ def handle_project_message(event, say, channel_name: str):
                 "cost": ThreadCost(),
                 "last_active": time.time(),
                 "skills": [],  # populated on first turn
+                "observer": ThreadObserver(),
+                "project_structure": "",  # cached on first use
             }
         session = active_sessions[thread_ts]
         session["last_active"] = time.time()
+
+    # Thread observer: append user message
+    observer = session.get("observer")
+    if observer is None:
+        observer = ThreadObserver()
+        session["observer"] = observer
+    observer.observe("user", prompt)
+
+    # File fetcher: identify and read needed files
+    file_context = ""
+    use_token_cart = project.get("features", {}).get("token-cart", True)
+    if use_token_cart:
+        try:
+            from tools.file_fetcher import (
+                fetch_files_for_context,
+                scan_project_structure,
+            )
+
+            # Cache project structure on first use
+            if not session.get("project_structure"):
+                session["project_structure"] = scan_project_structure(
+                    project.get("path", "")
+                )
+
+            needed_files = observer.identify_needed_files(
+                prompt, session["project_structure"]
+            )
+            if needed_files:
+                file_context = fetch_files_for_context(
+                    project.get("path", ""), needed_files
+                )
+                logger.info(f"File fetcher loaded: {needed_files}")
+        except Exception:
+            pass
 
     # Estimate input token count for the indicator
     handoff_chars = len(session.get("handoff") or "")
@@ -291,7 +328,6 @@ def handle_project_message(event, say, channel_name: str):
     indicator.start(input_tokens=estimated_tokens)
 
     # Pre-call: enrich context via Token Cart (skip if feature-gated off)
-    use_token_cart = project.get("features", {}).get("token-cart", True)
     use_external_handoff = project.get("features", {}).get("external-handoff", True)
     registry_content = None  # initialized before conditional for downstream use
     if use_token_cart:
@@ -313,11 +349,20 @@ def handle_project_message(event, say, channel_name: str):
             except Exception:
                 pass
 
+        # Combine registry + file context
+        full_registry = registry_content or ""
+        if file_context:
+            full_registry = (
+                f"{full_registry}\n\n## Fetched Files\n{file_context}"
+                if full_registry
+                else f"## Fetched Files\n{file_context}"
+            )
+
         try:
             enriched_context = token_cart.pre_call(
                 handoff=effective_handoff,
                 prompt=prompt,
-                registry=registry_content,
+                registry=full_registry or None,
             )
         except Exception as exc:
             logger.warning(f"Token cart pre-call failed: {exc}")
@@ -366,6 +411,10 @@ def handle_project_message(event, say, channel_name: str):
         except Exception:
             pass
         return
+
+    # Thread observer: append agent response
+    if observer:
+        observer.observe("agent", response[:1000])
 
     # 8. Estimate turn cost
     if project.get("features", {}).get("cost-observability", True):
