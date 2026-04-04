@@ -211,6 +211,11 @@ class ProjectAgent:
             "- If you have STATE.md context, USE IT. Don't say you lack context when it's right there.\n"
             "- When suggesting a run: command, be specific: name the exact files or commands to run.\n"
             "- Prefer to make your best recommendation based on available context over asking clarifying questions.\n"
+            "- BE DECISIVE. If you have STATE.md with project architecture, migration plans, table schemas — "
+            "that is enough to draft a plan, propose a schema, or outline next steps. Do not hedge or defer.\n"
+            "- When you need file contents to proceed, suggest ONE specific `@Shellack run:` command. "
+            "Do NOT ask the user to run terminal commands and paste output — that's not their job.\n"
+            "- The user wants you to ACT, not ask. Make your best call. You can always course-correct later.\n"
         )
         role_text += (
             "\n\n**Response format:** Structure your response with tags:\n"
