@@ -117,7 +117,7 @@ class ProjectAgent:
             state_path = project_path / "docs" / "STATE.md"
         if state_path.exists():
             try:
-                state = state_path.read_text()[:3000]
+                state = state_path.read_text()[:6000]
                 context_parts.append(f"## Current Project State\n{state}")
             except Exception:
                 pass
