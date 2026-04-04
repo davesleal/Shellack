@@ -105,6 +105,22 @@ def _register_default_phases() -> None:
         pass
 
     try:
+        from tools.personas.dreamer import Dreamer
+        from tools.personas.insights import Insights
+        from tools.personas.growth_coach import GrowthCoach
+
+        register_phase(Phase(
+            name="vision",
+            emoji="\U0001f52e",
+            personas=[Dreamer(), Insights(), GrowthCoach()],
+            micro_loop={"from": "insights", "to": "growth_coach", "trigger_field": "verdict", "trigger_value": "unmeasurable"},
+        ))
+
+        _TIER_PHASES["complex"].append("vision")
+    except ImportError:
+        pass
+
+    try:
         from tools.personas.skeptic import Skeptic
         from tools.personas.devils_advocate import DevilsAdvocate
         from tools.personas.simplifier import Simplifier
