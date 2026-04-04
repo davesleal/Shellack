@@ -103,6 +103,63 @@ class ProjectAgent:
 
         return PROJECTS
 
+    def _load_project_context(self) -> str:
+        """Load project state on startup — STATE.md, recent git log, registry, thread memory."""
+        project_path = Path(self.project.get("path", ""))
+        if not project_path.exists():
+            return ""
+
+        context_parts = []
+
+        # STATE.md
+        state_path = project_path / "STATE.md"
+        if state_path.exists():
+            try:
+                state = state_path.read_text()[:3000]
+                context_parts.append(f"## Current Project State\n{state}")
+            except Exception:
+                pass
+
+        # Recent git log
+        try:
+            import subprocess
+
+            result = subprocess.run(
+                ["git", "log", "--oneline", "-10"],
+                capture_output=True,
+                text=True,
+                cwd=str(project_path),
+                timeout=5,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                context_parts.append(
+                    f"## Recent Commits\n```\n{result.stdout.strip()}\n```"
+                )
+        except Exception:
+            pass
+
+        # Registry
+        registry_path = project_path / ".shellack" / "registry.md"
+        if registry_path.exists():
+            try:
+                registry = registry_path.read_text()[:2000]
+                context_parts.append(f"## Project Registry\n{registry}")
+            except Exception:
+                pass
+
+        # Thread memory
+        thread_mem_path = (
+            project_path / ".shellack" / "thread-memory" / f"{self.project_key}.md"
+        )
+        if thread_mem_path.exists():
+            try:
+                mem = thread_mem_path.read_text()[:2000]
+                context_parts.append(f"## Prior Thread Context\n{mem}")
+            except Exception:
+                pass
+
+        return "\n\n".join(context_parts)
+
     def _load_claude_md(self) -> str:
         claude_md_path = Path(self.project["path"]) / "CLAUDE.md"
         if claude_md_path.exists():
@@ -178,6 +235,11 @@ class ProjectAgent:
         skill_manifest = format_skill_manifest(skills)
         if skill_manifest:
             prompt += f"\n\n{skill_manifest}"
+
+        # Append project context (STATE.md, git log, registry, thread memory)
+        project_context = self._load_project_context()
+        if project_context:
+            prompt += f"\n\n---\n\n{project_context}"
 
         # Prepend CLAUDE.md (project rules take highest priority)
         claude_md = self._load_claude_md()
