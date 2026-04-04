@@ -64,8 +64,24 @@ _POST_HOC_PHASES: dict[str, list[str]] = {
 
 
 def _register_default_phases() -> None:
-    """Placeholder — no personas exist yet. Populate when personas are added."""
-    pass
+    """Register built-in phases. Called on import."""
+    try:
+        from tools.personas.strategist import Strategist
+        from tools.personas.historian import Historian
+        from tools.personas.researcher import Researcher
+
+        register_phase(Phase(
+            name="plan",
+            emoji="\U0001f3af",
+            personas=[Strategist(), Historian(), Researcher()],
+            micro_loop={"from": "historian", "to": "strategist", "trigger_field": "conflicts"},
+        ))
+
+        # Wire plan phase into tier routing
+        _TIER_PHASES["moderate"].append("plan")
+        _TIER_PHASES["complex"].append("plan")
+    except ImportError:
+        pass
 
 
 _register_default_phases()
