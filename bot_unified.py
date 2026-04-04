@@ -179,6 +179,34 @@ def _post_smart(channel_id: str, thread_ts: str, text: str) -> None:
     app.client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, text=text)
 
 
+def _has_security_keywords(prompt: str) -> bool:
+    """Check if prompt contains auth/input/crypto keywords for security override."""
+    patterns = [r"\bauth\b", r"\blogin\b", r"\btoken\b", r"\bcrypto\b", r"\bpassword\b", r"\bsession\b", r"\binjection\b"]
+    lower = prompt.lower()
+    return any(re.search(p, lower) for p in patterns)
+
+
+def _summarize_persona_finding(slot_name: str, slot: dict) -> str:
+    """Format a persona's findings for appending to the response."""
+    verdict = slot.get("verdict", "")
+    if slot_name == "skeptic" and verdict == "reconsider":
+        assumptions = slot.get("assumptions", [])
+        if assumptions:
+            items = "\n".join(f"- {a.get('claim', '')}: {a.get('risk', '')}" for a in assumptions[:3])
+            return f"🤨 *Skeptic:*\n{items}"
+    if slot_name == "inspector" and verdict in ("gaps", "incomplete"):
+        gaps = slot.get("gaps", [])
+        if gaps:
+            items = "\n".join(f"- {g.get('location', '')}: {g.get('type', '')}" for g in gaps[:3])
+            return f"🔍 *Inspector:*\n{items}"
+    if slot_name == "infosec" and verdict == "blocker":
+        mitigations = slot.get("mitigations", [])
+        if mitigations:
+            items = "\n".join(f"- {m.get('threat', '')}: {m.get('defense', '')}" for m in mitigations[:3])
+            return f"🛡️ *Infosec BLOCKER:*\n{items}"
+    return ""
+
+
 def handle_project_message(event, say, channel_name: str):
     """Handle messages in project-specific channels using specialized project agents."""
     text = event["text"]
@@ -443,44 +471,107 @@ def handle_project_message(event, say, channel_name: str):
             session["cost"] = ThreadCost()
         session["cost"].add_turn(turn_cost)
 
-    # 8b. Gut check: sanity check response before posting
-    use_gut_check = project.get("features", {}).get("gut-check", True)
-    if use_gut_check and use_token_cart:
+    # 8b. Run post-hoc cognitive pipeline (replaces gut check + consultants)
+    use_pipeline = project.get("features", {}).get("pipeline", True)
+    if use_pipeline and use_token_cart:
         try:
-            concern = token_cart.gut_check(
-                response=response,
-                registry=registry_content,
-                handoff=session["handoff"],
-            )
-            if concern:
-                response += f"\n\n⚠️ *Gut check:* {concern}"
-                logger.info(f"Gut check flagged: {concern}")
-                discussion.add("gut_check", f"CONCERN: {concern}")
-            else:
-                discussion.add("gut_check", "PROCEED")
+            from tools.pipeline import TurnContext, run_pipeline
+
+            # Build TurnContext from session state
+            turn_ctx = TurnContext()
+            turn_ctx["agent_manager"] = {
+                "complexity": complexity if use_agent_manager else "moderate",
+                "model": model,
+                "security_override": _has_security_keywords(prompt),
+            }
+            turn_ctx["observer"] = {
+                "summary": observer.context if observer else prompt[:200],
+                "turn": session.get("turn_count", 1),
+            }
+            turn_ctx["token_cart"] = {
+                "enriched_prompt": enriched_context if isinstance(enriched_context, str) else prompt,
+                "handoff": session.get("handoff", "") or "",
+                "registry": registry_content or "",
+            }
+            # For post-hoc: inject the agent's response as the "architect" slot
+            turn_ctx["architect"] = {
+                "proposal": response[:2000],
+                "data_model": "",
+                "api_surface": "",
+                "files_affected": [],
+            }
+            turn_ctx["strategist"] = {"tasks": [], "sequence": []}
+            turn_ctx["historian"] = {"prior_decisions": [], "conflicts": []}
+
+            # Determine complexity
+            current_complexity = complexity if use_agent_manager else "moderate"
+
+            # Run post-hoc phases
+            phase_results, _ = run_pipeline(turn_ctx, current_complexity, pre_hoc=False)
+
+            for phase_name, entries in phase_results:
+                phase_emoji = {
+                    "challenge": "🤨",
+                    "quality": "✅",
+                    "security": "🛡️",
+                    "synthesis": "🧠",
+                }.get(phase_name, "📋")
+                discussion.add_phase_entries(phase_name, phase_emoji, entries)
+
+            # Check for blocker verdicts
+            for slot_name in ("infosec", "visual_ux"):
+                slot = turn_ctx.get(slot_name, {})
+                if slot.get("verdict") == "blocker":
+                    response += f"\n\n🔴 **{slot_name.replace('_', ' ').upper()} BLOCKER:** Response held for review."
+
+            # Append persona findings to response
+            for slot_name in ("skeptic", "inspector", "infosec"):
+                slot = turn_ctx.get(slot_name, {})
+                if slot.get("verdict") not in (None, "proceed", "complete", "covered", "accessible", "clear", "secure", "resilient"):
+                    summary = _summarize_persona_finding(slot_name, slot)
+                    if summary:
+                        response += f"\n\n{summary}"
+
         except Exception:
-            pass  # never block on gut check
-
-    # 8c. Consultant dispatch: check for triggers and invoke specialists
-    use_consultants = project.get("features", {}).get("consultants", True)
-    if use_consultants and use_token_cart:
-        try:
-            from tools.consultants import detect_triggers, consult
-
-            triggered_roles = detect_triggers(response)
-            for role in triggered_roles:
-                feedback = consult(
-                    role=role,
+            pass  # never block on pipeline
+    elif use_token_cart:
+        # Fallback: legacy gut check + consultant dispatch
+        use_gut_check = project.get("features", {}).get("gut-check", True)
+        if use_gut_check:
+            try:
+                concern = token_cart.gut_check(
                     response=response,
-                    handoff=session.get("handoff"),
                     registry=registry_content,
+                    handoff=session["handoff"],
                 )
-                if feedback:
-                    response += f"\n\n{feedback}"
-                    logger.info(f"Consultant {role} flagged findings")
-                    discussion.add(role, f"Flagged: {feedback[:60]}")
-        except Exception:
-            pass  # never block on consultants
+                if concern:
+                    response += f"\n\n⚠️ *Gut check:* {concern}"
+                    logger.info(f"Gut check flagged: {concern}")
+                    discussion.add("gut_check", f"CONCERN: {concern}")
+                else:
+                    discussion.add("gut_check", "PROCEED")
+            except Exception:
+                pass  # never block on gut check
+
+        use_consultants = project.get("features", {}).get("consultants", True)
+        if use_consultants:
+            try:
+                from tools.consultants import detect_triggers, consult
+
+                triggered_roles = detect_triggers(response)
+                for role in triggered_roles:
+                    feedback = consult(
+                        role=role,
+                        response=response,
+                        handoff=session.get("handoff"),
+                        registry=registry_content,
+                    )
+                    if feedback:
+                        response += f"\n\n{feedback}"
+                        logger.info(f"Consultant {role} flagged findings")
+                        discussion.add(role, f"Flagged: {feedback[:60]}")
+            except Exception:
+                pass  # never block on consultants
 
     # 9. Parse response tags and render
     from tools.response_parser import parse_response, split_message
@@ -899,6 +990,7 @@ _VALID_FEATURES = {
     "gut-check",
     "code-review",
     "consultants",
+    "pipeline",
     "registry",
     "cost-observability",
     "agent-manager",
