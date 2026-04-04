@@ -439,8 +439,11 @@ def handle_project_message(event, say, channel_name: str):
         if last_turn:
             cost_str = session["cost"].format_turn_summary(last_turn)
 
-    # Post [reply] as separate message(s) FIRST, then update indicator, then remove emoji
-    # This ensures the reply is visible before the thinking state changes
+    # Order: churned+reasoning → reply → buttons → remove emoji
+    # 1. Update indicator to churned (with reasoning)
+    indicator.done(think_block=parsed.think, cost_summary=cost_str)
+
+    # 2. Post [reply] as separate message(s)
     if parsed.reply:
         formatted_reply = _md_to_mrkdwn(parsed.reply)
         chunks = split_message(formatted_reply, max_chars=3500)
@@ -452,9 +455,9 @@ def handle_project_message(event, say, channel_name: str):
                     text=chunk,
                 )
             except Exception:
-                pass  # never crash on posting
+                pass
 
-        # Post action buttons if reply contains numbered options
+        # 3. Post action buttons if reply contains numbered options
         from tools.action_buttons import detect_options, format_buttons
 
         options = detect_options(parsed.reply)
@@ -470,10 +473,7 @@ def handle_project_message(event, say, channel_name: str):
             except Exception:
                 pass
 
-    # Now update indicator to churned (reply is already visible)
-    indicator.done(think_block=parsed.think, cost_summary=cost_str)
-
-    # Remove :claude: reaction LAST — only after everything is posted
+    # 4. Remove :claude: reaction LAST — only after everything is posted
     try:
         app.client.reactions_remove(channel=channel_id, name="claude", timestamp=msg_ts)
     except Exception:
