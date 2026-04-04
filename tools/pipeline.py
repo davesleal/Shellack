@@ -104,6 +104,25 @@ def _register_default_phases() -> None:
     except ImportError:
         pass
 
+    try:
+        from tools.personas.skeptic import Skeptic
+        from tools.personas.devils_advocate import DevilsAdvocate
+        from tools.personas.simplifier import Simplifier
+        from tools.personas.prioritizer import Prioritizer
+
+        register_phase(Phase(
+            name="challenge",
+            emoji="\U0001f928",
+            personas=[Skeptic(), DevilsAdvocate(), Simplifier(), Prioritizer()],
+            micro_loop={"from": "skeptic", "to": "architect", "trigger_field": "verdict", "trigger_value": "reconsider"},
+        ))
+
+        # Wire challenge phase into tier routing
+        _TIER_PHASES["complex"].append("challenge")
+        _POST_HOC_PHASES["moderate"].append("challenge")
+    except ImportError:
+        pass
+
 
 _register_default_phases()
 
