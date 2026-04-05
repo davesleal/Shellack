@@ -27,9 +27,12 @@ _HAIKU_MAX_TOKENS = 512
 
 _SYSTEM_PROMPT = (
     "You are a research assistant investigating a codebase question. "
-    "You can run one safe read-only command per step. "
-    "Respond with JSON: {\"done\": bool, \"command\": str|null, \"summary\": str}. "
-    "When done=true, put your final answer in summary."
+    "You can run one safe read-only command per step to gather information. "
+    "You MUST respond with ONLY valid JSON, no other text:\n"
+    "{\"done\": false, \"command\": \"cat path/to/file.py\", \"summary\": \"looking at X\"}\n"
+    "When you have enough info: {\"done\": true, \"command\": null, \"summary\": \"final answer here\"}\n\n"
+    "Safe commands: cat, head, tail, grep, find, ls, git log, git diff, git show, wc.\n"
+    "NEVER use: rm, mv, git push, npm install, or any write/modify command."
 )
 
 
@@ -57,9 +60,26 @@ def run_research(
     findings: list[str] = []
     total_output_len = 0
 
+    # Get project file listing for context
+    _file_listing = ""
+    try:
+        import subprocess as _sp
+        _result = _sp.run(
+            ["find", project_path, "-maxdepth", "2", "-name", "*.py",
+             "-not", "-path", "*/venv/*", "-not", "-path", "*/__pycache__/*",
+             "-not", "-path", "*/.claude/*"],
+            capture_output=True, text=True, timeout=3,
+        )
+        if _result.stdout.strip():
+            _file_listing = _result.stdout.strip()[:800]
+    except Exception:
+        pass
+
     for step in range(max_steps):
         # Build user message with accumulated context
         user_parts = [f"## Question\n{question}"]
+        if step == 0 and _file_listing:
+            user_parts.append(f"## Available Files\n{_file_listing}")
         if findings:
             user_parts.append(
                 "## Findings So Far\n" + "\n\n".join(findings)
@@ -85,6 +105,7 @@ def run_research(
             break
 
         # Parse JSON response
+        logger.debug(f"Self-research raw response step {step}: {raw[:200]}")
         decision = _parse_decision(raw)
         if decision is None:
             logger.warning(f"Self-research: unparseable Haiku response at step {step}")
@@ -149,14 +170,14 @@ def run_research(
 
 
 def _parse_decision(raw: str) -> dict | None:
-    """Extract JSON from Haiku's response, handling markdown fences."""
+    """Extract JSON from Haiku's response, handling markdown fences and prose."""
     # Strip markdown code fences
-    cleaned = re.sub(r"^```[a-z]*\n?", "", raw).rstrip("`").strip()
+    cleaned = re.sub(r"```[a-z]*\n?", "", raw).replace("```", "").strip()
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError:
-        # Try to find JSON object in the text
-        match = re.search(r"\{[^{}]+\}", cleaned, re.DOTALL)
+        # Try to find JSON object in the text (may be nested)
+        match = re.search(r"\{[^{}]*\"done\"[^{}]*\}", cleaned, re.DOTALL)
         if match:
             try:
                 return json.loads(match.group())
