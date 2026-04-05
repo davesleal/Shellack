@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from abc import abstractmethod
 from typing import ClassVar
 
@@ -58,8 +59,10 @@ class Persona:
         resolved_model = MODEL_MAP.get(self.model, self.model)
         msg = self._call_api(system, user, resolved_model, self.max_tokens)
         text = msg.content[0].text.strip()
+        # Strip markdown code fences (```json ... ```) before JSON parsing
+        cleaned = re.sub(r"^```[a-z]*\n?", "", text).rstrip("`").strip()
         try:
-            result = json.loads(text)
+            result = json.loads(cleaned)
         except (json.JSONDecodeError, ValueError):
             result = {"raw": text}
         result["_usage"] = {

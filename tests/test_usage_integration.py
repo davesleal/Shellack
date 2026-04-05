@@ -68,4 +68,5 @@ def test_project_message_records_mention():
             event, say=MagicMock(), channel_name="alpha-dev"
         )
 
-    mock_record.assert_called_once_with("api", "claude-sonnet-4-6")
+    # "hello" is classified as simple → haiku by agent-manager
+    mock_record.assert_called_once_with("api", "claude-haiku-4-5-20251001")
