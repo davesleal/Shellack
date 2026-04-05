@@ -411,7 +411,7 @@ def handle_project_message(event, say, channel_name: str):
         enriched_context = prompt
 
     # Agent Manager: intelligent model selection (opt-in, default OFF)
-    use_agent_manager = project.get("features", {}).get("agent-manager", False)
+    use_agent_manager = project.get("features", {}).get("agent-manager", True)
     if use_agent_manager and use_token_cart:
         try:
             from tools.agent_manager import classify_complexity, select_model
