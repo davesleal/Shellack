@@ -470,6 +470,38 @@ def handle_project_message(event, say, channel_name: str):
                     enriched_context = f"{enriched_context}\n\n## Auto-Fetched Context\n{tool_context}"
                     logger.info(f"Toolkeeper injected {len(tool_context)} chars of context")
 
+                # 6c. Self-research: multi-step investigation for complex questions
+                # Triggers when Toolkeeper didn't gather enough or complexity warrants it
+                _needs_research = (
+                    current_complexity in ("moderate", "complex")
+                    and (
+                        not toolkeeper_output.get("needs_tools")
+                        or not toolkeeper_output.get("output", "").strip()
+                    )
+                )
+                if _needs_research:
+                    try:
+                        from tools.self_research import run_research
+
+                        research = run_research(
+                            question=prompt,
+                            project_path=project.get("path", "."),
+                            client=anthropic_client,
+                        )
+                        if research["findings"]:
+                            enriched_context = (
+                                f"{enriched_context}\n\n"
+                                f"## Self-Research Findings ({research['steps']} steps)\n"
+                                f"{research['findings']}"
+                            )
+                            logger.info(
+                                f"Self-research: {research['steps']} steps, "
+                                f"{len(research['findings'])} chars, "
+                                f"commands: {research['commands_run']}"
+                            )
+                    except Exception as exc:
+                        logger.warning(f"Self-research failed: {exc}")
+
             except Exception as exc:
                 logger.warning(f"Pre-hoc pipeline failed: {exc}")
 
