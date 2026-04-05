@@ -15,11 +15,11 @@ _TIMEOUT = 5.0
 
 _CLASSIFY_SYSTEM = """Classify the complexity of this task. Respond with EXACTLY one word:
 
-SIMPLE — greeting, status check, uptime, quick question, yes/no, explanation of a concept, lookup, "what is X", "how do I", opinion/preference, single file read, rename, format
-MODERATE — code review, analysis, single-file change, debugging help, "how does [specific code] work", reading/explaining a specific file or module
-COMPLEX — multi-file edits, refactor, long debugging, architecture work, tracing across systems, "trace the lifecycle", design proposals
+SIMPLE — greeting, status check, uptime, quick question, yes/no, opinion, "what time is it", general knowledge, no code needed
+MODERATE — explain how code works, code review, analysis, single-file change, debugging, "how does [system] work", "how does [module] decide", reading a specific file
+COMPLEX — multi-file refactor, architecture, tracing across systems, "trace the lifecycle", design proposals, security audit
 
-Default to SIMPLE unless the request clearly requires code analysis or changes. One word only. No explanation."""
+If the question asks about HOW specific code or a system works, that is MODERATE (not simple). One word only. No explanation."""
 
 _MODEL_MAP = {
     "simple": "claude-haiku-4-5-20251001",
