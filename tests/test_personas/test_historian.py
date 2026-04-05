@@ -61,7 +61,9 @@ def test_run_returns_parsed_output(monkeypatch, persona):
     monkeypatch.setattr(persona, "_call_api", lambda s, u, m, mt: mock_msg)
 
     result = persona.run({"observer": {"summary": "Switch to SQLite"}})
+    usage = result.pop("_usage")
     assert result == output
+    assert usage == {"input_tokens": 50, "output_tokens": 30}
 
 
 def test_run_falls_back_on_bad_json(monkeypatch, persona):
@@ -71,7 +73,9 @@ def test_run_falls_back_on_bad_json(monkeypatch, persona):
     monkeypatch.setattr(persona, "_call_api", lambda s, u, m, mt: mock_msg)
 
     result = persona.run({})
+    usage = result.pop("_usage")
     assert result == {"raw": "not json at all"}
+    assert usage == {"input_tokens": 10, "output_tokens": 5}
 
 
 # ---------------------------------------------------------------------------

@@ -65,7 +65,9 @@ def test_run_returns_parsed_output(monkeypatch, persona):
         "observer": {"summary": "Build async HTTP client"},
         "strategist": {"tasks": ["research async libs"], "estimated_complexity": "complex"},
     })
+    usage = result.pop("_usage")
     assert result == output
+    assert usage == {"input_tokens": 80, "output_tokens": 60}
 
 
 def test_run_falls_back_on_bad_json(monkeypatch, persona):
@@ -75,7 +77,9 @@ def test_run_falls_back_on_bad_json(monkeypatch, persona):
     monkeypatch.setattr(persona, "_call_api", lambda s, u, m, mt: mock_msg)
 
     result = persona.run({})
+    usage = result.pop("_usage")
     assert result == {"raw": "oops"}
+    assert usage == {"input_tokens": 10, "output_tokens": 5}
 
 
 # ---------------------------------------------------------------------------
