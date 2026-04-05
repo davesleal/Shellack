@@ -1,16 +1,16 @@
-"""Tests for the Connector persona."""
+"""Tests for the Insights persona."""
 
 import json
 from unittest.mock import MagicMock
 
 import pytest
 
-from tools.personas.connector import Connector
+from tools.personas.insights import Insights
 
 
 @pytest.fixture
 def persona():
-    return Connector()
+    return Insights()
 
 
 # ---------------------------------------------------------------------------
@@ -18,11 +18,11 @@ def persona():
 # ---------------------------------------------------------------------------
 
 def test_metadata(persona):
-    assert persona.name == "connector"
+    assert persona.name == "insights"
     assert persona.model == "haiku"
-    assert persona.reads == ["architect", "token_cart"]
-    assert persona.writes == "connector"
-    assert persona.emoji == "\U0001f517"
+    assert persona.reads == ["architect", "dreamer"]
+    assert persona.writes == "insights"
+    assert persona.emoji == "\U0001f4c9"
     assert persona.max_tokens == 512
 
 
@@ -52,17 +52,17 @@ def test_does_not_activate_on_deep(persona):
 
 def test_run_returns_parsed_output(monkeypatch, persona):
     output = {
-        "similar_patterns": [
-            {"project": "Atmos", "pattern": "pub/sub", "relevance": "same event model"}
-        ],
-        "reuse_opportunities": ["shared event bus"],
+        "success_criteria": ["Reduce p95 latency below 200ms"],
+        "metrics": ["p95_latency", "error_rate"],
+        "instrumentation": ["Add OpenTelemetry span to /api/query"],
+        "verdict": "measurable",
     }
     mock_msg = MagicMock()
     mock_msg.content = [MagicMock(text=json.dumps(output))]
     mock_msg.usage = MagicMock(input_tokens=50, output_tokens=30)
     monkeypatch.setattr(persona, "_call_api", lambda s, u, m, mt: mock_msg)
 
-    result = persona.run({"architect": {"proposal": "Use event bus"}})
+    result = persona.run({"architect": {"proposal": "Optimize query layer"}})
     assert result == output
 
 
@@ -80,22 +80,22 @@ def test_run_falls_back_on_bad_json(monkeypatch, persona):
 # User content
 # ---------------------------------------------------------------------------
 
-def test_build_user_content_with_architect(persona):
+def test_build_user_content_with_inputs(persona):
     inputs = {
-        "architect": {"proposal": "Build a cache layer", "api_surface": "/api/cache"},
+        "architect": {"proposal": "Optimize queries", "data_model": "Query(id, sql, ts)"},
+        "dreamer": {
+            "vision": "Sub-100ms queries globally",
+            "next_step": "Add read replicas",
+            "platform_potential": "Web",
+            "time_horizon": "quarter",
+        },
     }
     content = persona._build_user_content(inputs)
-    assert "Build a cache layer" in content
-    assert "/api/cache" in content
-
-
-def test_build_user_content_with_token_cart(persona):
-    inputs = {
-        "token_cart": {"enriched_prompt": "enriched", "registry": "projects list"},
-    }
-    content = persona._build_user_content(inputs)
-    assert "enriched" in content
-    assert "projects list" in content
+    assert "Optimize queries" in content
+    assert "Sub-100ms queries globally" in content
+    assert "Add read replicas" in content
+    assert "Web" in content
+    assert "quarter" in content
 
 
 def test_build_user_content_empty_fallback(persona):

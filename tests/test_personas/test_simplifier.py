@@ -1,16 +1,16 @@
-"""Tests for the Connector persona."""
+"""Tests for the Simplifier persona."""
 
 import json
 from unittest.mock import MagicMock
 
 import pytest
 
-from tools.personas.connector import Connector
+from tools.personas.simplifier import Simplifier
 
 
 @pytest.fixture
 def persona():
-    return Connector()
+    return Simplifier()
 
 
 # ---------------------------------------------------------------------------
@@ -18,11 +18,11 @@ def persona():
 # ---------------------------------------------------------------------------
 
 def test_metadata(persona):
-    assert persona.name == "connector"
+    assert persona.name == "simplifier"
     assert persona.model == "haiku"
-    assert persona.reads == ["architect", "token_cart"]
-    assert persona.writes == "connector"
-    assert persona.emoji == "\U0001f517"
+    assert persona.reads == ["architect"]
+    assert persona.writes == "simplifier"
+    assert persona.emoji == "\u2702\ufe0f"
     assert persona.max_tokens == 512
 
 
@@ -52,17 +52,17 @@ def test_does_not_activate_on_deep(persona):
 
 def test_run_returns_parsed_output(monkeypatch, persona):
     output = {
-        "similar_patterns": [
-            {"project": "Atmos", "pattern": "pub/sub", "relevance": "same event model"}
+        "simplifications": [
+            {"current": "Abstract factory pattern", "proposed": "Simple constructor", "savings": "3 classes removed"}
         ],
-        "reuse_opportunities": ["shared event bus"],
+        "verdict": "reducible",
     }
     mock_msg = MagicMock()
     mock_msg.content = [MagicMock(text=json.dumps(output))]
     mock_msg.usage = MagicMock(input_tokens=50, output_tokens=30)
     monkeypatch.setattr(persona, "_call_api", lambda s, u, m, mt: mock_msg)
 
-    result = persona.run({"architect": {"proposal": "Use event bus"}})
+    result = persona.run({"architect": {"proposal": "Add factory pattern"}})
     assert result == output
 
 
@@ -80,22 +80,20 @@ def test_run_falls_back_on_bad_json(monkeypatch, persona):
 # User content
 # ---------------------------------------------------------------------------
 
-def test_build_user_content_with_architect(persona):
+def test_build_user_content_with_inputs(persona):
     inputs = {
-        "architect": {"proposal": "Build a cache layer", "api_surface": "/api/cache"},
+        "architect": {
+            "proposal": "Add factory pattern",
+            "data_model": "Widget(type, config)",
+            "api_surface": "/api/widgets",
+            "files_affected": ["factories/widget.py"],
+        },
     }
     content = persona._build_user_content(inputs)
-    assert "Build a cache layer" in content
-    assert "/api/cache" in content
-
-
-def test_build_user_content_with_token_cart(persona):
-    inputs = {
-        "token_cart": {"enriched_prompt": "enriched", "registry": "projects list"},
-    }
-    content = persona._build_user_content(inputs)
-    assert "enriched" in content
-    assert "projects list" in content
+    assert "Add factory pattern" in content
+    assert "Widget(type, config)" in content
+    assert "/api/widgets" in content
+    assert "factories/widget.py" in content
 
 
 def test_build_user_content_empty_fallback(persona):
