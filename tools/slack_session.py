@@ -46,6 +46,8 @@ def _strip_tool_xml(text: str) -> str:
 
 def _md_to_mrkdwn(text: str) -> str:
     """Convert Claude markdown to Slack mrkdwn, leaving code blocks untouched."""
+    # Convert markdown tables to code blocks before splitting on fences
+    text = _convert_tables(text)
     # Auto-close any unclosed triple-backtick fence so the regex splits correctly
     if text.count("```") % 2 != 0:
         text = text.rstrip() + "\n```"
@@ -65,8 +67,70 @@ def _md_to_mrkdwn(text: str) -> str:
         part = re.sub(r"^[ \t]*[-*]\s+", "• ", part, flags=re.MULTILINE)
         # Horizontal rule --- → thin line
         part = re.sub(r"^---+$", "─" * 24, part, flags=re.MULTILINE)
+        # Numbered lists: "1. item" → "1. item" (already valid, but indent cleanup)
+        part = re.sub(r"^(\d+)\.\s+", r"\1. ", part, flags=re.MULTILINE)
         out.append(part)
     return "".join(out)
+
+
+# Matches a contiguous block of markdown table rows (header, separator, data)
+_TABLE_ROW_RE = re.compile(r"^\|.+\|$", re.MULTILINE)
+_TABLE_SEP_RE = re.compile(r"^\|[-:\s|]+\|$", re.MULTILINE)
+
+
+def _convert_tables(text: str) -> str:
+    """Convert markdown tables to Slack code blocks (tables don't render in mrkdwn).
+
+    Skips tables already inside code fences.
+    """
+    lines = text.split("\n")
+    result = []
+    table_lines = []
+    in_table = False
+    in_code_block = False
+
+    for line in lines:
+        stripped = line.strip()
+        # Track code fences — don't touch anything inside them
+        if stripped.startswith("```"):
+            in_code_block = not in_code_block
+            if in_table:
+                # Flush any pending table before code block
+                clean = [l for l in table_lines if not _TABLE_SEP_RE.match(l.strip())]
+                result.append("```")
+                result.extend(clean)
+                result.append("```")
+                table_lines = []
+                in_table = False
+            result.append(line)
+            continue
+
+        if in_code_block:
+            result.append(line)
+            continue
+
+        is_table_row = bool(_TABLE_ROW_RE.match(stripped))
+        if is_table_row:
+            if not in_table:
+                in_table = True
+            table_lines.append(line)
+        else:
+            if in_table:
+                clean = [l for l in table_lines if not _TABLE_SEP_RE.match(l.strip())]
+                result.append("```")
+                result.extend(clean)
+                result.append("```")
+                table_lines = []
+                in_table = False
+            result.append(line)
+
+    if in_table:
+        clean = [l for l in table_lines if not _TABLE_SEP_RE.match(l.strip())]
+        result.append("```")
+        result.extend(clean)
+        result.append("```")
+
+    return "\n".join(result)
 
 
 class SlackSession:

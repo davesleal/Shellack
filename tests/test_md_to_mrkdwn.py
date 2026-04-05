@@ -58,6 +58,38 @@ def test_closed_fence_not_double_closed():
     assert result.count("```") == 2  # exactly open + close
 
 
+def test_table_converted_to_code_block():
+    text = "| Col A | Col B |\n|---|---|\n| val1 | val2 |"
+    result = _md_to_mrkdwn(text)
+    assert "```" in result
+    assert "| Col A | Col B |" in result
+    assert "| val1 | val2 |" in result
+    # Separator row should be removed
+    assert "|---|---|" not in result
+
+
+def test_table_with_surrounding_text():
+    text = "Here is a table:\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\nAnd more text."
+    result = _md_to_mrkdwn(text)
+    assert "Here is a table:" in result
+    assert "And more text." in result
+    assert "```" in result
+
+
+def test_multiple_tables():
+    text = "| A |\n|---|\n| 1 |\n\ntext\n\n| B |\n|---|\n| 2 |"
+    result = _md_to_mrkdwn(text)
+    # Should have two code blocks (4 fence markers)
+    assert result.count("```") == 4
+
+
+def test_pipe_in_code_block_not_treated_as_table():
+    text = "```\n| not | a | table |\n```"
+    result = _md_to_mrkdwn(text)
+    # Should remain a single code block, not double-wrapped
+    assert result.count("```") == 2
+
+
 # ---------------------------------------------------------------------------
 # _strip_tool_xml tests
 # ---------------------------------------------------------------------------

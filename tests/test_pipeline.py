@@ -302,6 +302,45 @@ def test_micro_loop_does_not_trigger_on_moderate():
     assert len(discussion) == 2
 
 
+def test_underscore_metadata_passed_to_personas():
+    """Underscore-prefixed keys like _project_path pass through to all personas."""
+    persona = PERSONA_REGISTRY["fake"]
+    received_inputs = {}
+
+    original_run = persona.run
+
+    def capture_run(inputs):
+        received_inputs.update(inputs)
+        return {"result": "ok"}
+
+    persona.run = capture_run
+
+    ctx = TurnContext()
+    ctx["observer"] = {"summary": "test"}
+    ctx["_project_path"] = "/some/path"
+
+    phase = Phase(name="test_meta", emoji="📋", personas=[persona])
+    run_phase(phase, ctx, "moderate")
+
+    assert received_inputs.get("_project_path") == "/some/path"
+
+    persona.run = original_run
+
+
+def test_summarize_slot_toolkeeper_output():
+    """_summarize_slot shows command count and output preview for Toolkeeper."""
+    from tools.pipeline import _summarize_slot
+
+    slot = {"needs_tools": True, "output": "$ cat file.py\ndef hello(): pass", "commands_run": ["cat file.py"]}
+    result = _summarize_slot("toolkeeper", slot)
+    assert "1 cmds" in result
+    assert "cat file.py" in result
+
+    slot_no_tools = {"needs_tools": False, "output": "", "commands_run": []}
+    result = _summarize_slot("toolkeeper", slot_no_tools)
+    assert "no tools needed" in result
+
+
 def test_micro_loop_no_trigger_when_proceed():
     """Skeptic returns 'proceed' — no micro-loop fires, only 2 API calls total."""
 

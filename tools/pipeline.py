@@ -223,6 +223,18 @@ def _summarize_slot(name: str, slot: object) -> str:
         # Show error
         if "error" in slot:
             return f"error: {slot['error'][:50]}"
+        # Toolkeeper / self-research: show output preview or "no tools needed"
+        if "needs_tools" in slot:
+            if not slot["needs_tools"]:
+                return "no tools needed"
+            output = slot.get("output", "")
+            if output:
+                preview = output[:60].replace("\n", " ")
+                return f"{len(slot.get('commands_run', []))} cmds: {preview}"
+            return "needs tools but no output"
+        if "findings" in slot:
+            preview = str(slot["findings"])[:60].replace("\n", " ")
+            return f"{slot.get('steps', '?')} steps: {preview}"
         # Fallback: show first meaningful value
         for key in ("summary", "proposal", "vision", "recommendation", "polished_output"):
             if key in slot:
@@ -263,6 +275,10 @@ def run_phase(
             inputs: dict[str, dict] = {slot: ctx[slot] for slot in persona.reads if slot in ctx}
         else:
             inputs = dict(ctx)
+        # Always pass through underscore-prefixed metadata (e.g. _project_path)
+        for key in ctx:
+            if key.startswith("_") and key not in inputs:
+                inputs[key] = ctx[key]
 
         # Call the persona
         try:

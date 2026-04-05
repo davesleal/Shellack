@@ -26,9 +26,11 @@ def _configured_model() -> str:
 _SYSTEM_PROMPT = """Classify this developer request. Reply with JSON only, no prose.
 {"tier": "simple|moderate|complex", "reason": "one sentence"}
 
-simple   = question, explanation, lookup, read-only, status check
-moderate = code review, analysis, single-file change, debugging help
-complex  = multi-file edits, refactor, long debugging, architecture work"""
+simple   = greeting, status check, uptime, quick question, yes/no, explanation of a concept, lookup, "what is X", "how do I", opinion/preference questions
+moderate = code review, analysis, single-file change, debugging help, "how does [specific code] work", reading/explaining a specific file
+complex  = multi-file edits, refactor, long debugging, architecture work, tracing across systems, "trace the lifecycle", design proposals
+
+Default to simple unless the request clearly requires code analysis or changes."""
 
 
 def classify(prompt: str, project_key: str = "") -> TriageResult:
