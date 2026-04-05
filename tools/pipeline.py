@@ -143,7 +143,7 @@ def _register_default_phases() -> None:
             name="challenge",
             emoji="\U0001f928",
             personas=[Skeptic(), DevilsAdvocate(), Simplifier(), Prioritizer()],
-            micro_loop={"from": "skeptic", "to": "architect", "trigger_field": "verdict", "trigger_value": "reconsider"},
+            micro_loop={"from": "skeptic", "to": "architect", "trigger_field": "verdict", "trigger_value": "reconsider", "dynamic_target_field": "revision_target"},
         ))
 
         # Wire challenge phase into tier routing
@@ -318,9 +318,10 @@ def run_phase_with_micro_loop(
 
     ml = phase.micro_loop
     from_slot = ml["from"]
-    to_slot = ml["to"]
+    static_to = ml["to"]
     trigger_field = ml["trigger_field"]
     trigger_value = ml.get("trigger_value")  # None means "non-empty check"
+    dynamic_target_field = ml.get("dynamic_target_field")
 
     # Check if trigger fires
     from_output = ctx.get(from_slot)
@@ -336,6 +337,19 @@ def run_phase_with_micro_loop(
 
     if not triggered:
         return discussion, costs
+
+    # Resolve target: use dynamic field if configured and valid, else static
+    to_slot = static_to
+    if dynamic_target_field:
+        dynamic_target = from_output.get(dynamic_target_field)
+        if dynamic_target and dynamic_target in PERSONA_REGISTRY:
+            to_slot = dynamic_target
+        else:
+            if dynamic_target:
+                log.debug(
+                    "micro_loop dynamic_target_field '%s' resolved to unknown persona '%s', falling back to '%s'",
+                    dynamic_target_field, dynamic_target, static_to,
+                )
 
     # Look up target persona from registry (may be in a different phase)
     if to_slot not in PERSONA_REGISTRY:
