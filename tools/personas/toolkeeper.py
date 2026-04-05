@@ -164,17 +164,24 @@ IMPORTANT — when to set needs_tools to true:
         parts = []
         if observer.get("summary"):
             parts.append(f"## User Request\n{observer['summary']}")
-        # Only show file_context (loaded file paths), NOT enriched_prompt or handoff.
-        # Showing enriched context makes Haiku think it already has enough info
-        # and skip tool use. Toolkeeper should decide based on the QUESTION,
-        # not on whether STATE.md mentions the topic.
         if token_cart.get("file_context"):
             parts.append(f"## Already Loaded Files\n{token_cart['file_context'][:200]}")
 
-        # Show available project files so Haiku can target specific paths
+        # List project files so Haiku can target specific paths
         project_path = inputs.get("_project_path", ".")
-        if project_path and project_path != ".":
-            parts.append(f"## Project Path\n{project_path}")
+        if project_path:
+            try:
+                import subprocess as _sp
+                result = _sp.run(
+                    ["find", project_path, "-maxdepth", "2", "-name", "*.py",
+                     "-not", "-path", "*/venv/*", "-not", "-path", "*/__pycache__/*"],
+                    capture_output=True, text=True, timeout=3,
+                )
+                if result.stdout.strip():
+                    files = result.stdout.strip()[:500]
+                    parts.append(f"## Available Source Files\n{files}")
+            except Exception:
+                pass
 
         return "\n\n".join(parts) if parts else "No context available."
 
