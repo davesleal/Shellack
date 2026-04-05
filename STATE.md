@@ -1,6 +1,6 @@
 # Shellack Current State
-**Last Updated:** 2026-04-04
-**Status:** Production-ready — 25-persona phased cognitive pipeline, 549 tests green
+**Last Updated:** 2026-04-05
+**Status:** Production — 25-persona phased cognitive pipeline + self-research, 715 tests green
 
 ---
 
@@ -33,71 +33,46 @@ Loaded from `projects.yaml` at startup. Validated with `validate_config()`.
 
 ---
 
-## Session Checkpoint — 2026-04-01 (Genericization)
+## Session Checkpoint — 2026-04-05 (Pipeline Quality + Self-Research)
 
 ### What shipped
-- **Config extraction** — `orchestrator_config.py` rewritten as YAML loader. All project defs moved to `projects.yaml` (gitignored). Ships `projects.example.yaml` with full commented schema.
-- **Secret scanning** — `hooks/pre-commit` scans staged files for 12 secret patterns (Slack tokens, API keys, AWS, GitHub, private keys). Zero dependencies.
-- **Personal refs stripped** — all tracked files use generic placeholders. No project names, channel IDs, bundle IDs, or personal identifiers in code, docs, tests, or scripts.
-- **PROJECT_KNOWLEDGE removed** — agent reads `context` from config instead of hardcoded dict.
-- **Triage fix** — `_DEFAULT` fallback evaluates `SESSION_MODEL` at call time, not import.
-- **ThinkingIndicator** — fallback tests for `done()` failure paths.
-- **Onboarding** — reads channel from `ONBOARDING_CHANNEL` env var or config, no hardcoded channel name.
-- **YAML robustness** — warns on empty `projects` section and unrecognized top-level keys (catches typos).
+- **Self-research auto-dispatch** — `tools/self_research.py` runs a Haiku-driven loop (up to 5 steps) to investigate codebase questions. Iteratively runs safe read-only commands, accumulates findings, injects into enriched context. Fires automatically on moderate+ when Toolkeeper doesn't gather output.
+- **Toolkeeper persona** — `tools/personas/toolkeeper.py` auto-executes safe read-only commands (cat, grep, git log, etc.) to gather context before the main agent call. Safety-hardened with shell injection blocking ($(), backticks, process substitution, eval, exec).
+- **Agent-manager enabled by default** — 3-tier Haiku classification (simple/moderate/complex) now runs on every message. Simple questions skip pipeline entirely (~14s), moderate gets pipeline + self-research (~75s), complex gets full 9-phase pipeline (~3min).
+- **Cost tracking** — real token counts extracted from Anthropic API responses, wired through pipeline and micro-loops via `_usage` metadata pattern.
+- **Skeptic dynamic targeting** — micro-loop `revision_target` field allows Skeptic to route revisions to any persona, not just the static `to` target.
+- **Discussion log improvements** — `_summarize_slot` shows meaningful previews (verdict, command count, findings) instead of dict keys. Persona JSON fences stripped in base class.
+- **Markdown→mrkdwn tables** — `_convert_tables()` wraps markdown tables in code blocks for Slack rendering.
+- **14 per-persona unit tests** — Connector, DataScientist, Empathizer, Dreamer, GrowthCoach, Insights, Inspector, Tester, VisualUX, Rogue, Hacker, Prioritizer, Simplifier, DevilsAdvocate.
+- **Classification prompt tuning** — "uptime?" → simple (14s), "how does triage work?" → moderate (reads source), "trace lifecycle" → complex (full pipeline).
+- **Pipeline metadata passthrough** — underscore-prefixed keys (e.g. `_project_path`) pass through to all personas regardless of `reads` declaration.
+
+### Bugs fixed
+- Toolkeeper `_project_path` was filtered by reads list → always ran in cwd instead of project dir
+- Self-research trigger was inverted (fired when Toolkeeper said "no tools needed" = wrong direction)
+- Toolkeeper `run()` override silently dropped `_usage` → cost always 0
+- Agent-manager was opt-in (default OFF) → everything defaulted to moderate
+- Enriched context fed to Toolkeeper made Haiku think it already had enough info
+- Shell injection vectors: `$()`, backticks, `<()`, `system()`, `sed -i`, `eval`, `exec`, `source`, pipe to sh/bash
+- `_StubPersona` undefined type annotation in test
+- Unused `field` import in pipeline.py
+- Persona JSON wrapped in markdown fences → `{"raw": text}` fallback → bad discussion display
 
 ### Architecture now
 - `projects.yaml` → `orchestrator_config.py` (YAML loader) → module-level exports
 - One `ProjectAgent` per channel, pre-warmed at startup
+- **3-tier classification**: `agent_manager.py` → Haiku classifies → simple/moderate/complex
+- **Pipeline**: `pipeline.py` → 25 personas across 9 phases, tier-gated activation
+- **Self-research**: `self_research.py` → iterative Haiku loop for codebase investigation
+- **Toolkeeper**: auto-executes safe commands, hardened safety whitelist
 - Single-turn: `APIBackend` → `ThinkingIndicator` → gray attachment with response inline
 - `run:` sessions: `MaxBackend` or `APIBackend` → `SlackSession` streaming
-- No triage routing, no channel-level lifecycle posts, no peer-review auto-trigger
-
-### GitHub issues closed
-- #5 (multi-language support) — done via `projects.yaml`
-- #8 (test suite) — 263 tests
-- #11 (reverse chat) — core bot architecture
-- #12 (Slack↔terminal bridge) — implemented
 
 ---
 
 ## Open Items
 
-- [x] `conftest.py` for fresh-clone test support (davesleal/Shellack#13)
-- [x] `CONTRIBUTING.md` with fork setup instructions
-- [x] `<function_calls>` XML stripped from max-mode streaming (`_strip_tool_xml` in `slack_session.py`)
-- [x] Personal refs stripped from `docs/superpowers/` (davesleal/Shellack#13 — closed)
-
----
-
-## What's Next
-
-- [x] Strip tool XML from SlackSession streaming chunks
-- [x] Follow-ups from genericization (davesleal/Shellack#13 — closed)
-- [x] Haiku Token Cart — full system implemented + wired (393 tests):
-  - Token Cart Core (pre/post enrichment, handoff store)
-  - Project Registry (.shellack/registry.md)
-  - Cross-Thread Persistence (external handoffs)
-  - Correction Feedback Loop (auto-update registry)
-  - Cost Observability (per-turn spend in Churned block)
-  - Gut Check Agent (sanity check before posting)
-  - Inline Code Review (self-healing via post-call prompt)
-  - Channel Agent Teams (infosec, architect, tester, output-editor, visual-ux consultants)
-  - Agent Manager (complexity-based model selection)
-  - Feature Configuration (runtime toggles via `@Shellack config`)
-  - GitHub Discussions Journal — Sonnet polish + weekly threads, wired to session idle timeout
-  - Session cleanup — 10min idle → journal finalized, session purged
-- [x] Message UX redesign — `[think]/[reply]` tags, reasoning before reply, action buttons
-- [x] Voice transcription — faster-whisper local transcription
-- [x] Skill-aware agents — auto-detect stack, load relevant skills
-- [x] File Fetcher + Thread Observer — agents read files and maintain thread context
-- [x] Agent Discussion transparency — inter-agent chatter visible with emoji personas
-- [x] Context Manifest — persistent `.shellack/context.md` that grows over time
-- [x] Action buttons — numbered options as clickable Slack buttons
-- [x] Startup context scan — STATE.md, git log, file structure, configs loaded on warmup
-- [x] Thread continuation without @mention
-- [x] TTL-based thread memory expiry (24h)
-- [x] 25-persona cognitive pipeline — 9 phases, 3-tier activation, micro-loop revision (549 tests)
-- [ ] Self-research capability — auto-dispatch run: for context gaps (#22)
+- [x] Self-research capability — auto-dispatch for context gaps (#22)
 - [ ] Memory calibration agent (#21)
 - [ ] Action buttons trigger run: sessions (#20)
 - [ ] XML leak fix for cross-chunk boundaries in streaming
@@ -105,6 +80,7 @@ Loaded from `projects.yaml` at startup. Validated with `validate_config()`.
 - [ ] Anthropic client consolidation (single global instance)
 - [ ] Landing page: shellack.dev deployed on Cloudflare Workers
 - [ ] LLM-driven agent transitions — mid-conversation routing (davesleal/Shellack#14, low priority)
+- [ ] Parallel-within-phase execution (stretch goal for latency)
 
 ---
 
@@ -123,8 +99,10 @@ Shellack/
 │   └── sub_agents.py
 ├── tools/
 │   ├── pipeline.py              # TurnContext, Phase, run_pipeline orchestration
+│   ├── self_research.py         # Multi-step Haiku codebase investigation
 │   ├── personas/                # 25 cognitive personas (one file each)
-│   │   ├── __init__.py          # Persona base class + registry
+│   │   ├── __init__.py          # Persona base class + registry + fence stripping
+│   │   ├── toolkeeper.py        # Auto-execute safe commands for context
 │   │   ├── strategist.py        # Phase 3: task decomposition
 │   │   ├── historian.py         # Phase 3: prior decisions
 │   │   ├── architect.py         # Phase 4: structural proposals
@@ -134,19 +112,17 @@ Shellack/
 │   │   ├── learner.py           # Phase 9: lesson extraction
 │   │   └── ... (25 total)
 │   ├── token_cart.py            # Haiku-powered context compaction
+│   ├── triage.py                # Complexity classification (unused — agent_manager used instead)
+│   ├── agent_manager.py         # Haiku classifier + model selection (enabled by default)
+│   ├── agent_discussion.py      # Phase-grouped discussion log with emoji personas
 │   ├── registry.py              # .shellack/registry.md management
-│   ├── thread_memory.py         # cross-thread persistence
-│   ├── cost_tracker.py          # per-turn/thread cost tracking
-│   ├── consultants.py           # legacy consultants (replaced by pipeline)
-│   ├── agent_manager.py         # complexity-based model selection
-│   ├── agent_discussion.py      # phase-grouped discussion log
-│   ├── github_journal.py        # GitHub Discussions journal posting
-│   ├── journal_polisher.py      # Sonnet journal polish
-│   ├── thinking_indicator.py
-│   ├── slack_session.py
+│   ├── thread_memory.py         # Cross-thread persistence (24h TTL)
+│   ├── cost_tracker.py          # Per-turn/thread cost tracking
+│   ├── slack_session.py         # Streaming + _md_to_mrkdwn + table conversion
 │   ├── session_backend.py
+│   ├── thinking_indicator.py
 │   └── lifecycle.py
-├── tests/                       # 549 tests
+├── tests/                       # 715 tests
 └── .env                         # credentials (SECRET)
 ```
 
@@ -158,4 +134,4 @@ source venv/bin/activate && python bot_unified.py
 venv/bin/pytest -q
 ```
 
-*Last session: 2026-04-01*
+*Last session: 2026-04-05*

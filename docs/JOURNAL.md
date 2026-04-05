@@ -1,5 +1,19 @@
 # Shellack Project Journal
 
+## 2026-04-05 — The Bot That Reads Its Own Source Code
+
+**Context:** The 25-persona pipeline shipped yesterday, but the bot couldn't answer questions about itself. Ask "how does triage work?" and it would say "run this command and paste the output" — the exact behavior the pipeline was supposed to eliminate. Toolkeeper was supposed to auto-fetch files, but Haiku kept deciding "no tools needed." Self-research existed in concept but wasn't wired. And every question — including "what's your uptime?" — ran the full pipeline for 75 seconds because the agent-manager was disabled by default, hardcoding everything to moderate.
+
+**Approach:** Four parallel agents built the features (skeptic micro-loop fix, 14 persona unit tests, cost tracking, self-research). Then a code review agent found two critical bugs: shell injection vectors in the command safety check and Toolkeeper silently dropping `_usage` metadata. The real debugging started when we tested live in Slack and found a chain of failures: `_project_path` was filtered out by the persona reads list (Toolkeeper ran in the wrong directory), enriched context made Haiku think it already had enough info, the self-research trigger condition was inverted, and agent-manager defaulting to OFF meant no classification happened at all.
+
+The breakthrough was accepting that Toolkeeper's single-shot Haiku decision is fundamentally unreliable — it will always say "no tools needed" when it sees any context. Instead of fighting this, self-research now fires automatically on moderate+ whenever no tool output was gathered. Its iterative loop (see the file listing, pick a file, read it, decide if more is needed) is much more reliable than a single-shot "should I use tools?" decision.
+
+**Outcome:** Simple questions ("uptime?") now respond in ~14 seconds with no pipeline. Moderate questions ("how does triage work?") read actual source code and give accurate, specific answers. Complex questions ("trace the full lifecycle") produce comprehensive multi-phase analyses with ASCII diagrams, decision point tables, and failure zone maps — all grounded in code the bot actually read. Tables render correctly in Slack via code blocks. 715 tests passing, up from 560 at session start.
+
+**Insights:** The most interesting failure was how enriched context creates a confidence trap for small models. Haiku sees STATE.md mentioning "triage system" and thinks it knows enough — it has no concept of "this is a summary, not the source." Removing context from Toolkeeper's view was counterintuitive but necessary. The iterative self-research loop works better because each step grounds the model in actual file contents, breaking the false confidence cycle. Sometimes the fix isn't making the model smarter — it's making it see less until it has to look for itself.
+
+---
+
 ## 2026-04-04 — Phased Orchestrator: 25 Personas Across 9 Phases
 
 **Context:** The flat consultant model (infosec, architect, tester, visual-ux, output-editor) fired post-hoc after every response — no ability to shape the response before it shipped, no inter-persona communication, no revision loops. The 22-persona cognitive spec was complete but only 11 were implemented.
