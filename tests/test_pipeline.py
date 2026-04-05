@@ -92,7 +92,10 @@ def test_persona_run_returns_dict(monkeypatch):
     monkeypatch.setattr(persona, "_call_api", lambda *args, **kwargs: mock_msg)
 
     result = persona.run({"observer": {"summary": "test"}})
+    # _usage is metadata attached by run(); persona output fields are still present
+    usage = result.pop("_usage")
     assert result == output
+    assert usage == {"input_tokens": 10, "output_tokens": 5}
 
 
 def test_persona_run_fallback_on_bad_json(monkeypatch):
@@ -107,7 +110,9 @@ def test_persona_run_fallback_on_bad_json(monkeypatch):
     monkeypatch.setattr(persona, "_call_api", lambda *args, **kwargs: mock_msg)
 
     result = persona.run({})
+    usage = result.pop("_usage")
     assert result == {"raw": raw_text}
+    assert usage == {"input_tokens": 10, "output_tokens": 5}
 
 
 # ---------------------------------------------------------------------------
@@ -131,15 +136,18 @@ def test_run_phase_activates_persona(monkeypatch):
     phase = Phase(name="test_phase", emoji="🧪", personas=[persona])
     discussion, costs = run_phase(phase, ctx, "moderate")
 
-    # Active persona writes to ctx
+    # Active persona writes to ctx — _usage must NOT leak into context slots
     assert ctx["fake"] == output
+    assert "_usage" not in ctx["fake"]
     # Discussion has one entry
     assert len(discussion) == 1
     assert "fake" in discussion[0]
-    # Cost entry emitted
+    # Cost entry emitted with real token values
     assert len(costs) == 1
     assert isinstance(costs[0], TurnCostEntry)
     assert costs[0].persona == "fake"
+    assert costs[0].input_tokens == 10
+    assert costs[0].output_tokens == 5
 
 
 def test_run_phase_empty_when_no_activation():

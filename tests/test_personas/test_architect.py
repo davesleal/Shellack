@@ -56,7 +56,9 @@ def test_architect_run(monkeypatch, persona):
         "strategist": {"tasks": ["Design user model", "Design project model"]},
         "historian": {"prior_decisions": ["Use SQLite for storage"]},
     })
+    usage = result.pop("_usage")
     assert result == output
+    assert usage == {"input_tokens": 80, "output_tokens": 60}
 
 
 # ---------------------------------------------------------------------------

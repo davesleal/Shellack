@@ -59,9 +59,14 @@ class Persona:
         msg = self._call_api(system, user, resolved_model, self.max_tokens)
         text = msg.content[0].text.strip()
         try:
-            return json.loads(text)
+            result = json.loads(text)
         except (json.JSONDecodeError, ValueError):
-            return {"raw": text}
+            result = {"raw": text}
+        result["_usage"] = {
+            "input_tokens": msg.usage.input_tokens,
+            "output_tokens": msg.usage.output_tokens,
+        }
+        return result
 
     @abstractmethod
     def should_activate(self, complexity: str, turn_context: dict) -> bool:

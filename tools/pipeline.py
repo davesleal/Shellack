@@ -271,6 +271,9 @@ def run_phase(
             log.warning("%s %s raised %s: %s", persona.emoji, persona.name, type(exc).__name__, exc)
             result = {"error": str(exc)}
 
+        # Extract usage metadata before writing to context
+        usage = result.pop("_usage", {})
+
         # Write output to context
         ctx[persona.writes] = result
 
@@ -278,13 +281,11 @@ def run_phase(
         entry = f"{persona.emoji} {persona.name}: {_summarize_slot(persona.writes, result)}"
         discussion.append(entry)
 
-        # Record cost if the persona exposes usage (via run returning a result with __usage__)
-        # Real cost tracking happens via _call_api; here we emit a zero-cost entry as a placeholder
-        # unless the persona's last API call stored usage on ctx.
+        # Record real token costs from the API response
         costs.append(TurnCostEntry(
             persona=persona.name,
-            input_tokens=0,
-            output_tokens=0,
+            input_tokens=usage.get("input_tokens", 0),
+            output_tokens=usage.get("output_tokens", 0),
             model=persona.model,
         ))
 
@@ -372,13 +373,14 @@ def run_phase_with_micro_loop(
         log.warning("%s %s (revised) raised %s: %s", target_persona.emoji, target_persona.name, type(exc).__name__, exc)
         target_result = {"error": str(exc)}
 
+    target_usage = target_result.pop("_usage", {})
     ctx[target_persona.writes] = target_result
     entry = f"{target_persona.emoji} {target_persona.name} (revised): {_summarize_slot(target_persona.writes, target_result)}"
     discussion.append(entry)
     costs.append(TurnCostEntry(
         persona=f"{target_persona.name} (revised)",
-        input_tokens=0,
-        output_tokens=0,
+        input_tokens=target_usage.get("input_tokens", 0),
+        output_tokens=target_usage.get("output_tokens", 0),
         model=target_persona.model,
     ))
 
@@ -403,13 +405,14 @@ def run_phase_with_micro_loop(
             log.warning("%s %s (re-eval) raised %s: %s", source_persona.emoji, source_persona.name, type(exc).__name__, exc)
             source_result = {"error": str(exc)}
 
+        source_usage = source_result.pop("_usage", {})
         ctx[source_persona.writes] = source_result
         entry = f"{source_persona.emoji} {source_persona.name} (re-eval): {_summarize_slot(source_persona.writes, source_result)}"
         discussion.append(entry)
         costs.append(TurnCostEntry(
             persona=f"{source_persona.name} (re-eval)",
-            input_tokens=0,
-            output_tokens=0,
+            input_tokens=source_usage.get("input_tokens", 0),
+            output_tokens=source_usage.get("output_tokens", 0),
             model=source_persona.model,
         ))
 
