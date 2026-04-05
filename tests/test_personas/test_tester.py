@@ -1,16 +1,16 @@
-"""Tests for the Connector persona."""
+"""Tests for the Tester persona."""
 
 import json
 from unittest.mock import MagicMock
 
 import pytest
 
-from tools.personas.connector import Connector
+from tools.personas.tester import Tester
 
 
 @pytest.fixture
 def persona():
-    return Connector()
+    return Tester()
 
 
 # ---------------------------------------------------------------------------
@@ -18,24 +18,24 @@ def persona():
 # ---------------------------------------------------------------------------
 
 def test_metadata(persona):
-    assert persona.name == "connector"
-    assert persona.model == "haiku"
-    assert persona.reads == ["architect", "token_cart"]
-    assert persona.writes == "connector"
-    assert persona.emoji == "\U0001f517"
-    assert persona.max_tokens == 512
+    assert persona.name == "tester"
+    assert persona.model == "sonnet"
+    assert persona.reads == ["architect", "inspector"]
+    assert persona.writes == "tester"
+    assert persona.emoji == "\U0001f9ea"
+    assert persona.max_tokens == 768
 
 
 # ---------------------------------------------------------------------------
 # Activation
 # ---------------------------------------------------------------------------
 
+def test_activates_on_moderate(persona):
+    assert persona.should_activate("moderate", {}) is True
+
+
 def test_activates_on_complex(persona):
     assert persona.should_activate("complex", {}) is True
-
-
-def test_does_not_activate_on_moderate(persona):
-    assert persona.should_activate("moderate", {}) is False
 
 
 def test_does_not_activate_on_simple(persona):
@@ -52,17 +52,18 @@ def test_does_not_activate_on_deep(persona):
 
 def test_run_returns_parsed_output(monkeypatch, persona):
     output = {
-        "similar_patterns": [
-            {"project": "Atmos", "pattern": "pub/sub", "relevance": "same event model"}
+        "test_cases": [
+            {"name": "test_auth_rejects_expired_token", "type": "unit", "assertion": "returns 401"}
         ],
-        "reuse_opportunities": ["shared event bus"],
+        "coverage_gaps": ["race condition on concurrent refresh"],
+        "verdict": "gaps",
     }
     mock_msg = MagicMock()
     mock_msg.content = [MagicMock(text=json.dumps(output))]
     mock_msg.usage = MagicMock(input_tokens=50, output_tokens=30)
     monkeypatch.setattr(persona, "_call_api", lambda s, u, m, mt: mock_msg)
 
-    result = persona.run({"architect": {"proposal": "Use event bus"}})
+    result = persona.run({"architect": {"proposal": "Token refresh"}})
     assert result == output
 
 
@@ -80,22 +81,26 @@ def test_run_falls_back_on_bad_json(monkeypatch, persona):
 # User content
 # ---------------------------------------------------------------------------
 
-def test_build_user_content_with_architect(persona):
+def test_build_user_content_with_inputs(persona):
     inputs = {
-        "architect": {"proposal": "Build a cache layer", "api_surface": "/api/cache"},
+        "architect": {
+            "proposal": "Token refresh",
+            "api_surface": "/api/refresh",
+            "files_affected": ["auth/refresh.py"],
+        },
+        "inspector": {
+            "gaps": [
+                {"type": "edge_case", "location": "auth/refresh.py", "severity": "high"}
+            ],
+            "verdict": "gaps",
+        },
     }
     content = persona._build_user_content(inputs)
-    assert "Build a cache layer" in content
-    assert "/api/cache" in content
-
-
-def test_build_user_content_with_token_cart(persona):
-    inputs = {
-        "token_cart": {"enriched_prompt": "enriched", "registry": "projects list"},
-    }
-    content = persona._build_user_content(inputs)
-    assert "enriched" in content
-    assert "projects list" in content
+    assert "Token refresh" in content
+    assert "/api/refresh" in content
+    assert "auth/refresh.py" in content
+    assert "edge_case" in content
+    assert "gaps" in content
 
 
 def test_build_user_content_empty_fallback(persona):

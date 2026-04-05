@@ -1,16 +1,16 @@
-"""Tests for the Connector persona."""
+"""Tests for the Hacker persona."""
 
 import json
 from unittest.mock import MagicMock
 
 import pytest
 
-from tools.personas.connector import Connector
+from tools.personas.hacker import Hacker
 
 
 @pytest.fixture
 def persona():
-    return Connector()
+    return Hacker()
 
 
 # ---------------------------------------------------------------------------
@@ -18,11 +18,11 @@ def persona():
 # ---------------------------------------------------------------------------
 
 def test_metadata(persona):
-    assert persona.name == "connector"
+    assert persona.name == "hacker"
     assert persona.model == "haiku"
-    assert persona.reads == ["architect", "token_cart"]
-    assert persona.writes == "connector"
-    assert persona.emoji == "\U0001f517"
+    assert persona.reads == ["architect"]
+    assert persona.writes == "hacker"
+    assert persona.emoji == "\U0001f3f4\u200d\u2620\ufe0f"
     assert persona.max_tokens == 512
 
 
@@ -34,8 +34,18 @@ def test_activates_on_complex(persona):
     assert persona.should_activate("complex", {}) is True
 
 
-def test_does_not_activate_on_moderate(persona):
+def test_activates_on_moderate_with_security_override(persona):
+    ctx = {"agent_manager": {"security_override": True}}
+    assert persona.should_activate("moderate", ctx) is True
+
+
+def test_does_not_activate_on_moderate_without_override(persona):
     assert persona.should_activate("moderate", {}) is False
+
+
+def test_does_not_activate_on_moderate_with_false_override(persona):
+    ctx = {"agent_manager": {"security_override": False}}
+    assert persona.should_activate("moderate", ctx) is False
 
 
 def test_does_not_activate_on_simple(persona):
@@ -52,17 +62,17 @@ def test_does_not_activate_on_deep(persona):
 
 def test_run_returns_parsed_output(monkeypatch, persona):
     output = {
-        "similar_patterns": [
-            {"project": "Atmos", "pattern": "pub/sub", "relevance": "same event model"}
+        "attack_vectors": [
+            {"vector": "SQL injection via user input", "severity": "critical", "exploitability": "easy"}
         ],
-        "reuse_opportunities": ["shared event bus"],
+        "verdict": "critical",
     }
     mock_msg = MagicMock()
     mock_msg.content = [MagicMock(text=json.dumps(output))]
     mock_msg.usage = MagicMock(input_tokens=50, output_tokens=30)
     monkeypatch.setattr(persona, "_call_api", lambda s, u, m, mt: mock_msg)
 
-    result = persona.run({"architect": {"proposal": "Use event bus"}})
+    result = persona.run({"architect": {"proposal": "Add search endpoint"}})
     assert result == output
 
 
@@ -80,22 +90,20 @@ def test_run_falls_back_on_bad_json(monkeypatch, persona):
 # User content
 # ---------------------------------------------------------------------------
 
-def test_build_user_content_with_architect(persona):
+def test_build_user_content_with_inputs(persona):
     inputs = {
-        "architect": {"proposal": "Build a cache layer", "api_surface": "/api/cache"},
+        "architect": {
+            "proposal": "Add search endpoint",
+            "data_model": "Query(raw_sql)",
+            "api_surface": "/api/search",
+            "files_affected": ["routes/search.py"],
+        },
     }
     content = persona._build_user_content(inputs)
-    assert "Build a cache layer" in content
-    assert "/api/cache" in content
-
-
-def test_build_user_content_with_token_cart(persona):
-    inputs = {
-        "token_cart": {"enriched_prompt": "enriched", "registry": "projects list"},
-    }
-    content = persona._build_user_content(inputs)
-    assert "enriched" in content
-    assert "projects list" in content
+    assert "Add search endpoint" in content
+    assert "Query(raw_sql)" in content
+    assert "/api/search" in content
+    assert "routes/search.py" in content
 
 
 def test_build_user_content_empty_fallback(persona):

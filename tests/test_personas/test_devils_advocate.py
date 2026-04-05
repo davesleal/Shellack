@@ -1,16 +1,16 @@
-"""Tests for the Connector persona."""
+"""Tests for the DevilsAdvocate persona."""
 
 import json
 from unittest.mock import MagicMock
 
 import pytest
 
-from tools.personas.connector import Connector
+from tools.personas.devils_advocate import DevilsAdvocate
 
 
 @pytest.fixture
 def persona():
-    return Connector()
+    return DevilsAdvocate()
 
 
 # ---------------------------------------------------------------------------
@@ -18,11 +18,11 @@ def persona():
 # ---------------------------------------------------------------------------
 
 def test_metadata(persona):
-    assert persona.name == "connector"
+    assert persona.name == "devils_advocate"
     assert persona.model == "haiku"
-    assert persona.reads == ["architect", "token_cart"]
-    assert persona.writes == "connector"
-    assert persona.emoji == "\U0001f517"
+    assert persona.reads == ["architect", "strategist"]
+    assert persona.writes == "devils_advocate"
+    assert persona.emoji == "\U0001f479"
     assert persona.max_tokens == 512
 
 
@@ -52,17 +52,16 @@ def test_does_not_activate_on_deep(persona):
 
 def test_run_returns_parsed_output(monkeypatch, persona):
     output = {
-        "similar_patterns": [
-            {"project": "Atmos", "pattern": "pub/sub", "relevance": "same event model"}
-        ],
-        "reuse_opportunities": ["shared event bus"],
+        "counter_argument": "Microservices add operational complexity for a solo dev",
+        "alternative": "Start with a modular monolith",
+        "verdict": "has_merit",
     }
     mock_msg = MagicMock()
     mock_msg.content = [MagicMock(text=json.dumps(output))]
     mock_msg.usage = MagicMock(input_tokens=50, output_tokens=30)
     monkeypatch.setattr(persona, "_call_api", lambda s, u, m, mt: mock_msg)
 
-    result = persona.run({"architect": {"proposal": "Use event bus"}})
+    result = persona.run({"architect": {"proposal": "Split into microservices"}})
     assert result == output
 
 
@@ -80,22 +79,26 @@ def test_run_falls_back_on_bad_json(monkeypatch, persona):
 # User content
 # ---------------------------------------------------------------------------
 
-def test_build_user_content_with_architect(persona):
+def test_build_user_content_with_inputs(persona):
     inputs = {
-        "architect": {"proposal": "Build a cache layer", "api_surface": "/api/cache"},
+        "architect": {
+            "proposal": "Split into microservices",
+            "data_model": "Service(name, port)",
+            "api_surface": "/api/gateway",
+            "files_affected": ["services/gateway.py", "services/auth.py"],
+        },
+        "strategist": {
+            "tasks": ["Extract auth service", "Add API gateway"],
+            "estimated_complexity": "complex",
+        },
     }
     content = persona._build_user_content(inputs)
-    assert "Build a cache layer" in content
-    assert "/api/cache" in content
-
-
-def test_build_user_content_with_token_cart(persona):
-    inputs = {
-        "token_cart": {"enriched_prompt": "enriched", "registry": "projects list"},
-    }
-    content = persona._build_user_content(inputs)
-    assert "enriched" in content
-    assert "projects list" in content
+    assert "Split into microservices" in content
+    assert "Service(name, port)" in content
+    assert "/api/gateway" in content
+    assert "services/gateway.py" in content
+    assert "Extract auth service" in content
+    assert "complex" in content
 
 
 def test_build_user_content_empty_fallback(persona):

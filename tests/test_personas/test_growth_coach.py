@@ -1,16 +1,16 @@
-"""Tests for the Connector persona."""
+"""Tests for the GrowthCoach persona."""
 
 import json
 from unittest.mock import MagicMock
 
 import pytest
 
-from tools.personas.connector import Connector
+from tools.personas.growth_coach import GrowthCoach
 
 
 @pytest.fixture
 def persona():
-    return Connector()
+    return GrowthCoach()
 
 
 # ---------------------------------------------------------------------------
@@ -18,11 +18,11 @@ def persona():
 # ---------------------------------------------------------------------------
 
 def test_metadata(persona):
-    assert persona.name == "connector"
+    assert persona.name == "growth_coach"
     assert persona.model == "haiku"
-    assert persona.reads == ["architect", "token_cart"]
-    assert persona.writes == "connector"
-    assert persona.emoji == "\U0001f517"
+    assert persona.reads == ["architect", "insights"]
+    assert persona.writes == "growth_coach"
+    assert persona.emoji == "\U0001f4c8"
     assert persona.max_tokens == 512
 
 
@@ -52,17 +52,17 @@ def test_does_not_activate_on_deep(persona):
 
 def test_run_returns_parsed_output(monkeypatch, persona):
     output = {
-        "similar_patterns": [
-            {"project": "Atmos", "pattern": "pub/sub", "relevance": "same event model"}
-        ],
-        "reuse_opportunities": ["shared event bus"],
+        "funnel_impact": "Activation — reduces onboarding friction",
+        "conversion_risk": "Users may skip optional profile step",
+        "ab_test_opportunity": "Test mandatory vs optional profile",
+        "verdict": "measure_first",
     }
     mock_msg = MagicMock()
     mock_msg.content = [MagicMock(text=json.dumps(output))]
     mock_msg.usage = MagicMock(input_tokens=50, output_tokens=30)
     monkeypatch.setattr(persona, "_call_api", lambda s, u, m, mt: mock_msg)
 
-    result = persona.run({"architect": {"proposal": "Use event bus"}})
+    result = persona.run({"architect": {"proposal": "Add onboarding flow"}})
     assert result == output
 
 
@@ -80,22 +80,20 @@ def test_run_falls_back_on_bad_json(monkeypatch, persona):
 # User content
 # ---------------------------------------------------------------------------
 
-def test_build_user_content_with_architect(persona):
+def test_build_user_content_with_inputs(persona):
     inputs = {
-        "architect": {"proposal": "Build a cache layer", "api_surface": "/api/cache"},
+        "architect": {"proposal": "Add onboarding", "api_surface": "/api/onboard"},
+        "insights": {
+            "success_criteria": ["80% completion rate"],
+            "metrics": ["time_to_first_action"],
+            "verdict": "measurable",
+        },
     }
     content = persona._build_user_content(inputs)
-    assert "Build a cache layer" in content
-    assert "/api/cache" in content
-
-
-def test_build_user_content_with_token_cart(persona):
-    inputs = {
-        "token_cart": {"enriched_prompt": "enriched", "registry": "projects list"},
-    }
-    content = persona._build_user_content(inputs)
-    assert "enriched" in content
-    assert "projects list" in content
+    assert "Add onboarding" in content
+    assert "80% completion rate" in content
+    assert "time_to_first_action" in content
+    assert "measurable" in content
 
 
 def test_build_user_content_empty_fallback(persona):
