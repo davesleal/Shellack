@@ -71,7 +71,7 @@ def _clean_registry():
     PERSONA_REGISTRY.update(snapshot)
 
 
-def _register(persona: _StubPersona):
+def _register(persona):
     PERSONA_REGISTRY[persona.name] = persona
 
 

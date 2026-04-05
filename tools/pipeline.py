@@ -9,7 +9,7 @@ TurnContext and writes its output back.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from tools.personas import Persona, PERSONA_REGISTRY
 

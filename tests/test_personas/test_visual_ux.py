@@ -83,6 +83,7 @@ def test_run_returns_parsed_output(monkeypatch, persona):
     monkeypatch.setattr(persona, "_call_api", lambda s, u, m, mt: mock_msg)
 
     result = persona.run({"architect": {"proposal": "New button component"}})
+    result.pop("_usage", None)
     assert result == output
 
 
@@ -93,6 +94,7 @@ def test_run_falls_back_on_bad_json(monkeypatch, persona):
     monkeypatch.setattr(persona, "_call_api", lambda s, u, m, mt: mock_msg)
 
     result = persona.run({})
+    result.pop("_usage", None)
     assert result == {"raw": "not json"}
 
 

