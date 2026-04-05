@@ -216,10 +216,15 @@ def _summarize_slot(name: str, slot: object) -> str:
         # Show verdict if present (most useful signal)
         if "verdict" in slot:
             return f"{slot['verdict']}"
-        # Show raw content preview instead of just "{raw}"
+        # Show raw content preview — strip markdown fences
         if "raw" in slot:
-            preview = str(slot["raw"])[:60].replace("\n", " ")
-            return f"{preview}"
+            text = str(slot["raw"]).strip()
+            # Strip ```json prefix and trailing ```
+            if text.startswith("```"):
+                text = text.split("\n", 1)[-1] if "\n" in text else text[3:]
+            text = text.rstrip("`").strip()
+            preview = text[:60].replace("\n", " ")
+            return preview
         # Show error
         if "error" in slot:
             return f"error: {slot['error'][:50]}"
@@ -235,17 +240,30 @@ def _summarize_slot(name: str, slot: object) -> str:
         if "findings" in slot:
             preview = str(slot["findings"])[:60].replace("\n", " ")
             return f"{slot.get('steps', '?')} steps: {preview}"
-        # Fallback: show first meaningful value
-        for key in ("summary", "proposal", "vision", "recommendation", "polished_output"):
+        # Fallback: show first meaningful string value (covers all persona output shapes)
+        _PREVIEW_KEYS = (
+            "summary", "proposal", "vision", "recommendation", "polished_output",
+            "reasoning", "pattern", "claim", "option", "observation",
+        )
+        for key in _PREVIEW_KEYS:
             if key in slot:
                 preview = str(slot[key])[:60].replace("\n", " ")
-                return f"{preview}"
+                return preview
+        # Try first list value — many personas return lists of findings
+        for key, val in slot.items():
+            if isinstance(val, list) and val:
+                # Show count + first item preview
+                first = str(val[0])[:40].replace("\n", " ")
+                return f"{len(val)} items: {first}..."
+            if isinstance(val, str) and len(val) > 5:
+                preview = val[:60].replace("\n", " ")
+                return preview
         # Last resort: show key names
         keys = list(slot.keys())[:3]
         return f"{{{', '.join(keys)}}}"
     if isinstance(slot, str):
         preview = slot[:60].replace("\n", " ")
-        return f"{preview}"
+        return preview
     return f"{slot!r}"
 
 

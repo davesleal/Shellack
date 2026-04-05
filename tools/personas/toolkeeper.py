@@ -140,10 +140,16 @@ Rules:
 - Max 3 commands
 - ONLY read-only commands: cat, head, grep, find, ls, git log, git diff, git show, psql -c, sqlite3 -c
 - NEVER: rm, mv, cp, git push, git commit, npm install, pip install, any write/delete/modify
-- If the context already has what's needed (from handoff, registry, file fetcher), set needs_tools to false
 - Be specific: "cat src/services/followService.ts" not "look at the service files"
 - For database: use psql -c with SELECT only
-- Prefer targeted commands over broad ones (grep for specific patterns, not cat of entire files)"""
+- Prefer targeted commands over broad ones (grep for specific patterns, not cat of entire files)
+
+IMPORTANT — when to set needs_tools to true:
+- Questions about HOW code works, what it does, or why it behaves a certain way → ALWAYS fetch the source file
+- Questions mentioning specific files, functions, modules, or systems → ALWAYS fetch them
+- "How does X work?" → find and cat the relevant source file
+- STATE.md, registry, and handoff context are HIGH-LEVEL SUMMARIES — they do NOT contain implementation details
+- Only set needs_tools to false for greetings, opinions, or questions that genuinely need no code context"""
 
     def should_activate(self, complexity: str, turn_context: dict) -> bool:
         # Activate on moderate+ when the observer summary suggests file/code needs
