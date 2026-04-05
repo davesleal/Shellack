@@ -470,12 +470,14 @@ def handle_project_message(event, say, channel_name: str):
                     enriched_context = f"{enriched_context}\n\n## Auto-Fetched Context\n{tool_context}"
                     logger.info(f"Toolkeeper injected {len(tool_context)} chars of context")
 
-                # 6c. Self-research: multi-step investigation for complex questions
-                # Triggers when Toolkeeper didn't gather enough or complexity warrants it
+                # 6c. Self-research: multi-step investigation for code questions
+                # Fires whenever moderate+ and no tool output was gathered — regardless
+                # of Toolkeeper's judgment (Haiku's single-shot decision is unreliable).
+                # Self-research uses its own iterative Haiku loop to decide what to fetch.
+                _has_tool_output = bool(toolkeeper_output.get("output", "").strip())
                 _needs_research = (
                     current_complexity in ("moderate", "complex")
-                    and toolkeeper_output.get("needs_tools")
-                    and not toolkeeper_output.get("output", "").strip()
+                    and not _has_tool_output
                 )
                 if _needs_research:
                     try:
